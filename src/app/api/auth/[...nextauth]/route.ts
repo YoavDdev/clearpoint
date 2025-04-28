@@ -1,8 +1,9 @@
 import NextAuth, { type NextAuthOptions, type User, type Session } from "next-auth";
 import { type JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { createClient } from "@supabase/supabase-js";
 
-export const authOptions : NextAuthOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -35,12 +36,30 @@ export const authOptions : NextAuthOptions = {
           return null;
         }
 
-        // Step 2: Return user + access token to session
+        // Step 2: Fetch user role from Supabase 'users' table
+        const supabaseAdmin = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+
+        const { data: userData, error: userError } = await supabaseAdmin
+          .from('users')
+          .select('role')
+          .eq('email', credentials.email)
+          .single();
+
+        if (userError) {
+          console.error('❌ Failed to fetch user role:', userError);
+          return null;
+        }
+
+        // Step 3: Return user + access token + role
         return {
           id: data.user.id,
           email: data.user.email,
-          access_token: data.access_token,   // Save JWT
-          refresh_token: data.refresh_token, // (optional, future use)
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+          role: userData?.role || 'user', // Default fallback role
         };
       },
     }),
@@ -56,6 +75,8 @@ export const authOptions : NextAuthOptions = {
         token.email = user.email;
         // @ts-ignore
         token.access_token = user.access_token;
+        // @ts-ignore
+        token.role = user.role; // ✅ Save role in token
       }
       return token;
     },
@@ -65,6 +86,8 @@ export const authOptions : NextAuthOptions = {
         session.user.email = token.email;
         // @ts-ignore
         session.user.access_token = token.access_token;
+        // @ts-ignore
+        session.user.role = token.role; // ✅ Attach role to session
       }
       return session;
     },
