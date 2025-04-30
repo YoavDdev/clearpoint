@@ -6,6 +6,9 @@ export default function NewCustomerPage() {
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [plan, setPlan] = useState('Basic');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [tempPassword, setTempPassword] = useState('');
 
@@ -20,69 +23,114 @@ export default function NewCustomerPage() {
 
   const handleCreateCustomer = async () => {
     setLoading(true);
-
     const password = generatePassword();
     setTempPassword(password);
 
-    // ✅ Send to your backend route
     const response = await fetch('/api/admin-create-user', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email,
         password,
         full_name: fullName,
         subscription_plan: plan,
+        phone,
+        address,
+        notes,
       }),
     });
 
     const result = await response.json();
 
     if (!result.success) {
-      console.error('Error creating customer:', result.error);
-      alert('Error creating customer: ' + result.error);
+      alert('שגיאה ביצירת לקוח: ' + result.error);
+      console.error(result.error);
       setLoading(false);
       return;
     }
 
-    alert('Customer created successfully!');
+    alert('✅ הלקוח נוצר בהצלחה!');
+    // Reset form
     setEmail('');
     setFullName('');
     setPlan('Basic');
+    setPhone('');
+    setAddress('');
+    setNotes('');
     setLoading(false);
   };
 
   return (
-<main className="flex flex-col min-h-screen p-6 bg-gray-100">
-<h1 className="text-3xl font-bold mb-6">Add New Customer</h1>
+    <main className="min-h-screen bg-gray-100 pt-20 px-6 flex flex-col items-center">
+      <div className="w-full max-w-xl bg-white p-8 rounded-lg shadow-lg">
+        <h1 className="text-2xl font-bold mb-6 text-right">הוספת לקוח חדש</h1>
 
-      <div className="bg-white p-8 rounded-lg shadow-md max-w-md">
-        <div className="mb-4">
-          <label className="block mb-2">Email</label>
+        {/* Email */}
+        <div className="mb-4 text-right">
+          <label className="block mb-2 font-medium">אימייל</label>
           <input
             type="email"
-            className="w-full p-2 border border-gray-300 rounded"
+            placeholder="example@email.com"
+            className="w-full p-2 border border-gray-300 rounded text-right"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            autoFocus
           />
         </div>
 
-        <div className="mb-4">
-          <label className="block mb-2">Full Name</label>
+        {/* Full Name */}
+        <div className="mb-4 text-right">
+          <label className="block mb-2 font-medium">שם מלא</label>
           <input
             type="text"
-            className="w-full p-2 border border-gray-300 rounded"
+            placeholder="שם פרטי ומשפחה"
+            className="w-full p-2 border border-gray-300 rounded text-right"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
           />
         </div>
 
-        <div className="mb-6">
-          <label className="block mb-2">Subscription Plan</label>
+        {/* Phone */}
+        <div className="mb-4 text-right">
+          <label className="block mb-2 font-medium">מספר טלפון</label>
+          <input
+            type="tel"
+            placeholder="050-0000000"
+            className="w-full p-2 border border-gray-300 rounded text-right"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+        </div>
+
+        {/* Address */}
+        <div className="mb-4 text-right">
+          <label className="block mb-2 font-medium">כתובת</label>
+          <input
+            type="text"
+            placeholder="עיר, רחוב, מספר"
+            className="w-full p-2 border border-gray-300 rounded text-right"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+          />
+        </div>
+
+        {/* Notes */}
+        <div className="mb-4 text-right">
+          <label className="block mb-2 font-medium">הערות</label>
+          <textarea
+            placeholder="מידע נוסף על הלקוח (לא חובה)"
+            className="w-full p-2 border border-gray-300 rounded text-right"
+            rows={2}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+        </div>
+
+        {/* Plan */}
+        <div className="mb-6 text-right">
+          <label className="block mb-2 font-medium">מסלול מנוי</label>
           <select
-            className="w-full p-2 border border-gray-300 rounded"
+            className="w-full p-2 border border-gray-300 rounded text-right"
             value={plan}
             onChange={(e) => setPlan(e.target.value)}
           >
@@ -92,17 +140,19 @@ export default function NewCustomerPage() {
           </select>
         </div>
 
+        {/* Submit Button */}
         <button
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white p-2 rounded"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded"
           onClick={handleCreateCustomer}
           disabled={loading}
         >
-          {loading ? 'Creating...' : 'Create Customer'}
+          {loading ? 'יוצר לקוח...' : 'צור לקוח'}
         </button>
 
+        {/* Temp Password Display */}
         {tempPassword && (
-          <div className="mt-6 p-4 bg-green-100 border border-green-300 rounded">
-            <p className="text-green-700 font-semibold">Temporary Password:</p>
+          <div className="mt-6 p-4 bg-green-100 border border-green-300 rounded text-right">
+            <p className="text-green-700 font-semibold mb-1">סיסמה זמנית:</p>
             <p className="break-words">{tempPassword}</p>
           </div>
         )}
