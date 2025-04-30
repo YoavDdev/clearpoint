@@ -10,9 +10,15 @@ export async function POST(req: Request) {
   );
 
   const { data, error } = await supabaseAdmin
-    .from('cameras')
-    .select('id, name, serial_number, image_url')
-    .eq('user_id', userId);
+  .from('cameras')
+  .select(`
+    id,
+    name,
+    serial_number,
+    image_url,
+    user:users!cameras_user_id_fkey (full_name)
+  `)
+  .eq('user_id', userId);
 
   if (error) {
     console.error('Error fetching cameras:', error);

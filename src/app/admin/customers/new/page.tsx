@@ -55,8 +55,8 @@ export default function NewCustomerPage() {
   };
 
   return (
-    <main className="flex flex-col min-h-screen p-6 ml-64 bg-gray-100">
-      <h1 className="text-3xl font-bold mb-6">Add New Customer</h1>
+<main className="flex flex-col min-h-screen p-6 bg-gray-100">
+<h1 className="text-3xl font-bold mb-6">Add New Customer</h1>
 
       <div className="bg-white p-8 rounded-lg shadow-md max-w-md">
         <div className="mb-4">

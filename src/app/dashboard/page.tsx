@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { createClient } from '@supabase/supabase-js';
+import LiveStreamPlayer from "@/components/LiveStreamPlayer";
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -81,6 +82,34 @@ export default function DashboardPage() {
     setNewName("");
   };
 
+  const updateCameraStatus = async (cameraId: string, isOnline: boolean) => {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            // @ts-ignore
+            Authorization: `Bearer ${session?.user?.access_token}`,
+          },
+        },
+      }
+    );
+  
+    const { error } = await supabase
+      .from("cameras")
+      .update({ is_stream_active: isOnline, last_seen_at: new Date().toISOString() })
+
+      .eq("id", cameraId);
+  
+    if (error) {
+      console.error("❌ Failed to update camera status:", error);
+    } else {
+      console.log(`✅ Camera ${cameraId} marked as ${isOnline ? "online" : "offline"}`);
+    }
+  };
+  
+
   return (
     <main className="flex flex-col items-center min-h-screen p-6 sm:p-8">
       <h1 className="text-2xl sm:text-4xl font-bold text-center max-w-[90%] break-words mb-8">
@@ -95,11 +124,11 @@ export default function DashboardPage() {
               key={camera.id}
               className="w-72 h-72 bg-white border border-gray-200 rounded-2xl shadow-md overflow-hidden flex flex-col"
             >
-              <img
-                src={camera.image_url || "https://placehold.co/400x250?text=No+Image"}
-                alt={camera.name}
-                className="w-full h-48 object-cover"
-              />
+<LiveStreamPlayer
+  path={camera.id}
+  onSuccess={() => updateCameraStatus(camera.id, true)}
+  onError={() => updateCameraStatus(camera.id, false)}
+/>
               <div className="flex flex-col items-center justify-center p-4">
                 {editingCameraId === camera.id ? (
                   <input

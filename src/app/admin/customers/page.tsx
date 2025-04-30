@@ -58,8 +58,8 @@ export default function CustomersPage() {
   
 
   return (
-    <main className="flex flex-col min-h-screen p-6 ml-64 bg-gray-100">
-      <h1 className="text-3xl font-bold mb-6">Customers</h1>
+<main className="flex flex-col min-h-screen p-6 bg-gray-100">
+<h1 className="text-3xl font-bold mb-6">Customers</h1>
 
       {loading ? (
         <p>Loading customers...</p>

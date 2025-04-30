@@ -1,18 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --font-sans: "IBM Plex Sans Hebrew", sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  direction: rtl;
 }
 
 body {
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply font-sans text-[var(--foreground)] bg-[var(--background)];
 }

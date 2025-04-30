@@ -1,12 +1,18 @@
-import Sidebar from '@/components/Sidebar';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { redirect } from "next/navigation";
+import ClientSidebar from "@/components/ClientSidebar";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex">
-      <Sidebar />
-      <main className="ml-12 flex-1 p-8 bg-gray-100 min-h-screen">
-        {children}
-      </main>
-    </div>
-  );
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    redirect("/login");
+  }
+
+  if (session.user.role !== "Admin") {
+    redirect("/dashboard");
+  }
+
+  return <ClientSidebar>{children}</ClientSidebar>; // ✅ no <Sidebar /> here!
 }

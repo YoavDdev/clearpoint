@@ -6,12 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "check-cameras": "ts-node scripts/camera-status-checker.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.4",
+    "dotenv": "^16.5.0",
+    "hls.js": "^1.6.2",
+    "lucide-react": "^0.503.0",
     "next": "15.3.1",
     "next-auth": "^4.24.11",
+    "node-fetch": "^3.3.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-select": "^5.10.1"
@@ -20,6 +25,7 @@
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4.1.4",
     "@types/node": "^20",
+    "@types/node-fetch": "^2.6.12",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",

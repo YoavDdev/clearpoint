@@ -69,9 +69,9 @@ export default function NewCameraPage() {
       },
       body: JSON.stringify({
         name,
-        imageUrl,
         serialNumber,
         userId: selectedUser.value,
+        userEmail: selectedUser.email, 
       }),
     });
 
@@ -81,7 +81,8 @@ export default function NewCameraPage() {
       console.error('Error creating camera:', result.error);
       alert('Failed to create camera: ' + result.error);
     } else {
-      alert('Camera created successfully!');
+      navigator.clipboard.writeText(result.camera.id);
+alert(`✅ Camera created!\n\nID copied to clipboard:\n${result.camera.id}`);
       setName('');
       setImageUrl('');
       setSerialNumber('');
@@ -94,11 +95,12 @@ export default function NewCameraPage() {
 
   const userOptions = users.map(user => ({
     value: user.id,
-    label: user.full_name ? `${user.full_name} (${user.email})` : user.email
+    label: user.full_name ? `${user.full_name} (${user.email})` : user.email,
+    email: user.email, // ✅ added
   }));
 
   return (
-    <main className="flex flex-col min-h-screen p-6 ml-64 bg-gray-100">
+    <main className="flex flex-col min-h-screen p-6 bg-gray-100">
       <h1 className="text-3xl font-bold mb-6">Add New Camera</h1>
 
       <div className="bg-white p-8 rounded-lg shadow-md max-w-2xl w-full">
@@ -139,15 +141,7 @@ export default function NewCameraPage() {
           />
         </div>
 
-        <div className="mb-4">
-          <label className="block mb-2">Camera Image URL</label>
-          <input
-            type="text"
-            className="w-full p-2 border border-gray-300 rounded"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-          />
-        </div>
+        
 
         <div className="mb-6">
           <label className="block mb-2">Camera Serial Number</label>
