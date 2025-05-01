@@ -1,50 +1,49 @@
-import { supabaseAdmin } from '@/libs/supabaseAdmin';
-import { notFound } from 'next/navigation';
+import { supabaseAdmin } from "@/libs/supabaseAdmin";
+import { notFound } from "next/navigation";
+import Link from "next/link";
 
 export default async function CustomerViewPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+  const { id } = await params;
 
   const { data: user, error } = await supabaseAdmin
-    .from('users')
-    .select('*')
-    .eq('id', id)
+    .from("users")
+    .select("*")
+    .eq("id", id)
     .single();
 
   if (!user || error) {
-    console.error(error);
+    console.error("❌ Failed to fetch user:", error);
     return notFound();
   }
 
   return (
-    <div className="p-6 pt-20 max-w-2xl mx-auto bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6 text-right">פרטי לקוח</h1>
+    <main className="bg-gray-100 ">
+    <div className="p-6 pt-20 max-w-3xl mx-auto bg-gray-100 min-h-screen">
+      <div className="mb-6 text-right">
+        <Link href="/admin/customers" className="text-blue-600 hover:underline text-sm">← חזרה לרשימת לקוחות</Link>
+        <h1 className="text-3xl font-bold mt-2">פרטי לקוח</h1>
+      </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6 text-right space-y-4">
-        <div>
-          <span className="font-medium text-gray-600">שם מלא:</span>
-          <p>{user.full_name || '-'}</p>
-        </div>
-        <div>
-          <span className="font-medium text-gray-600">אימייל:</span>
-          <p>{user.email}</p>
-        </div>
-        <div>
-          <span className="font-medium text-gray-600">טלפון:</span>
-          <p>{user.phone || '-'}</p>
-        </div>
-        <div>
-          <span className="font-medium text-gray-600">כתובת:</span>
-          <p>{user.address || '-'}</p>
-        </div>
-        <div>
-          <span className="font-medium text-gray-600">מסלול מנוי:</span>
-          <p>{user.subscription_plan || '-'}</p>
-        </div>
-        <div>
-          <span className="font-medium text-gray-600">הערות:</span>
-          <p>{user.notes || '-'}</p>
-        </div>
+      <div className="bg-white rounded-xl shadow-md p-6 text-right space-y-6">
+        <section>
+          <h2 className="text-lg font-semibold mb-2 text-gray-700">פרטי קשר</h2>
+          <div className="space-y-2">
+            <p><span className="font-medium text-gray-600">שם מלא:</span> {user.full_name || '-'}</p>
+            <p><span className="font-medium text-gray-600">אימייל:</span> {user.email}</p>
+            <p><span className="font-medium text-gray-600">טלפון:</span> {user.phone || '-'}</p>
+            <p><span className="font-medium text-gray-600">כתובת:</span> {user.address || '-'}</p>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold mb-2 text-gray-700">הגדרות מנוי</h2>
+          <div className="space-y-2">
+            <p><span className="font-medium text-gray-600">מסלול:</span> {user.subscription_plan || '-'}</p>
+            <p><span className="font-medium text-gray-600">הערות:</span> {user.notes || '-'}</p>
+          </div>
+        </section>
       </div>
     </div>
+    </main>
   );
 }

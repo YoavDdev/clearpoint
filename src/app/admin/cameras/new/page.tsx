@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/libs/supabaseClient';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 
 const Select = dynamic(() => import('react-select'), { ssr: false });
 
@@ -16,15 +16,24 @@ export default function NewCameraPage() {
 
   useEffect(() => {
     async function fetchUsers() {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, full_name, email');
-      if (data) {
-        setUsers(data);
-      } else {
-        console.error('Error fetching users:', error);
+      setLoading(true);
+      try {
+        const response = await fetch('/api/admin-get-users');
+        const result = await response.json();
+
+        if (!response.ok) {
+          console.error('❌ Failed to fetch users:', result.error);
+          return;
+        }
+
+        setUsers(result.users || []);
+      } catch (err) {
+        console.error('❌ Unexpected error fetching users:', err);
+      } finally {
+        setLoading(false);
       }
     }
+
     fetchUsers();
   }, []);
 
@@ -77,9 +86,7 @@ export default function NewCameraPage() {
     } else {
       navigator.clipboard.writeText(result.camera.id);
       alert(`✅ מצלמה נוצרה!
-
-ה-ID הועתק ללוח:
-${result.camera.id}`);
+\nה-ID הועתק ללוח:\n${result.camera.id}`);
       setName('');
       setSerialNumber('');
       handleUserSelect(selectedUser); // refresh list
@@ -97,7 +104,10 @@ ${result.camera.id}`);
   return (
     <main className="min-h-screen bg-gray-100 pt-20 px-6 flex flex-col items-center">
       <div className="w-full max-w-3xl bg-white p-8 rounded-lg shadow-lg">
-        <h1 className="text-2xl font-bold mb-6 text-right">הוספת מצלמה חדשה</h1>
+      <h1 className="text-2xl font-bold text-right">הוספת מצלמה חדשה</h1>
+<Link href="/admin/cameras" className="text-sm text-blue-600 hover:underline block mb-4 text-right">
+  ← חזרה לרשימת המצלמות
+</Link>
 
         <div className="mb-6 text-right">
           <label className="block mb-2 font-medium">שייך למשתמש (שם מלא + אימייל)</label>
