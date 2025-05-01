@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/libs/supabaseClient';
 import Link from 'next/link';
+import { useSession } from "next-auth/react";
+import { createClient } from "@supabase/supabase-js";
 
 interface Customer {
   id: string;
@@ -16,22 +18,35 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
+  const { data: session } = useSession();
+
   useEffect(() => {
     async function fetchCustomers() {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, email, full_name, subscription_plan');
-
-      if (error) {
-        console.error('Error fetching customers:', error);
-      } else {
-        setCustomers(data || []);
+      if (!session?.user?.access_token) return;
+  
+      try {
+        const response = await fetch('/api/admin-get-users');
+        const result = await response.json();
+  
+        if (!response.ok) {
+          console.error("❌ Failed to fetch users:", result.error);
+          return;
+        }
+  
+        setCustomers(result.users || []);
+      } catch (err) {
+        console.error("❌ Unexpected error:", err);
       }
+  
       setLoading(false);
     }
-
+  
     fetchCustomers();
-  }, []);
+  }, [session]);
+  
+  
+  
+
 
   const filteredCustomers = customers.filter((customer) => {
     const searchText = search.toLowerCase();
