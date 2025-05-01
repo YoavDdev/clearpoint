@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
@@ -37,12 +37,11 @@ export default function LiveStreamPlayer({ path, onError, onSuccess }: Props) {
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         console.log("✅ Manifest loaded");
-        resetWatchdog(); // kick off watchdog
+        resetWatchdog();
         onSuccess?.();
       });
 
       hls.on(Hls.Events.FRAG_LOADED, () => {
-        // received video data — reset watchdog timer
         resetWatchdog();
       });
 
@@ -72,20 +71,23 @@ export default function LiveStreamPlayer({ path, onError, onSuccess }: Props) {
   if (streamError) {
     return (
       <img
-        src="https://placehold.co/400x250?text=Camera+Offline"
+        src="https://placehold.co/640x400?text=Camera+Offline"
         alt="Camera offline"
-        className="rounded border w-full h-48 object-cover"
+        className="w-full h-[400px] object-contain rounded-t-xl bg-gray-100"
       />
     );
   }
 
   return (
     <video
-      ref={videoRef}
-      controls
-      autoPlay
-      muted
-      className="rounded border w-full h-48 object-cover"
-    />
+  ref={videoRef}
+  controls
+  autoPlay
+  muted
+  playsInline
+  className="w-full h-[435px] rounded-t-xl object-cover bg-black"
+/>
   );
 }
+
+
