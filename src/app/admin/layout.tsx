@@ -11,8 +11,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   if (session.user.role !== "Admin") {
-    redirect("/dashboard");
+    redirect("/403");
   }
 
-  return <ClientSidebar>{children}</ClientSidebar>; // ✅ no <Sidebar /> here!
+  return <ClientSidebar>{children}</ClientSidebar>;
 }

@@ -5,16 +5,6 @@ import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 
 export default async function AdminPage() {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    redirect('/login');
-  }
-
-  if (session.user.role !== 'Admin') {
-    redirect('/dashboard');
-  }
-
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!

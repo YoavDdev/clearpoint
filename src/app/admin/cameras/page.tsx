@@ -19,16 +19,6 @@ type Camera = {
 };
 
 export default async function CamerasPage() {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    redirect("/login");
-  }
-
-  if (session.user.role !== "Admin") {
-    redirect("/dashboard");
-  }
-
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
