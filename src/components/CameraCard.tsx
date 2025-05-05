@@ -1,5 +1,5 @@
 import LiveStreamPlayer from "./LiveStreamPlayer";
-import { Mic, Volume2, Camera } from "lucide-react"; // Optional icons, can swap
+import { Mic, Volume2, Camera } from "lucide-react";
 
 export default function CameraCard({
   camera,
@@ -11,14 +11,19 @@ export default function CameraCard({
   const { name, is_stream_active, last_seen_at } = camera;
 
   return (
-    <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-lg overflow-hidden">
-      {/* Stream Area with Floating Icons */}
+    <div className="relative w-full max-w-3xl bg-gray-900 border border-gray-800 shadow-md overflow-hidden">
+      {/* Stream Area with Floating Icons + Live Badge */}
       <div className="relative aspect-video bg-black">
         <LiveStreamPlayer
           path={camera.id}
           onSuccess={() => console.log(`✅ Camera ${camera.id} online`)}
           onError={() => console.log(`❌ Camera ${camera.id} offline`)}
         />
+
+        {/* 🔴 LIVE Badge */}
+        <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-semibold px-2 py-0.5 rounded z-10">
+          ● LIVE
+        </div>
 
         {/* Floating Controls */}
         <div className="absolute bottom-2 right-2 flex gap-2 z-10">
@@ -43,10 +48,10 @@ export default function CameraCard({
         </div>
       </div>
 
-      {/* Info Block Below */}
-      <div className="bg-white border-t px-4 py-3 text-sm text-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+      {/* Info Block */}
+      <div className="px-4 py-3 text-sm text-white bg-gray-800 flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div className="font-semibold text-base">{name}</div>
-        <div className="flex flex-col text-xs text-gray-500 sm:text-left sm:items-end mt-2 sm:mt-0">
+        <div className="flex flex-col text-xs text-gray-300 sm:text-left sm:items-end mt-2 sm:mt-0">
           <span>{is_stream_active ? "🟢 פעילה" : "🔴 לא פעילה"}</span>
           {last_seen_at && (
             <span>נראתה לאחרונה: {new Date(last_seen_at).toLocaleString("he-IL")}</span>

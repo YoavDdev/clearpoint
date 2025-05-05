@@ -73,7 +73,7 @@ export default function LiveStreamPlayer({ path, onError, onSuccess }: Props) {
       <img
         src="https://placehold.co/640x400?text=Camera+Offline"
         alt="Camera offline"
-        className="w-full h-[400px] object-contain rounded-t-xl bg-gray-100"
+        className="w-full h-[400px] object-contain bg-gray-100"
       />
     );
   }
@@ -85,7 +85,7 @@ export default function LiveStreamPlayer({ path, onError, onSuccess }: Props) {
   autoPlay
   muted
   playsInline
-  className="w-full h-[435px] rounded-t-xl object-cover bg-black"
+  className="w-full h-[435px] object-cover bg-black"
 />
   );
 }
