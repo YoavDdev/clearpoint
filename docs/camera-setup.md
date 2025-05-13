@@ -1,0 +1,100 @@
+# 📷 Clearpoint Camera Setup Guide
+
+## 🧰 Step 1: Local Camera Installation (On Site)
+
+1. Mount and power on the camera.
+2. Connect it to the router (wired or Wi-Fi).
+3. Access the camera web UI (usually at `http://192.168.1.X`).
+4. Enable **RTSP** in the settings.
+5. Set:
+   - Username: `admin`
+   - Password: `your_password`
+   - RTSP Port: `554` (default)
+   - Resolution: `1920x1080` (if supported)
+6. **Test with VLC**:
+   ```
+   rtsp://admin:<password>@192.168.1.X:554/<stream_path>
+   ```
+7. Confirm the stream works (even if it shows SD for now).
+
+---
+
+## 🧾 Step 2: Register Camera in Supabase
+
+Create a new camera record using your admin panel or directly in Supabase:
+
+- `name`: Example — "כניסה ראשית"
+- `stream_path`: Full RTSP link (see below)
+- `user_email`: The customer’s email
+- `is_stream_active`: `true`
+
+### 🔖 Example `stream_path`
+```
+rtsp://admin:123456@192.168.1.10:554/user=admin&password=123456&channel=1&stream=1.sdp
+```
+
+---
+
+## 🌍 Step 3: Enable Remote Access (Optional)
+
+If customer needs access from outside:
+
+### 🔁 Option A: Static Public IP (SIM or ISP Router)
+1. Log into router settings.
+2. Forward external port `554` → internal camera IP port `554`.
+3. Update stream path:
+```
+rtsp://admin:<password>@<PUBLIC_IP>:554/<stream_path>
+```
+
+### 🌐 Option B: Use DDNS
+- Register DDNS (e.g., No-IP or camera’s built-in DDNS)
+- Format:
+```
+rtsp://admin:<password>@<yourname>.ddns.net:554/<stream_path>
+```
+
+---
+
+## 🎬 Step 4: Run FFmpeg for Streaming
+
+From your server or local dev:
+
+### 🔧 Template:
+```bash
+ffmpeg -i "<stream_path>" \
+  -c:v libx264 -preset ultrafast -tune zerolatency \
+  -c:a aac -ar 8000 -b:a 64k \
+  -f hls -hls_time 2 -hls_list_size 3 -hls_flags delete_segments \
+  ./public/stream/<camera_id>.m3u8
+```
+
+### 🔖 Example:
+```bash
+ffmpeg -i "rtsp://admin:123456@192.168.1.10:554/user=admin&password=123456&channel=1&stream=1.sdp" \
+  -c:v libx264 -preset ultrafast -tune zerolatency \
+  -c:a aac -ar 8000 -b:a 64k \
+  -f hls -hls_time 2 -hls_list_size 3 -hls_flags delete_segments \
+  ./public/stream/47c63248-6458-48b6-bc32-ccf435a1b3ce.m3u8
+```
+
+---
+
+## 👤 What the Customer Sees
+
+- Logs into `/dashboard`
+- Sees only their assigned cameras
+- Views clean, live HLS stream via browser
+
+---
+
+## ✅ Final Notes
+
+- Always test RTSP in VLC before saving
+- Don’t forget to power cycle the camera if resolution updates don't apply
+- Ensure FFmpeg is running per camera for live viewing
+- Use `stream=1.sdp` or manufacturer’s HD path if possible
+
+---
+
+For support, use `/test/<camera_id>` to isolate camera issues quickly.
