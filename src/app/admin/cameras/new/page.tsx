@@ -12,6 +12,8 @@ export default function NewCameraPage() {
   const [userCameras, setUserCameras] = useState<any[]>([]);
   const [name, setName] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
+  const [streamPath, setStreamPath] = useState('');
+  const [isStreamActive, setIsStreamActive] = useState(true);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -75,6 +77,8 @@ export default function NewCameraPage() {
         serialNumber,
         userId: selectedUser.value,
         userEmail: selectedUser.email,
+        streamPath,
+        isStreamActive,
       }),
     });
 
@@ -85,10 +89,11 @@ export default function NewCameraPage() {
       alert('יצירת המצלמה נכשלה: ' + result.error);
     } else {
       navigator.clipboard.writeText(result.camera.id);
-      alert(`✅ מצלמה נוצרה!
-\nה-ID הועתק ללוח:\n${result.camera.id}`);
+      alert(`✅ מצלמה נוצרה!\n\nה-ID הועתק ללוח:\n${result.camera.id}`);
       setName('');
       setSerialNumber('');
+      setStreamPath('');
+      setIsStreamActive(true);
       handleUserSelect(selectedUser); // refresh list
     }
 
@@ -104,10 +109,10 @@ export default function NewCameraPage() {
   return (
     <main className="min-h-screen bg-gray-100 pt-20 px-6 flex flex-col items-center">
       <div className="w-full max-w-3xl bg-white p-8 rounded-lg shadow-lg">
-      <h1 className="text-2xl font-bold text-right">הוספת מצלמה חדשה</h1>
-<Link href="/admin/cameras" className="text-sm text-blue-600 hover:underline block mb-4 text-right">
-  ← חזרה לרשימת המצלמות
-</Link>
+        <h1 className="text-2xl font-bold text-right">הוספת מצלמה חדשה</h1>
+        <Link href="/admin/cameras" className="text-sm text-blue-600 hover:underline block mb-4 text-right">
+          ← חזרה לרשימת המצלמות
+        </Link>
 
         <div className="mb-6 text-right">
           <label className="block mb-2 font-medium">שייך למשתמש (שם מלא + אימייל)</label>
@@ -143,13 +148,34 @@ export default function NewCameraPage() {
           />
         </div>
 
-        <div className="mb-6 text-right">
+        <div className="mb-4 text-right">
           <label className="block mb-2 font-medium">מספר סידורי</label>
           <input
             type="text"
             className="w-full p-2 border border-gray-300 rounded text-right"
             value={serialNumber}
             onChange={(e) => setSerialNumber(e.target.value)}
+          />
+        </div>
+
+        <div className="mb-4 text-right">
+          <label className="block mb-2 font-medium">קישור RTSP (stream_path)</label>
+          <input
+            type="text"
+            className="w-full p-2 border border-gray-300 rounded text-right"
+            value={streamPath}
+            onChange={(e) => setStreamPath(e.target.value)}
+            placeholder="rtsp://..."
+          />
+        </div>
+
+        <div className="mb-6 flex items-center justify-end">
+          <label className="mr-2 font-medium">סטרים פעיל</label>
+          <input
+            type="checkbox"
+            checked={isStreamActive}
+            onChange={(e) => setIsStreamActive(e.target.checked)}
+            className="w-5 h-5"
           />
         </div>
 

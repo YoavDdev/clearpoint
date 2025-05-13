@@ -2,35 +2,27 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const { name, imageUrl, serialNumber, userId, userEmail } = body;
+  const { name, serialNumber, userId, userEmail, streamPath, isStreamActive } = await req.json();
 
-  const supabaseAdmin = createClient(
+  const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const { data, error } = await supabaseAdmin
-    .from("cameras")
-    .insert([
-      {
-        name,
-        image_url: imageUrl,
-        serial_number: serialNumber,
-        user_id: userId,
-        user_email: userEmail, // ✅ now inserting this
-      },
-    ])
-    .select()
-    .single();
+  const { data, error } = await supabase.from('cameras').insert([
+    {
+      name,
+      serial_number: serialNumber,
+      user_id: userId,
+      user_email: userEmail,
+      stream_path: streamPath,
+      is_stream_active: isStreamActive,
+    },
+  ]).select().single();
 
   if (error) {
-    console.error("Error inserting camera:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({
-    success: true,
-    camera: data,
-  });
+  return NextResponse.json({ success: true, camera: data });
 }

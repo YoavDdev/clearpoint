@@ -1,93 +1,39 @@
 'use client';
 
-import { useEffect, useRef, useState } from "react";
-import Hls from "hls.js";
+import { useEffect, useRef } from 'react';
+import Hls from 'hls.js';
 
 type Props = {
-  path: string;
-  onError?: () => void;
-  onSuccess?: () => void;
+  streamUrl: string;
 };
 
-export default function LiveStreamPlayer({ path, onError, onSuccess }: Props) {
+export default function LiveStreamPlayer({ streamUrl }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [streamError, setStreamError] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
-    const streamURL = `http://localhost:8888/${path}/index.m3u8`;
-    let hls: Hls | null = null;
-    let watchdog: NodeJS.Timeout;
-
-    const resetWatchdog = () => {
-      clearTimeout(watchdog);
-      watchdog = setTimeout(() => {
-        console.warn("❌ No fragments received in 10s — marking camera as offline");
-        setStreamError(true);
-        onError?.();
-      }, 10000); // 10s timeout
-    };
-
     if (!video) return;
 
     if (Hls.isSupported()) {
-      hls = new Hls();
-      hls.loadSource(streamURL);
+      const hls = new Hls();
+      hls.loadSource(streamUrl);
       hls.attachMedia(video);
-
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        console.log("✅ Manifest loaded");
-        resetWatchdog();
-        onSuccess?.();
-      });
-
-      hls.on(Hls.Events.FRAG_LOADED, () => {
-        resetWatchdog();
-      });
-
-      hls.on(Hls.Events.ERROR, () => {
-        console.error("❌ HLS error");
-        clearTimeout(watchdog);
-        setStreamError(true);
-        onError?.();
-      });
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = streamURL;
-      video.addEventListener("loadedmetadata", () => {
-        onSuccess?.();
-      });
-      video.addEventListener("error", () => {
-        setStreamError(true);
-        onError?.();
-      });
+      return () => hls.destroy();
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = streamUrl;
     }
-
-    return () => {
-      if (hls) hls.destroy();
-      clearTimeout(watchdog);
-    };
-  }, [path, onError, onSuccess]);
-
-  if (streamError) {
-    return (
-      <img
-        src="https://placehold.co/640x400?text=Camera+Offline"
-        alt="Camera offline"
-        className="w-full h-[400px] object-contain bg-gray-100"
-      />
-    );
-  }
+  }, [streamUrl]);
 
   return (
-    <video
-  ref={videoRef}
-  controls
-  autoPlay
-  muted
-  playsInline
-  className="w-full h-[435px] object-cover bg-black"
-/>
+    <div className="w-full aspect-video bg-black rounded overflow-hidden">
+      <video
+        ref={videoRef}
+        controls
+        autoPlay
+        muted
+        playsInline
+        className="w-full h-full object-contain"
+      />
+    </div>
   );
 }
-
-

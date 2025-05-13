@@ -15,9 +15,8 @@ export default function CameraCard({
       {/* Stream Area with Floating Icons + Live Badge */}
       <div className="relative aspect-video bg-black">
         <LiveStreamPlayer
-          path={camera.id}
-          onSuccess={() => console.log(`✅ Camera ${camera.id} online`)}
-          onError={() => console.log(`❌ Camera ${camera.id} offline`)}
+          streamUrl={`/stream/${camera.id}.m3u8`} // ✅ changed from "path" to "cameraId"
+
         />
 
         {/* 🔴 LIVE Badge */}
