@@ -1,4 +1,4 @@
-# 📷 Clearpoint Camera Setup Guide
+# 📷 Clearpoint Camera Setup Guide (Updated with Recommended Camera Config)
 
 ## 🧰 Step 1: Local Camera Installation (On Site)
 
@@ -10,7 +10,13 @@
    - Username: `admin`
    - Password: `your_password`
    - RTSP Port: `554` (default)
-   - Resolution: `1920x1080` (if supported)
+   - Resolution: `1920x1080` (Main Stream)
+   - Encoding Format: `H.265`
+   - Frame Rate: `20–25 fps`
+   - Bitrate Control: `Variable Bitrate` (CBR if needed)
+   - Max Bitrate: `2048–4096 kbps`
+   - I Frame Interval: `2–4 seconds`
+   - Quality: `Good` (or `Standard` for LTE savings)
 6. **Test with VLC**:
    ```
    rtsp://admin:<password>@192.168.1.X:554/<stream_path>
@@ -30,7 +36,7 @@ Create a new camera record using your admin panel or directly in Supabase:
 
 ### 🔖 Example `stream_path`
 ```
-rtsp://admin:123456@192.168.1.10:554/user=admin&password=123456&channel=1&stream=1.sdp
+rtsp://admin:123456@192.168.1.10:554/h264/ch1/main/av_stream
 ```
 
 ---
@@ -44,14 +50,14 @@ If customer needs access from outside:
 2. Forward external port `554` → internal camera IP port `554`.
 3. Update stream path:
 ```
-rtsp://admin:<password>@<PUBLIC_IP>:554/<stream_path>
+rtsp://admin:<password>@<PUBLIC_IP>:554/h264/ch1/main/av_stream
 ```
 
 ### 🌐 Option B: Use DDNS
 - Register DDNS (e.g., No-IP or camera’s built-in DDNS)
 - Format:
 ```
-rtsp://admin:<password>@<yourname>.ddns.net:554/<stream_path>
+rtsp://admin:<password>@<yourname>.ddns.net:554/h264/ch1/main/av_stream
 ```
 
 ---
@@ -63,6 +69,7 @@ From your server or local dev:
 ### 🔧 Template:
 ```bash
 ffmpeg -i "<stream_path>" \
+  -vf scale=1280:720 \
   -c:v libx264 -preset ultrafast -tune zerolatency \
   -c:a aac -ar 8000 -b:a 64k \
   -f hls -hls_time 2 -hls_list_size 3 -hls_flags delete_segments \
@@ -71,7 +78,8 @@ ffmpeg -i "<stream_path>" \
 
 ### 🔖 Example:
 ```bash
-ffmpeg -i "rtsp://admin:123456@192.168.1.10:554/user=admin&password=123456&channel=1&stream=1.sdp" \
+ffmpeg -i "rtsp://admin:123456@192.168.1.10:554/h264/ch1/main/av_stream" \
+  -vf scale=1280:720 \
   -c:v libx264 -preset ultrafast -tune zerolatency \
   -c:a aac -ar 8000 -b:a 64k \
   -f hls -hls_time 2 -hls_list_size 3 -hls_flags delete_segments \
@@ -91,10 +99,11 @@ ffmpeg -i "rtsp://admin:123456@192.168.1.10:554/user=admin&password=123456&chann
 ## ✅ Final Notes
 
 - Always test RTSP in VLC before saving
-- Don’t forget to power cycle the camera if resolution updates don't apply
-- Ensure FFmpeg is running per camera for live viewing
-- Use `stream=1.sdp` or manufacturer’s HD path if possible
+- Power cycle the camera if resolution updates don’t apply
+- Use `stream=1.sdp` or the full HD path like `/h264/ch1/main/av_stream`
+- For better performance: record in H.265, stream live via FFmpeg in H.264
+- Downscale to 720p if needed using `-vf scale=1280:720`
 
 ---
 
-For support, use `/test/<camera_id>` to isolate camera issues quickly.
+For support, use `/test/<camera_id>` to isolate stream issues quickly.

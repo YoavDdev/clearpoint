@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 export default function NewCustomerPage() {
   const [email, setEmail] = useState('');
@@ -11,6 +12,27 @@ export default function NewCustomerPage() {
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [tempPassword, setTempPassword] = useState('');
+
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const fullName = searchParams.get("fullName");
+    const email = searchParams.get("email");
+    const phone = searchParams.get("phone");
+    const address = searchParams.get("address");
+    const plan = searchParams.get("plan");
+
+    if (fullName) setFullName(fullName);
+    if (email) setEmail(email);
+    if (phone) setPhone(phone);
+    if (address) setAddress(address);
+
+    if (plan) {
+      if (plan === "חבילת אינטרנט ביתי") setPlan("Premium");
+      else if (plan === "חבילת סים") setPlan("Basic");
+      else setPlan("VIP");
+    }
+  }, [searchParams]);
 
   function generatePassword(length = 8) {
     const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
