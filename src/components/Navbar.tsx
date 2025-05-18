@@ -26,7 +26,6 @@ export default function Navbar() {
           {session && (
             <>
               <Link href="/dashboard" className="hover:opacity-60 transition">לוח בקרה</Link>
-              <Link href="/billing" className="hover:opacity-60 transition">חיובים</Link>
               <Link href="/support" className="hover:opacity-60 transition">תמיכה</Link>
             </>
           )}
@@ -69,7 +68,6 @@ export default function Navbar() {
           {session && (
             <>
               <Link href="/dashboard" className="block hover:opacity-60 transition">לוח בקרה</Link>
-              <Link href="/billing" className="block hover:opacity-60 transition">חיובים</Link>
               <Link href="/support" className="block hover:opacity-60 transition">תמיכה</Link>
             </>
           )}
