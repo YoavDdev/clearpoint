@@ -2,22 +2,13 @@
 
 ## 🔧 Active Tasks
 
-- [ ] **Stripe Integration**: Add Stripe to support plan upgrades and monthly billing
-- [ ] **Implement PlanCard**: Show user’s subscription plan, time left, and upgrade button
-- [ ] **Implement SupportCard**: Add help system (basic chatbot or FAQ link)
-- [ ] **Implement DownloadCard**: Show available footage download options and current storage usage
-- [ ] **Mini Navbar for Dashboard**: Display PlanCard, SupportCard, and DownloadCard only on `/dashboard` for logged-in users
-- [ ] **User Dashboard Access Control**: Ensure only logged-in users can see `/dashboard` and relevant components
-- [ ] **Mobile Layout Polish**: Improve responsiveness and spacing for small screens
-- [ ] **Admin Overview Page**: Display users, cameras, subscription plan, and status (in a table)
-- [ ] **Storage Usage Tracker**: Estimate or fetch each user’s cloud storage usage and display it
-- [ ] **Storage Duration Enforcement**: Block access to old footage beyond user’s plan retention window
-- [ ] **Build /dashboard/footage Page**: Dedicated page to view and browse past recordings
-- [ ] **Footage Browsing UI**: User selects a camera (always available if assigned), then picks a date and time range. If no videos exist, a message is shown
-- [ ] **Download Footage Logic**: After selecting camera/date/time, user can download clips shown on screen
-- [ ] **Add Backblaze Upload Flow**: Enable server/API to push 24/7 recordings to Backblaze B2 (private) with metadata stored in Supabase `vod_files`
-- [ ] **Timestamp-Based Clip Access**: Design logic to fetch part of a long video based on timestamp and serve the segment via Bunny
-- [ ] **Setup Raspberry Pi Streaming Gateway**: Configure Pi to convert RTSP to HLS with 720p/10fps/H.265/512kbps settings for low bandwidth usage
+- [ ] **Footage Page – Stage 2**: Connect footage page to camera list from Supabase, and enable camera/date-based clip display
+- [ ] **Footage Download UI**: Display available clips with download button once camera/date selected
+- [ ] **MiniNavbar Polish**: Hide on scroll, show on top; smooth layout on mobile + centered layout on desktop
+- [ ] **SummaryCard Role Separation**: Only clickable cards behave as buttons; status/info cards styled differently
+- [ ] **Create Plan Page**: Add `/dashboard/plan` to show user plan and upgrade options
+- [ ] **Create Support Page**: Add `/support` to provide help center or contact info
+- [ ] **MiniNavbar Navigation Pages**: Add placeholder pages for all actionable MiniNavbar buttons
 
 ## ✅ Completed Tasks
 
@@ -42,6 +33,9 @@
 - [x] Implement react-player VOD viewer
 - [x] Secure Video Delivery (Backblaze B2 + Bunny.net)
 - [x] Default camera config set (720p, 10fps, H.265, 512kbps)
+- [x] Build /dashboard/footage base layout with camera/date selection
+- [x] Clean up MiniNavbar card behavior and animation
+- [x] Scroll-aware MiniNavbar (hide on scroll down)
 
 ## 📥 Backlog
 
