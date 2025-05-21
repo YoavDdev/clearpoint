@@ -2,15 +2,6 @@
 
 import { useEffect, useState } from "react";
 import CameraCard from "@/components/CameraCard";
-import SummaryCard from "@/components/SummaryCard";
-import {
-  BadgeCheck,
-  Camera,
-  Clock,
-  Database,
-  Download,
-  HelpCircle,
-} from "lucide-react";
 
 export default function DashboardPage() {
   const [cameras, setCameras] = useState<any[]>([]);
