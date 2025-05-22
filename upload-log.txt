@@ -1,0 +1,422 @@
+[2025-05-22T14:21:24.396Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T14:21:25.491Z] ⚠️ STDERR: ⚠️ Skipping unknown userId: 4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6
+
+[2025-05-22T14:23:24.400Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T14:23:26.100Z] ⚠️ STDERR: ⚠️ Skipping unknown userId: 4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6
+
+[2025-05-22T14:42:18.894Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T14:42:20.479Z] ⚠️ STDERR: ⚠️ Skipping unknown userId: 4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6
+
+[2025-05-22T14:43:56.504Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T14:43:57.944Z] ⚠️ STDERR: ⚠️ Skipping unknown userId: 4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6
+
+[2025-05-22T14:45:56.545Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T14:45:58.324Z] ⚠️ STDERR: ⚠️ Skipping unknown userId: 4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6
+
+[2025-05-22T14:47:56.551Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T14:47:58.221Z] ⚠️ STDERR: ⚠️ Skipping unknown userId: 4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6
+
+[2025-05-22T14:49:56.555Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T14:49:58.493Z] ✅ STDOUT:
+🧪 [TEST] Would delete expired file: 2025-05-21_02-59-22.mp4
+🧪 [TEST] Would upload & log: 2025-05-22_17-02-54.mp4
+🧪 [TEST] Would upload & log: 2025-05-22_17-17-54.mp4
+🧪 [TEST] Would upload & log: 2025-05-22_17-32-54.mp4
+⏳ Skipping (still writing): 2025-05-22_17-47-54.mp4
+
+[2025-05-22T14:51:56.558Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T14:52:09.802Z] ✅ STDOUT:
+🧹 Deleted expired file for sim: 2025-05-21_02-59-22.mp4
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-22_17-02-54.mp4?token=41b7409082f228605127f2b7523fa514b5f89bb0e3b27a8448a0dc7991c70702&expires=1749135122
+✅ Uploaded: 2025-05-22_17-02-54.mp4
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-22_17-17-54.mp4?token=89bb5581577bac0ce6d292e05d0051306c71c84e1ab4b9c1e525b08e77df9303&expires=1749135126
+✅ Uploaded: 2025-05-22_17-17-54.mp4
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-22_17-32-54.mp4?token=5f3c31870b7f4e6e5e0773ac4987adbdb2f1c237ff2e6eca66de84500fbaa5ea&expires=1749135129
+✅ Uploaded: 2025-05-22_17-32-54.mp4
+⏳ Skipping (still writing): 2025-05-22_17-47-54.mp4
+
+[2025-05-22T14:53:56.561Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T14:53:58.820Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_17-47-54.mp4
+
+[2025-05-22T14:55:56.565Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T14:55:58.310Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_17-47-54.mp4
+
+[2025-05-22T14:57:56.569Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T14:57:58.351Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_17-47-54.mp4
+
+[2025-05-22T14:59:56.574Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T14:59:58.657Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_17-47-54.mp4
+
+[2025-05-22T15:01:56.604Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:01:58.745Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_17-47-54.mp4
+
+[2025-05-22T15:03:56.609Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:04:02.749Z] ✅ STDOUT:
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-22_17-47-54.mp4?token=de825ca22bb10b65e1e673ec215f2b4beb3941d6d65a9f17c2a803e9ed78d23b&expires=1749135842
+✅ Uploaded: 2025-05-22_17-47-54.mp4
+⏳ Skipping (still writing): 2025-05-22_18-02-54.mp4
+
+[2025-05-22T15:05:56.613Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:05:58.461Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_18-02-54.mp4
+
+[2025-05-22T15:07:56.628Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:07:59.222Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_18-02-54.mp4
+
+[2025-05-22T15:09:56.633Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:09:58.502Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_18-02-54.mp4
+
+[2025-05-22T15:11:56.639Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:11:58.739Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_18-02-54.mp4
+
+[2025-05-22T15:13:56.643Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:13:59.237Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_18-02-54.mp4
+
+[2025-05-22T15:15:56.648Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:15:58.397Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_18-02-54.mp4
+
+[2025-05-22T15:17:56.672Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:17:58.626Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_18-02-54.mp4
+⏳ Skipping (still writing): 2025-05-22_18-17-54.mp4
+
+[2025-05-22T15:38:52.223Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:39:00.761Z] ✅ STDOUT:
+🧹 Deleted expired file for sim: 2025-05-21_02-59-22.mp4
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-22_18-02-54.mp4?token=ca4b3255b2fd4f67b484968c8f0f98276fbbba5b3fb17cd9ad0c50e58d2a28e7&expires=1749137937
+✅ Uploaded: 2025-05-22_18-02-54.mp4
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-22_18-17-54.mp4?token=bc8b8f208a9ff1211f750b766563850b98f554a4929addc0fd6782b9a6e65fb5&expires=1749137940
+✅ Uploaded: 2025-05-22_18-17-54.mp4
+⏳ Skipping (still writing): 2025-05-22_18-32-54.mp4
+
+[2025-05-22T15:40:52.234Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:40:54.652Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_18-32-54.mp4
+
+[2025-05-22T15:42:52.239Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:42:53.888Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_18-32-54.mp4
+
+[2025-05-22T15:44:52.243Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:44:54.166Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_18-32-54.mp4
+
+[2025-05-22T15:46:52.257Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:46:53.968Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_18-32-54.mp4
+
+[2025-05-22T15:48:52.264Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:48:54.128Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_18-32-54.mp4
+⏳ Skipping (still writing): 2025-05-22_18-47-54.mp4
+
+[2025-05-22T15:50:52.271Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:50:58.135Z] ✅ STDOUT:
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-22_18-32-54.mp4?token=ed1e65c88234eb91ec678275c0902e61c694a8af640f7681886a5a1d4c9caf6e&expires=1749138657
+✅ Uploaded: 2025-05-22_18-32-54.mp4
+⏳ Skipping (still writing): 2025-05-22_18-47-54.mp4
+
+[2025-05-22T15:52:52.276Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:52:53.922Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_18-47-54.mp4
+
+[2025-05-22T15:54:52.280Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:54:53.990Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_18-47-54.mp4
+
+[2025-05-22T15:56:52.285Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:56:54.085Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_18-47-54.mp4
+
+[2025-05-22T15:58:52.290Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T15:58:54.032Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_18-47-54.mp4
+
+[2025-05-22T16:00:52.296Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:00:53.687Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_18-47-54.mp4
+
+[2025-05-22T16:02:52.291Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:02:53.779Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_18-47-54.mp4
+
+[2025-05-22T16:04:52.296Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:04:59.624Z] ✅ STDOUT:
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-22_18-47-54.mp4?token=5d88a5fe0df417135c506f1afccbdf3a29f63462bea4fd693e8ce255bdac55f5&expires=1749139499
+✅ Uploaded: 2025-05-22_18-47-54.mp4
+⏳ Skipping (still writing): 2025-05-22_19-02-54.mp4
+
+[2025-05-22T16:06:52.300Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:06:53.952Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-02-54.mp4
+
+[2025-05-22T16:08:52.305Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:08:53.360Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-02-54.mp4
+
+[2025-05-22T16:10:52.309Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:10:53.698Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-02-54.mp4
+
+[2025-05-22T16:12:52.313Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:12:53.754Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-02-54.mp4
+
+[2025-05-22T16:14:52.318Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:14:53.875Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-02-54.mp4
+
+[2025-05-22T16:16:52.323Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:16:53.780Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-02-54.mp4
+
+[2025-05-22T16:18:52.327Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:18:53.865Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-02-54.mp4
+⏳ Skipping (still writing): 2025-05-22_19-17-54.mp4
+
+[2025-05-22T16:20:52.333Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:21:01.037Z] ✅ STDOUT:
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-22_19-02-54.mp4?token=f949c1f9acb51bd8dbb1f8fa217948c5d162f66e3c35e68cf70795903cb677ad&expires=1749140460
+✅ Uploaded: 2025-05-22_19-02-54.mp4
+⏳ Skipping (still writing): 2025-05-22_19-17-54.mp4
+
+[2025-05-22T16:22:52.339Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:22:53.426Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-17-54.mp4
+
+[2025-05-22T16:24:52.343Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:24:53.744Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-17-54.mp4
+
+[2025-05-22T16:26:52.347Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:26:53.865Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-17-54.mp4
+
+[2025-05-22T16:28:52.352Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:28:53.999Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-17-54.mp4
+
+[2025-05-22T16:30:52.358Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:30:53.719Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-17-54.mp4
+
+[2025-05-22T16:32:52.368Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:32:54.009Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-17-54.mp4
+
+[2025-05-22T16:34:52.372Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:34:57.956Z] ✅ STDOUT:
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-22_19-17-54.mp4?token=5eb042a659aae0e41fd6d892783dc73aadbc8f4ac7557b6533fb4e600a3ac311&expires=1749141297
+✅ Uploaded: 2025-05-22_19-17-54.mp4
+⏳ Skipping (still writing): 2025-05-22_19-32-54.mp4
+
+[2025-05-22T16:36:52.377Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:36:53.775Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-32-54.mp4
+
+[2025-05-22T16:38:52.384Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:38:53.820Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-32-54.mp4
+
+[2025-05-22T16:40:52.390Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:40:54.155Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-32-54.mp4
+
+[2025-05-22T16:42:52.395Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:42:54.009Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-32-54.mp4
+
+[2025-05-22T16:44:52.400Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:44:53.848Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-32-54.mp4
+
+[2025-05-22T16:46:52.405Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:46:54.029Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-32-54.mp4
+
+[2025-05-22T16:48:52.404Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:48:53.968Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-32-54.mp4
+⏳ Skipping (still writing): 2025-05-22_19-47-54.mp4
+
+[2025-05-22T16:50:52.408Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:50:57.232Z] ✅ STDOUT:
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-22_19-32-54.mp4?token=b179df4c4bc615473a759c88fe72d9e52b0f407599ddf36dd3a169c0d054b321&expires=1749142257
+✅ Uploaded: 2025-05-22_19-32-54.mp4
+⏳ Skipping (still writing): 2025-05-22_19-47-54.mp4
+
+[2025-05-22T16:52:52.413Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:52:53.779Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-47-54.mp4
+
+[2025-05-22T16:54:52.418Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:54:53.817Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-47-54.mp4
+
+[2025-05-22T16:56:52.423Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:56:53.891Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-47-54.mp4
+
+[2025-05-22T16:58:52.427Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T16:58:53.920Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-47-54.mp4
+
+[2025-05-22T17:00:52.433Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:00:53.863Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-47-54.mp4
+
+[2025-05-22T17:02:52.438Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:02:54.081Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_19-47-54.mp4
+
+[2025-05-22T17:04:52.432Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:04:56.871Z] ✅ STDOUT:
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-22_19-47-54.mp4?token=578df9cce64578c9f387bcb82412f92d77b3b6a8dd948aa0034fd95e5b9c7be6&expires=1749143096
+✅ Uploaded: 2025-05-22_19-47-54.mp4
+⏳ Skipping (still writing): 2025-05-22_20-02-54.mp4
+
+[2025-05-22T17:06:52.437Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:06:54.128Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-02-54.mp4
+
+[2025-05-22T17:08:52.443Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:08:53.836Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-02-54.mp4
+
+[2025-05-22T17:10:52.452Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:10:54.076Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-02-54.mp4
+
+[2025-05-22T17:12:52.459Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:12:54.006Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-02-54.mp4
+
+[2025-05-22T17:14:52.464Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:14:54.005Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-02-54.mp4
+
+[2025-05-22T17:16:52.469Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:16:54.064Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-02-54.mp4
+
+[2025-05-22T17:18:52.480Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:18:53.901Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-02-54.mp4
+⏳ Skipping (still writing): 2025-05-22_20-17-54.mp4
+
+[2025-05-22T17:20:52.469Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:20:57.632Z] ✅ STDOUT:
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-22_20-02-54.mp4?token=871cf7b59142515679c148cb17849f3d3d12e8cf153a4ab23dea7c16e7c99291&expires=1749144057
+✅ Uploaded: 2025-05-22_20-02-54.mp4
+⏳ Skipping (still writing): 2025-05-22_20-17-54.mp4
+
+[2025-05-22T17:22:52.474Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:22:54.048Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-17-54.mp4
+
+[2025-05-22T17:24:52.479Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:24:53.799Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-17-54.mp4
+
+[2025-05-22T17:26:52.484Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:26:53.946Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-17-54.mp4
+
+[2025-05-22T17:28:52.491Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:28:54.071Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-17-54.mp4
+
+[2025-05-22T17:30:52.496Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:30:53.919Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-17-54.mp4
+
+[2025-05-22T17:32:52.505Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:32:54.121Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-17-54.mp4
+
+[2025-05-22T17:34:52.481Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:34:57.156Z] ✅ STDOUT:
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-22_20-17-54.mp4?token=b8e473ee2e42acb752ee189729ccaa04028a1e842e93e251b3a0fa50413f1cba&expires=1749144897
+✅ Uploaded: 2025-05-22_20-17-54.mp4
+⏳ Skipping (still writing): 2025-05-22_20-32-54.mp4
+
+[2025-05-22T17:36:52.466Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:36:54.109Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-32-54.mp4
+
+[2025-05-22T17:38:52.469Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:38:53.944Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-32-54.mp4
+
+[2025-05-22T17:40:52.472Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:40:54.073Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-32-54.mp4
+
+[2025-05-22T17:42:52.475Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:42:54.462Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-32-54.mp4
+
+[2025-05-22T17:44:52.477Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:44:54.175Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-32-54.mp4
+
+[2025-05-22T17:46:52.480Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:46:54.015Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-32-54.mp4
+
+[2025-05-22T17:48:52.483Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:48:53.881Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-32-54.mp4
+⏳ Skipping (still writing): 2025-05-22_20-47-54.mp4
+
+[2025-05-22T17:50:52.478Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:50:57.686Z] ✅ STDOUT:
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-22_20-32-54.mp4?token=4b14b3e3231b061ac169ce03a2c3a9ea821592beddfd7fadf5629b7b91427bbc&expires=1749145857
+✅ Uploaded: 2025-05-22_20-32-54.mp4
+⏳ Skipping (still writing): 2025-05-22_20-47-54.mp4
+
+[2025-05-22T17:52:52.479Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:52:54.328Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-47-54.mp4
+
+[2025-05-22T17:54:52.481Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:54:53.891Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-47-54.mp4
+
+[2025-05-22T17:56:52.483Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:56:54.030Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-47-54.mp4
+
+[2025-05-22T17:58:52.485Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T17:58:53.964Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-47-54.mp4
+
+[2025-05-22T18:00:52.487Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T18:00:53.990Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-47-54.mp4
+
+[2025-05-22T18:02:52.492Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T18:02:54.206Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_20-47-54.mp4
+
+[2025-05-22T18:04:52.494Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T18:04:58.288Z] ✅ STDOUT:
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-22_20-47-54.mp4?token=209dfb2c00cb78b4786a75150932e03725db07654b31c74bbd8f380dccd36b04&expires=1749146698
+✅ Uploaded: 2025-05-22_20-47-54.mp4
+⏳ Skipping (still writing): 2025-05-22_21-02-54.mp4
+
+[2025-05-22T18:06:52.491Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T18:06:53.966Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_21-02-54.mp4
+

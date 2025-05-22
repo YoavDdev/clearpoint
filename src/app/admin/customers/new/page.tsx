@@ -1,17 +1,18 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 export default function NewCustomerPage() {
-  const [email, setEmail] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [plan, setPlan] = useState('Basic');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [notes, setNotes] = useState('');
+  const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [plan, setPlan] = useState<string | null>(null);
+  const [retention, setRetention] = useState<number | null>(null);
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
-  const [tempPassword, setTempPassword] = useState('');
+  const [tempPassword, setTempPassword] = useState("");
 
   const searchParams = useSearchParams();
 
@@ -20,23 +21,24 @@ export default function NewCustomerPage() {
     const email = searchParams.get("email");
     const phone = searchParams.get("phone");
     const address = searchParams.get("address");
-    const plan = searchParams.get("plan");
+    const planLabel = searchParams.get("plan");
 
     if (fullName) setFullName(fullName);
     if (email) setEmail(email);
     if (phone) setPhone(phone);
     if (address) setAddress(address);
 
-    if (plan) {
-      if (plan === "חבילת אינטרנט ביתי") setPlan("Premium");
-      else if (plan === "חבילת סים") setPlan("Basic");
-      else setPlan("VIP");
+    if (planLabel) {
+      if (planLabel.includes("אינטרנט")) setPlan("wifi");
+      else if (planLabel.includes("סים")) setPlan("sim");
+      else if (planLabel.includes("מקומי")) setPlan("local");
     }
   }, [searchParams]);
 
   function generatePassword(length = 8) {
-    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let password = '';
+    const charset =
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let password = "";
     for (let i = 0; i < length; i++) {
       password += charset.charAt(Math.floor(Math.random() * charset.length));
     }
@@ -45,40 +47,48 @@ export default function NewCustomerPage() {
 
   const handleCreateCustomer = async () => {
     setLoading(true);
+
+    if (!plan || !retention) {
+      alert("יש לבחור מסלול מנוי ומשך שמירת קבצים.");
+      setLoading(false);
+      return;
+    }
+
     const password = generatePassword();
     setTempPassword(password);
 
-    const response = await fetch('/api/admin-create-user', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const response = await fetch("/api/admin-create-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         email,
         password,
         full_name: fullName,
-        subscription_plan: plan,
         phone,
         address,
         notes,
+        plan_type: plan,
+        plan_duration_days: retention,
       }),
     });
 
     const result = await response.json();
 
     if (!result.success) {
-      alert('שגיאה ביצירת לקוח: ' + result.error);
+      alert("שגיאה ביצירת לקוח: " + result.error);
       console.error(result.error);
       setLoading(false);
       return;
     }
 
-    alert('✅ הלקוח נוצר בהצלחה!');
-    // Reset form
-    setEmail('');
-    setFullName('');
-    setPlan('Basic');
-    setPhone('');
-    setAddress('');
-    setNotes('');
+    alert("✅ הלקוח נוצר בהצלחה!");
+    setEmail("");
+    setFullName("");
+    setPlan(null);
+    setRetention(null);
+    setPhone("");
+    setAddress("");
+    setNotes("");
     setLoading(false);
   };
 
@@ -152,13 +162,28 @@ export default function NewCustomerPage() {
         <div className="mb-6 text-right">
           <label className="block mb-2 font-medium">מסלול מנוי</label>
           <select
-            className="w-full p-2 border border-gray-300 rounded text-right"
-            value={plan}
+            value={plan ?? ""}
             onChange={(e) => setPlan(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded text-right"
           >
-            <option value="Basic">Basic</option>
-            <option value="Premium">Premium</option>
-            <option value="VIP">VIP</option>
+            <option value="" disabled>בחר מסלול מנוי</option>
+            <option value="sim">חבילת סים (SIM)</option>
+            <option value="wifi">חבילת אינטרנט ביתי (Wi-Fi)</option>
+            <option value="local">חבילת מקומית (Local)</option>
+          </select>
+        </div>
+
+        {/* Retention */}
+        <div className="mb-6 text-right">
+          <label className="block mb-2 font-medium">משך שמירת קבצים</label>
+          <select
+            value={retention ?? ""}
+            onChange={(e) => setRetention(Number(e.target.value))}
+            className="w-full p-2 border border-gray-300 rounded text-right"
+          >
+            <option value="" disabled>בחר תקופת שמירה</option>
+            <option value={7}>7 ימים</option>
+            <option value={14}>14 ימים</option>
           </select>
         </div>
 
@@ -168,7 +193,7 @@ export default function NewCustomerPage() {
           onClick={handleCreateCustomer}
           disabled={loading}
         >
-          {loading ? 'יוצר לקוח...' : 'צור לקוח'}
+          {loading ? "יוצר לקוח..." : "צור לקוח"}
         </button>
 
         {/* Temp Password Display */}
