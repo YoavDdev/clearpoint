@@ -2,13 +2,14 @@
 
 ## 🔧 Active Tasks
 
-- [ ] **Footage Page – Stage 2**: Connect footage page to camera list from Supabase, and enable camera/date-based clip display
+- [x] **Footage Page – Stage 2**: Connect footage page to camera list from Supabase, and enable camera/date-based clip display
 - [ ] **Footage Download UI**: Display available clips with download button once camera/date selected
 - [ ] **MiniNavbar Polish**: Hide on scroll, show on top; smooth layout on mobile + centered layout on desktop
 - [ ] **SummaryCard Role Separation**: Only clickable cards behave as buttons; status/info cards styled differently
 - [ ] **Create Plan Page**: Add `/dashboard/plan` to show user plan and upgrade options
 - [ ] **Create Support Page**: Add `/support` to provide help center or contact info
 - [ ] **MiniNavbar Navigation Pages**: Add placeholder pages for all actionable MiniNavbar buttons
+- [ ] **Storage Estimation and Pricing**: Document per-customer storage usage (~86GB for 4 cams × 14 days) and calculate B2 cost (~$0.43/month)
 
 ## ✅ Completed Tasks
 
@@ -36,6 +37,8 @@
 - [x] Build /dashboard/footage base layout with camera/date selection
 - [x] Clean up MiniNavbar card behavior and animation
 - [x] Scroll-aware MiniNavbar (hide on scroll down)
+- [x] Implement signed Bunny URLs in upload script (14-day expiration)
+- [x] Build unified scrubber player with real-time jump across footage timeline
 
 ## 📥 Backlog
 
