@@ -72,8 +72,6 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        console.log("✅ User role:", userData?.role);
-
         return {
           id: data.user.id,
           email: data.user.email,
@@ -98,6 +96,7 @@ export const authOptions: NextAuthOptions = {
         // @ts-ignore
         token.role = user.role;
       }
+
       return token;
     },
     async session({ session, token }: { session: any; token: JWT }) {

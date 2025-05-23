@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { createClient } from '@supabase/supabase-js';
 
 export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+
+  if (!session || session.user.role !== 'admin') {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
+  }
+
   const body = await req.json();
   const { userId } = body;
 
@@ -25,12 +33,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: deleteDbError.message }, { status: 400 });
   }
 
-  // Step 2: (Optional) Delete from Authentication too
+  // Step 2: Delete from Auth
   const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
   if (authDeleteError) {
     console.error('Auth deletion error:', authDeleteError);
-    // You can choose whether to still return success or not
     return NextResponse.json({ success: false, error: authDeleteError.message }, { status: 400 });
   }
 

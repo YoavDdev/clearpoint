@@ -10,7 +10,7 @@ interface Customer {
   id: string;
   email: string;
   full_name: string;
-  subscription_plan: string;
+  plan_type: string;
 }
 
 export default function CustomersPage() {
@@ -111,7 +111,7 @@ export default function CustomersPage() {
                 <tr key={customer.id} className="hover:bg-gray-50 text-sm">
                   <td className="px-4 py-3">{customer.email}</td>
                   <td className="px-4 py-3">{customer.full_name || '-'}</td>
-                  <td className="px-4 py-3">{customer.subscription_plan || '-'}</td>
+                  <td className="px-4 py-3">{customer.plan_type || '-'}</td>
                   <td className="px-4 py-3 text-center">
   <Link href={`/admin/customers/${customer.id}`}>
     <span className="text-blue-600 hover:underline mx-1 cursor-pointer">צפייה</span>

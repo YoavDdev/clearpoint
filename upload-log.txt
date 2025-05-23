@@ -420,3 +420,35 @@
 [2025-05-22T18:06:53.966Z] ✅ STDOUT:
 ⏳ Skipping (still writing): 2025-05-22_21-02-54.mp4
 
+[2025-05-22T18:08:52.494Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T18:08:54.146Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_21-02-54.mp4
+
+[2025-05-22T18:10:52.499Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T18:10:54.220Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_21-02-54.mp4
+
+[2025-05-22T18:12:52.500Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T18:12:54.115Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_21-02-54.mp4
+
+[2025-05-22T18:14:52.501Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T18:14:54.001Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_21-02-54.mp4
+
+[2025-05-22T18:16:52.503Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T18:16:53.948Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_21-02-54.mp4
+
+[2025-05-22T18:18:52.506Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T18:18:54.045Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-22_21-02-54.mp4
+⏳ Skipping (still writing): 2025-05-22_21-17-54.mp4
+
+[2025-05-22T18:20:52.511Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-22T18:20:58.788Z] ✅ STDOUT:
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-22_21-02-54.mp4?token=6c2a2fe2e5e2451e7d5de4b4391566d57cf81baea2144b7bef9b6c9b4cc2191f&expires=1749147658
+✅ Uploaded: 2025-05-22_21-02-54.mp4
+⏳ Skipping (still writing): 2025-05-22_21-17-54.mp4
+
+[2025-05-22T18:22:52.506Z] 🚀 Running uploadSegmentedMp4.ts

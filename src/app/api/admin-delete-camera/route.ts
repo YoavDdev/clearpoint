@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+
+  if (!session || session.user.role !== "admin") {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+  }
+
   const body = await req.json();
   const { cameraId } = body;
 
@@ -15,9 +23,9 @@ export async function POST(req: Request) {
   );
 
   const { error } = await supabaseAdmin
-    .from('cameras')
+    .from("cameras")
     .delete()
-    .eq('id', cameraId);
+    .eq("id", cameraId);
 
   if (error) {
     console.error("Error deleting camera:", error);

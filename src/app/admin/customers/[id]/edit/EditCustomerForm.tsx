@@ -11,7 +11,8 @@ interface Props {
     phone: string | null;
     address: string | null;
     notes: string | null;
-    subscription_plan: string | null;
+    plan_type: string | null;
+    plan_duration_days: number | null;
   };
 }
 
@@ -23,7 +24,8 @@ export default function EditCustomerForm({ user }: Props) {
   const [phone, setPhone] = useState(user.phone || "");
   const [address, setAddress] = useState(user.address || "");
   const [notes, setNotes] = useState(user.notes || "");
-  const [plan, setPlan] = useState(user.subscription_plan || "Basic");
+  const [plan, setPlan] = useState(user.plan_type || "local");
+  const [retention, setRetention] = useState(user.plan_duration_days || 7);
 
   const handleSave = async () => {
     setSaving(true);
@@ -37,7 +39,8 @@ export default function EditCustomerForm({ user }: Props) {
         phone,
         address,
         notes,
-        subscription_plan: plan,
+        plan_type: plan,
+        plan_duration_days: retention,
       }),
     });
 
@@ -111,9 +114,21 @@ export default function EditCustomerForm({ user }: Props) {
               value={plan}
               onChange={(e) => setPlan(e.target.value)}
             >
-              <option value="Basic">Basic</option>
-              <option value="Premium">Premium</option>
-              <option value="VIP">VIP</option>
+              <option value="sim">חבילת סים</option>
+              <option value="wifi">אינטרנט ביתי</option>
+              <option value="local">מקומי בלבד</option>
+            </select>
+          </div>
+
+          <div className="text-right">
+            <label className="block mb-1 font-medium">משך שמירת קבצים</label>
+            <select
+              className="w-full p-2 border border-gray-300 rounded text-right focus:outline-none focus:ring focus:ring-blue-300"
+              value={retention}
+              onChange={(e) => setRetention(Number(e.target.value))}
+            >
+              <option value={7}>7 ימים</option>
+              <option value={14}>14 ימים</option>
             </select>
           </div>
         </div>

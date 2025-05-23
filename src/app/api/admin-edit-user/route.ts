@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== 'Admin') {
+  if (!session || session.user.role !== 'admin') {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
   }
 
@@ -24,7 +24,8 @@ export async function POST(req: Request) {
       phone: body.phone,
       address: body.address,
       notes: body.notes,
-      subscription_plan: body.subscription_plan,
+      plan_type: body.plan_type,
+      plan_duration_days: body.plan_duration_days,
     })
     .eq('id', body.id);
 

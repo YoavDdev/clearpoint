@@ -38,7 +38,7 @@ export default async function CustomerViewPage({ params }: { params: { id: strin
         <section>
           <h2 className="text-lg font-semibold mb-2 text-gray-700">הגדרות מנוי</h2>
           <div className="space-y-2">
-            <p><span className="font-medium text-gray-600">מסלול:</span> {user.subscription_plan || '-'}</p>
+            <p><span className="font-medium text-gray-600">מסלול:</span> {user.plan_type || '-'}</p>
             <p><span className="font-medium text-gray-600">הערות:</span> {user.notes || '-'}</p>
           </div>
         </section>

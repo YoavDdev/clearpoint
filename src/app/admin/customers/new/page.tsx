@@ -12,7 +12,6 @@ export default function NewCustomerPage() {
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
-  const [tempPassword, setTempPassword] = useState("");
 
   const searchParams = useSearchParams();
 
@@ -35,62 +34,51 @@ export default function NewCustomerPage() {
     }
   }, [searchParams]);
 
-  function generatePassword(length = 8) {
-    const charset =
-      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let password = "";
-    for (let i = 0; i < length; i++) {
-      password += charset.charAt(Math.floor(Math.random() * charset.length));
-    }
-    return password;
+
+const handleCreateCustomer = async () => {
+  setLoading(true);
+
+  if (!plan || !retention) {
+    alert("יש לבחור מסלול מנוי ומשך שמירת קבצים.");
+    setLoading(false);
+    return;
   }
 
-  const handleCreateCustomer = async () => {
-    setLoading(true);
+  const response = await fetch("/api/admin-invite-user", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email,
+      full_name: fullName,
+      phone,
+      address,
+      notes,
+      plan_type: plan,
+      plan_duration_days: retention,
+    }),
+  });
 
-    if (!plan || !retention) {
-      alert("יש לבחור מסלול מנוי ומשך שמירת קבצים.");
-      setLoading(false);
-      return;
-    }
+  const result = await response.json();
 
-    const password = generatePassword();
-    setTempPassword(password);
-
-    const response = await fetch("/api/admin-create-user", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email,
-        password,
-        full_name: fullName,
-        phone,
-        address,
-        notes,
-        plan_type: plan,
-        plan_duration_days: retention,
-      }),
-    });
-
-    const result = await response.json();
-
-    if (!result.success) {
-      alert("שגיאה ביצירת לקוח: " + result.error);
-      console.error(result.error);
-      setLoading(false);
-      return;
-    }
-
-    alert("✅ הלקוח נוצר בהצלחה!");
-    setEmail("");
-    setFullName("");
-    setPlan(null);
-    setRetention(null);
-    setPhone("");
-    setAddress("");
-    setNotes("");
+  if (!result.success) {
+    alert("שגיאה ביצירת לקוח: " + result.error);
+    console.error(result.error);
     setLoading(false);
-  };
+    return;
+  }
+
+  alert("✅ הלקוח נוצר בהצלחה!\n\nקישור ההתחברות נשלח ללקוח.");
+  console.log("Invite URL:", result.inviteUrl); // or send via email
+  setEmail("");
+  setFullName("");
+  setPlan(null);
+  setRetention(null);
+  setPhone("");
+  setAddress("");
+  setNotes("");
+  setLoading(false);
+};
+
 
   return (
     <main className="min-h-screen bg-gray-100 pt-20 px-6 flex flex-col items-center">
@@ -195,14 +183,6 @@ export default function NewCustomerPage() {
         >
           {loading ? "יוצר לקוח..." : "צור לקוח"}
         </button>
-
-        {/* Temp Password Display */}
-        {tempPassword && (
-          <div className="mt-6 p-4 bg-green-100 border border-green-300 rounded text-right">
-            <p className="text-green-700 font-semibold mb-1">סיסמה זמנית:</p>
-            <p className="break-words">{tempPassword}</p>
-          </div>
-        )}
       </div>
     </main>
   );

@@ -2,83 +2,111 @@
 
 ## 🧭 Project Vision
 
-Clearpoint is a **cloud-based security camera system** built to serve customers with:
-
-- Live and past video viewing  
-- Plan-based access and features  
-- Clean, premium UI (Apple-like aesthetic)  
-- Hebrew support and responsive layout  
-- Secure access and storage management  
-- Optimized data usage via local RTSP to HLS conversion (720p, 10fps, H.265, 512kbps)
+Clearpoint is a **cloud-based and hybrid security camera system** designed for:
+- Remote live access and secure VOD playback
+- Plan-based features and retention
+- Local fallback options (Plan C)
+- Hebrew, mobile-friendly UI
+- Optimized performance (720p, 10fps, H.265, 512kbps)
+- Private storage via Backblaze B2 + Bunny CDN (signed URLs)
 
 ---
 
 ## 🔑 Core Features
 
 ### 🔒 Authentication & Roles
-- Supabase Auth with NextAuth integration
+- Supabase Auth with NextAuth adapter
 - `Admin` and `User` roles
-- Secure admin-only camera creation
-- Server-side protected routes
-- Middleware to restrict dashboard/admin access by role
+- Middleware + RLS enforced per route/resource
 
 ### 🎥 Cameras & Viewing
-- View assigned cameras with live stream (via Bunny.net CDN)
-- Finalized layout: One large live stream panel + small thumbnail cards
-- Responsive grid on mobile, no animation switching
-- `/dashboard/footage` for VOD access by camera/date/time
-- Senior-friendly UI: Always start with camera selection → date → time
-- Secure video delivery using private B2 storage + signed Bunny URLs
+- View all assigned cameras
+- Live view via Bunny CDN (pull from HLS)
+- Timeline-style VOD browsing per camera/date
+- Red highlight for trim segments
+- Multi-segment FFmpeg download
 
-### 💳 Plans & Payments
-- Stripe integration planned for monthly billing
-- Plans define access to historical footage (e.g., 7 days back)
-- PlanCard shows current plan, upgrade link, and retention info
+### 📁 VOD Footage
+- Stored in Backblaze B2
+- Bunny.net signed URL access (14-day exp)
+- Segments in 15min `.mp4` chunks
+- React timeline scrubber simulates full-day playback
+- Local-only fallback for Plan C (via LAN API)
 
-### 💾 Storage & Downloads
-- 24/7 recordings stored in **Backblaze B2** (private bucket)
-- **Bunny.net** streams VOD securely via signed URL
-- Storage logic supports: filter clips by date/time, fetch by timestamp
-- Users can download footage clips from `/dashboard/footage`
-- Upcoming: clip trimming feature before download
+### 💽 Local Recording (Plan C)
+- On-device SSD storage (~10 days)
+- Custom Mini PC API for browsing/downloading
+- Auto-delete script respects retention window
+- LAN or secure tunnel access for dashboard
+- Future: retroactive cloud upload if upgraded
 
-### 🛠 Admin Panel
-- Admin can create/delete users and cameras
-- Assign cameras to users using a dropdown selector
-- View all users with roles, assigned cameras, and subscription info
-- Protected by middleware (RLS + role check)
+### 🧠 Plans & Upgrades
+- **Plan A**: SIM router (500GB), smart upload
+- **Plan B**: Full Wi-Fi cloud
+- **Plan C**: Local-only (offline, upgradable)
+- Upgrade path from Plan C → A/B with retro upload
+- Dynamic UI based on user’s plan
 
-### 📋 User Dashboard
-- Dashboard (`/dashboard`) includes:
-  - Large live camera stream
-  - Thumbnail camera cards
-  - Mini-navbar: PlanCard, SupportCard, DownloadCard
-  - `/dashboard/footage` with VOD browser & downloader
+### 💳 Payments
+- Stripe integration (planned)
+- Plans determine cloud retention window (7/14 days)
+- Annual discount options (₪1390)
 
----
-
-## 🧱 Upcoming Features
-
-- Stripe plan payments & billing UI  
-- Admin alerts (user signup, offline camera)  
-- Video trimming UI for clips  
-- Forgot/reset password via email  
-- Multi-camera comparison view  
-- AI motion/sound event detection (future phase)  
-- Storage limit enforcement based on plan tier  
-- Auto-expire old videos based on plan
+### 🛠 Admin Features
+- User/camera management UI
+- Filter by camera/user status
+- Subscription request management (status, notes)
+- RLS-restricted camera access
+- Visual cue for existing customers
 
 ---
 
-## 📐 Tech Stack
+## ✅ Implemented
 
-- **Next.js 14 (App Router)**  
-- **TailwindCSS**  
-- **Supabase (Auth, RLS, Storage, DB)**  
-- **NextAuth (Supabase adapter)**  
-- **Stripe**  
-- **Backblaze B2 (Cloud storage)**  
-- **Bunny.net (CDN with private streaming)**  
-- **Framer Motion (UI transitions)**  
-- **react-player** (VOD playback)  
-- **Raspberry Pi / FFmpeg** for RTSP→HLS conversion
+- Supabase + NextAuth auth sync
+- Clean admin layout and CRUD
+- Camera UI: thumbnails + main view
+- MiniNavbar: scroll-aware behavior
+- Cloud footage page with trim/download UI
+- Timeline scrubber with RTL + cut markers
+- B2 + Bunny integration with signed secure links
+
+---
+
+## 🔜 In Progress
+
+- `/dashboard/plan` and `/support` pages
+- Local-only support UI (Plan C)
+- Mini PC API (footage list, stream, config)
+- Plan upgrade logic for Plan C users
+- Storage estimation logic (per user)
+- SummaryCard role separation logic
+
+---
+
+## 🧱 Tech Stack
+
+- **Next.js 14 (App Router)**
+- **TailwindCSS + Framer Motion**
+- **Supabase (RLS, Auth, Storage)**
+- **NextAuth**
+- **Backblaze B2 (private footage)**
+- **Bunny.net (streaming via pull zone)**
+- **FFmpeg (segment trimming)**
+- **Mini PC (NVR role via LAN API)**
+
+---
+
+## 💡 Roadmap / Backlog
+
+- Plan C cleanup automation + disk alerts
+- Monitor failed uploads + retry queue
+- Bunny stale VOD checker
+- Forgot/reset password flow
+- CRON automation for footage processing
+- Public signup support + role assignment
+- Multi-camera view grid
+- AI event tagging (motion, sound) – future
+
+---
+

@@ -1,8 +1,23 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { createClient } from '@supabase/supabase-js';
 
 export async function POST(req: Request) {
-  const { name, serialNumber, userId, userEmail, streamPath, isStreamActive } = await req.json();
+  const session = await getServerSession(authOptions);
+
+  if (!session || session.user.role !== 'admin') {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
+  }
+
+  const {
+    name,
+    serialNumber,
+    userId,
+    userEmail,
+    streamPath,
+    isStreamActive,
+  } = await req.json();
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
