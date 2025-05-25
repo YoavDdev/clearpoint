@@ -25,11 +25,12 @@ export async function POST(req: Request) {
     phone,
     address,
     notes,
-    plan_type,
+    plan_type,             // → becomes plan_id in table
     plan_duration_days,
+    custom_price           // ✅ NEW
   } = body;
 
-  // 1. Create user (no password)
+  // 1. Create user in Supabase Auth (no password yet)
   const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
     email_confirm: false,
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
 
   const userId = authUser.user.id;
 
-  // 2. Add to users table
+  // 2. Add to users table (now supports custom_price)
   const { error: dbError } = await supabaseAdmin.from("users").insert({
     id: userId,
     email,
@@ -49,8 +50,10 @@ export async function POST(req: Request) {
     phone,
     address,
     notes,
-    plan_type,
+    plan_id: plan_type,                  // use correct FK column
     plan_duration_days,
+    custom_price: custom_price ?? null,  // allow optional
+    subscription_status: "active",
   });
 
   if (dbError) {
@@ -69,8 +72,6 @@ export async function POST(req: Request) {
   const invite = result.data;
   const linkError = result.error;
 
-  console.log("🔗 Invite data:", invite);
-
   if (linkError || !invite?.properties?.action_link) {
     return NextResponse.json({
       success: false,
@@ -80,7 +81,7 @@ export async function POST(req: Request) {
 
   // 4. Send email via Resend
   try {
-    const result = await resend.emails.send({
+    await resend.emails.send({
       from: "Clearpoint <onboarding@resend.dev>",
       to: ["yoavddev@gmail.com"],
       subject: "הצטרפות למערכת Clearpoint",
@@ -97,9 +98,6 @@ export async function POST(req: Request) {
         </div>
       `,
     });
-
-    console.log("📤 Resend email sent:", result);
-
   } catch (sendError: any) {
     console.error("❌ Failed to send email:", sendError);
     return NextResponse.json({ success: false, error: "Email send failed" }, { status: 500 });

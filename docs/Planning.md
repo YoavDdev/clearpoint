@@ -15,7 +15,7 @@ Clearpoint is a **cloud-based and hybrid security camera system** designed for:
 ## 🔑 Core Features
 
 ### 🔒 Authentication & Roles
-- Supabase Auth with NextAuth adapter
+- Supabase Auth (no NextAuth anymore)
 - `Admin` and `User` roles
 - Middleware + RLS enforced per route/resource
 
@@ -48,7 +48,9 @@ Clearpoint is a **cloud-based and hybrid security camera system** designed for:
 - Dynamic UI based on user’s plan
 
 ### 💳 Payments
-- Stripe integration (planned)
+- **Meshulam integration** (instead of Stripe)
+- Handles recurring billing via iframe or redirect
+- Supabase tracks plan type and payment status
 - Plans determine cloud retention window (7/14 days)
 - Annual discount options (₪1390)
 
@@ -63,7 +65,7 @@ Clearpoint is a **cloud-based and hybrid security camera system** designed for:
 
 ## ✅ Implemented
 
-- Supabase + NextAuth auth sync
+- Supabase Auth and RLS
 - Clean admin layout and CRUD
 - Camera UI: thumbnails + main view
 - MiniNavbar: scroll-aware behavior
@@ -81,6 +83,7 @@ Clearpoint is a **cloud-based and hybrid security camera system** designed for:
 - Plan upgrade logic for Plan C users
 - Storage estimation logic (per user)
 - SummaryCard role separation logic
+- Meshulam billing iframe/integration + backend tracking
 
 ---
 
@@ -89,11 +92,11 @@ Clearpoint is a **cloud-based and hybrid security camera system** designed for:
 - **Next.js 14 (App Router)**
 - **TailwindCSS + Framer Motion**
 - **Supabase (RLS, Auth, Storage)**
-- **NextAuth**
 - **Backblaze B2 (private footage)**
 - **Bunny.net (streaming via pull zone)**
 - **FFmpeg (segment trimming)**
 - **Mini PC (NVR role via LAN API)**
+- **Meshulam (payment handling)**
 
 ---
 
@@ -107,6 +110,4 @@ Clearpoint is a **cloud-based and hybrid security camera system** designed for:
 - Public signup support + role assignment
 - Multi-camera view grid
 - AI event tagging (motion, sound) – future
-
----
 

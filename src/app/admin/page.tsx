@@ -68,6 +68,10 @@ export default async function AdminPage() {
               צפה בכל הפניות שהתקבלו מהאתר
             </p>
           </Link>
+            <Link href="/admin/support" className="bg-white p-6 rounded-lg shadow hover:shadow-md transition">
+    <h2 className="text-xl font-semibold mb-2">📩 תמיכה</h2>
+    <p className="text-gray-600 text-sm">נהל בקשות תמיכה פתוחות או שטופלו</p>
+  </Link>
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow">

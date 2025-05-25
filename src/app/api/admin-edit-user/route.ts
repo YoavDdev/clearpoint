@@ -24,8 +24,9 @@ export async function POST(req: Request) {
       phone: body.phone,
       address: body.address,
       notes: body.notes,
-      plan_type: body.plan_type,
+      plan_id: body.plan_id, // ✅ fix here
       plan_duration_days: body.plan_duration_days,
+      custom_price: body.custom_price ?? null, // ✅ add this line
     })
     .eq('id', body.id);
 

@@ -11,8 +11,9 @@ interface Props {
     phone: string | null;
     address: string | null;
     notes: string | null;
-    plan_type: string | null;
+    plan_id: string | null;
     plan_duration_days: number | null;
+    custom_price: number | null;
   };
 }
 
@@ -24,8 +25,9 @@ export default function EditCustomerForm({ user }: Props) {
   const [phone, setPhone] = useState(user.phone || "");
   const [address, setAddress] = useState(user.address || "");
   const [notes, setNotes] = useState(user.notes || "");
-  const [plan, setPlan] = useState(user.plan_type || "local");
+  const [plan, setPlan] = useState(user.plan_id || "local");
   const [retention, setRetention] = useState(user.plan_duration_days || 7);
+  const [customPrice, setCustomPrice] = useState(user.custom_price?.toString() || "");
 
   const handleSave = async () => {
     setSaving(true);
@@ -39,8 +41,9 @@ export default function EditCustomerForm({ user }: Props) {
         phone,
         address,
         notes,
-        plan_type: plan,
+        plan_id: plan,
         plan_duration_days: retention,
+        custom_price: customPrice ? Number(customPrice) : null,
       }),
     });
 
@@ -71,7 +74,7 @@ export default function EditCustomerForm({ user }: Props) {
             <label className="block mb-1 font-medium">שם מלא</label>
             <input
               type="text"
-              className="w-full p-2 border border-gray-300 rounded text-right focus:outline-none focus:ring focus:ring-blue-300"
+              className="w-full p-2 border border-gray-300 rounded text-right"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
             />
@@ -81,7 +84,7 @@ export default function EditCustomerForm({ user }: Props) {
             <label className="block mb-1 font-medium">טלפון</label>
             <input
               type="tel"
-              className="w-full p-2 border border-gray-300 rounded text-right focus:outline-none focus:ring focus:ring-blue-300"
+              className="w-full p-2 border border-gray-300 rounded text-right"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
@@ -91,7 +94,7 @@ export default function EditCustomerForm({ user }: Props) {
             <label className="block mb-1 font-medium">כתובת</label>
             <input
               type="text"
-              className="w-full p-2 border border-gray-300 rounded text-right focus:outline-none focus:ring focus:ring-blue-300"
+              className="w-full p-2 border border-gray-300 rounded text-right"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
             />
@@ -101,7 +104,7 @@ export default function EditCustomerForm({ user }: Props) {
             <label className="block mb-1 font-medium">הערות</label>
             <textarea
               rows={3}
-              className="w-full p-2 border border-gray-300 rounded text-right focus:outline-none focus:ring focus:ring-blue-300"
+              className="w-full p-2 border border-gray-300 rounded text-right"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
@@ -110,7 +113,7 @@ export default function EditCustomerForm({ user }: Props) {
           <div className="text-right">
             <label className="block mb-1 font-medium">מסלול</label>
             <select
-              className="w-full p-2 border border-gray-300 rounded text-right focus:outline-none focus:ring focus:ring-blue-300"
+              className="w-full p-2 border border-gray-300 rounded text-right"
               value={plan}
               onChange={(e) => setPlan(e.target.value)}
             >
@@ -121,9 +124,9 @@ export default function EditCustomerForm({ user }: Props) {
           </div>
 
           <div className="text-right">
-            <label className="block mb-1 font-medium">משך שמירת קבצים</label>
+            <label className="block mb-1 font-medium">שימור קבצים</label>
             <select
-              className="w-full p-2 border border-gray-300 rounded text-right focus:outline-none focus:ring focus:ring-blue-300"
+              className="w-full p-2 border border-gray-300 rounded text-right"
               value={retention}
               onChange={(e) => setRetention(Number(e.target.value))}
             >
@@ -131,10 +134,21 @@ export default function EditCustomerForm({ user }: Props) {
               <option value={14}>14 ימים</option>
             </select>
           </div>
+
+          <div className="text-right">
+            <label className="block mb-1 font-medium">מחיר חודשי מותאם (אופציונלי)</label>
+            <input
+              type="number"
+              className="w-full p-2 border border-gray-300 rounded text-right"
+              value={customPrice}
+              onChange={(e) => setCustomPrice(e.target.value)}
+              placeholder="למשל: 100"
+            />
+          </div>
         </div>
 
         <button
-          className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded transition"
+          className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded"
           onClick={handleSave}
           disabled={saving}
         >

@@ -8,6 +8,7 @@ export default function NewCustomerPage() {
   const [fullName, setFullName] = useState("");
   const [plan, setPlan] = useState<string | null>(null);
   const [retention, setRetention] = useState<number | null>(null);
+  const [customPrice, setCustomPrice] = useState<number | null>(null);
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
@@ -34,51 +35,52 @@ export default function NewCustomerPage() {
     }
   }, [searchParams]);
 
+  const handleCreateCustomer = async () => {
+    setLoading(true);
 
-const handleCreateCustomer = async () => {
-  setLoading(true);
+    if (!plan || !retention) {
+      alert("יש לבחור מסלול מנוי ומשך שמירת קבצים.");
+      setLoading(false);
+      return;
+    }
 
-  if (!plan || !retention) {
-    alert("יש לבחור מסלול מנוי ומשך שמירת קבצים.");
+    const response = await fetch("/api/admin-invite-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        full_name: fullName,
+        phone,
+        address,
+        notes,
+        plan_type: plan,
+        plan_duration_days: retention,
+        custom_price: customPrice,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+      alert("שגיאה ביצירת לקוח: " + result.error);
+      console.error(result.error);
+      setLoading(false);
+      return;
+    }
+
+    alert("✅ הלקוח נוצר בהצלחה!\n\nקישור ההתחברות נשלח ללקוח.");
+    console.log("Invite URL:", result.inviteUrl);
+
+    setEmail("");
+    setFullName("");
+    setPlan(null);
+    setRetention(null);
+    setCustomPrice(null);
+    setPhone("");
+    setAddress("");
+    setNotes("");
     setLoading(false);
-    return;
-  }
-
-  const response = await fetch("/api/admin-invite-user", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email,
-      full_name: fullName,
-      phone,
-      address,
-      notes,
-      plan_type: plan,
-      plan_duration_days: retention,
-    }),
-  });
-
-  const result = await response.json();
-
-  if (!result.success) {
-    alert("שגיאה ביצירת לקוח: " + result.error);
-    console.error(result.error);
-    setLoading(false);
-    return;
-  }
-
-  alert("✅ הלקוח נוצר בהצלחה!\n\nקישור ההתחברות נשלח ללקוח.");
-  console.log("Invite URL:", result.inviteUrl); // or send via email
-  setEmail("");
-  setFullName("");
-  setPlan(null);
-  setRetention(null);
-  setPhone("");
-  setAddress("");
-  setNotes("");
-  setLoading(false);
-};
-
+  };
 
   return (
     <main className="min-h-screen bg-gray-100 pt-20 px-6 flex flex-col items-center">
@@ -173,6 +175,18 @@ const handleCreateCustomer = async () => {
             <option value={7}>7 ימים</option>
             <option value={14}>14 ימים</option>
           </select>
+        </div>
+
+        {/* Custom Price */}
+        <div className="mb-4 text-right">
+          <label className="block mb-2 font-medium">מחיר חודשי מותאם (אופציונלי)</label>
+          <input
+            type="number"
+            placeholder="למשל 120"
+            className="w-full p-2 border border-gray-300 rounded text-right"
+            value={customPrice ?? ""}
+            onChange={(e) => setCustomPrice(e.target.value ? Number(e.target.value) : null)}
+          />
         </div>
 
         {/* Submit Button */}

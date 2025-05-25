@@ -1,28 +1,32 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { createClient } from "@supabase/supabase-js";
-import type { NextRequest } from "next/server";
 
-export async function GET(req: NextRequest) {
-  const session = await getServerSession({ req, ...authOptions });
-
-  if (!session || session.user.role !== "admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-  }
-
+export async function GET() {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const { data, error } = await supabase
+  const { data: users, error } = await supabase
     .from("users")
-    .select("id, email, full_name, plan_type, phone, address, notes")
+    .select("id, email, full_name, plan_type, phone, address, notes, custom_price, plan_duration_days, needs_support");
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ users: data });
+  // Fetch support requests grouped by user_id where is_handled = false
+  const { data: requests } = await supabase
+    .from("support_requests")
+    .select("user_id")
+    .eq("is_handled", false);
+
+  const activeSupportUsers = new Set(requests?.map((r) => r.user_id));
+
+  const enriched = users.map((user) => ({
+    ...user,
+    has_pending_support: activeSupportUsers.has(user.id)
+  }));
+
+  return NextResponse.json({ success: true, users: enriched });
 }
