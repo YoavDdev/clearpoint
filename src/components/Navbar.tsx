@@ -8,6 +8,7 @@ import { Menu } from "lucide-react";
 export default function Navbar() {
   const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const isAdmin = session?.user?.role === "admin";
 
   return (
     <nav className="fixed top-0 inset-x-0 z-50 bg-white/60 dark:bg-black/40 backdrop-blur-md border-b border-gray-200 dark:border-zinc-700">
@@ -19,7 +20,6 @@ export default function Navbar() {
 
         {/* Desktop nav links */}
         <div className="hidden md:flex items-center gap-6">
-
           <Link href="/" className="hover:opacity-60 transition">בית</Link>
           <Link href="/about" className="hover:opacity-60 transition">עלינו</Link>
           <Link href="/services" className="hover:opacity-60 transition">שירותים</Link>
@@ -28,6 +28,9 @@ export default function Navbar() {
               <Link href="/dashboard" className="hover:opacity-60 transition">לוח בקרה</Link>
               <Link href="/support" className="hover:opacity-60 transition">תמיכה</Link>
             </>
+          )}
+          {isAdmin && (
+            <Link href="/admin" className="hover:opacity-60 transition">כניסה לניהול</Link>
           )}
         </div>
 
@@ -70,6 +73,9 @@ export default function Navbar() {
               <Link href="/dashboard" className="block hover:opacity-60 transition">לוח בקרה</Link>
               <Link href="/support" className="block hover:opacity-60 transition">תמיכה</Link>
             </>
+          )}
+          {isAdmin && (
+            <Link href="/admin" className="block hover:opacity-60 transition">כניסה לניהול</Link>
           )}
           {!session ? (
             <button

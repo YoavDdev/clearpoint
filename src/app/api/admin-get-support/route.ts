@@ -9,7 +9,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("support_requests")
-    .select("id, email, message, created_at, is_handled")
+    .select("id, email, message, created_at, is_handled, user_id, category, file_url") // ✅ added fields
     .order("created_at", { ascending: false });
 
   if (error) {

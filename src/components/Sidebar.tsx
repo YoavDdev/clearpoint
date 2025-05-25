@@ -9,25 +9,28 @@ import {
   CreditCard,
   LifeBuoy,
   LogOut,
+  Settings,
 } from "lucide-react";
 
 const navLinks = [
-  { href: "/admin", label: "ניהול", icon: <LayoutDashboard size={18} /> },
+  { href: "/admin", label: "לוח ניהול", icon: <LayoutDashboard size={18} /> },
   { href: "/admin/customers", label: "לקוחות", icon: <Users size={18} /> },
   { href: "/admin/cameras", label: "מצלמות", icon: <Camera size={18} /> },
-  { href: "/admin/billing", label: "חיובים", icon: <CreditCard size={18} /> },
+  { href: "/admin/requests", label: "בקשות הצטרפות", icon: <Users size={18} /> },
   { href: "/admin/support", label: "תמיכה", icon: <LifeBuoy size={18} /> },
+  { href: "/admin/billing", label: "חיובים", icon: <CreditCard size={18} /> },
+  { href: "/admin/settings", label: "הגדרות", icon: <Settings size={18} /> },
 ];
 
 export default function Sidebar({ open }: { open: boolean }) {
   const pathname = usePathname();
 
   return (
-<aside
-  className={`fixed top-[64px] right-0 z-40 h-[calc(100vh-64px)] w-64 bg-zinc-900 text-white flex flex-col justify-between transform transition-transform duration-300 ${
-    open ? "translate-x-0" : "translate-x-full"
-  }`}
->
+    <aside
+      className={`fixed top-[64px] right-0 z-40 h-[calc(100vh-64px)] w-64 bg-zinc-900 text-white flex flex-col justify-between transform transition-transform duration-300 ${
+        open ? "translate-x-0" : "translate-x-full"
+      }`}
+    >
       {/* Logo */}
       <div className="p-6 font-bold text-lg text-center border-b border-zinc-800">
         קלירפוינט ניהול

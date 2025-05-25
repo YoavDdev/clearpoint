@@ -1,14 +1,13 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
+import { CamerasTable } from "./CamerasTable";
 import Link from "next/link";
-import { CamerasTable } from "./CamerasTable"; // 👈 make sure the path is correct
 
-// ✅ Type definition
+// ✅ Match your Camera type
 type Camera = {
   id: string;
   name: string;
+  stream_path: string;
+  user_id: string;
   image_url: string;
   serial_number: string;
   last_seen_at: string | null;
@@ -27,6 +26,8 @@ export default async function CamerasPage() {
   const { data, error } = await supabaseAdmin.from("cameras").select(`
     id,
     name,
+    stream_path,
+    user_id,
     image_url,
     serial_number,
     last_seen_at,
@@ -44,20 +45,7 @@ export default async function CamerasPage() {
   })) as Camera[];
 
   return (
-    <main className="pt-20 p-6 bg-gray-100 min-h-screen">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">ניהול מצלמות</h1>
-          <span className="text-sm text-gray-500">{cameras.length} מצלמות פעילות</span>
-        </div>
-        <Link
-          href="/admin/cameras/new"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
-        >
-          הוספת מצלמה חדשה
-        </Link>
-      </div>
-
+    <main>
       <CamerasTable cameras={cameras} />
     </main>
   );

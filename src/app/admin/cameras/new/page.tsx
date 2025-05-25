@@ -12,7 +12,9 @@ export default function NewCameraPage() {
   const [userCameras, setUserCameras] = useState<any[]>([]);
   const [name, setName] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
-  const [streamPath, setStreamPath] = useState('');
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('');
+  const [ipAddress, setIpAddress] = useState('');
   const [isStreamActive, setIsStreamActive] = useState(true);
   const [loading, setLoading] = useState(false);
 
@@ -67,6 +69,13 @@ export default function NewCameraPage() {
       return;
     }
 
+    if (!name || !serialNumber || !username || !password || !ipAddress) {
+      alert('נא למלא את כל השדות');
+      return;
+    }
+
+    const streamPath = `rtsp://${username}:${password}@${ipAddress}:554/h264/ch1/main/av_stream`;
+
     setLoading(true);
 
     const response = await fetch('/api/admin-create-camera', {
@@ -92,9 +101,11 @@ export default function NewCameraPage() {
       alert(`✅ מצלמה נוצרה!\n\nה-ID הועתק ללוח:\n${result.camera.id}`);
       setName('');
       setSerialNumber('');
-      setStreamPath('');
+      setUsername('admin');
+      setPassword('');
+      setIpAddress('');
       setIsStreamActive(true);
-      handleUserSelect(selectedUser); // refresh list
+      handleUserSelect(selectedUser);
     }
 
     setLoading(false);
@@ -158,18 +169,42 @@ export default function NewCameraPage() {
           />
         </div>
 
-        <div className="mb-4 text-right">
-          <label className="block mb-2 font-medium">קישור RTSP (stream_path)</label>
-          <input
-            type="text"
-            className="w-full p-2 border border-gray-300 rounded text-right"
-            value={streamPath}
-            onChange={(e) => setStreamPath(e.target.value)}
-            placeholder="rtsp://..."
-          />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-right">
+          <div>
+            <label className="block mb-2 font-medium">שם משתמש RTSP</label>
+            <input
+              type="text"
+              className="w-full p-2 border border-gray-300 rounded"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="admin"
+            />
+          </div>
+
+          <div>
+            <label className="block mb-2 font-medium">סיסמה</label>
+            <input
+              type="text"
+              className="w-full p-2 border border-gray-300 rounded"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="123456"
+            />
+          </div>
+
+          <div>
+            <label className="block mb-2 font-medium">כתובת IP</label>
+            <input
+              type="text"
+              className="w-full p-2 border border-gray-300 rounded"
+              value={ipAddress}
+              onChange={(e) => setIpAddress(e.target.value)}
+              placeholder="192.168.1.10"
+            />
+          </div>
         </div>
 
-        <div className="mb-6 flex items-center justify-end">
+        <div className="mb-6 flex items-center justify-end mt-4">
           <label className="mr-2 font-medium">סטרים פעיל</label>
           <input
             type="checkbox"

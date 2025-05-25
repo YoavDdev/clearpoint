@@ -13,14 +13,15 @@ export async function POST(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("support_requests")
     .update({ is_handled: true })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id, email, message, created_at, is_handled, user_id, category, file_url") // ✅ full record
 
   if (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, updated: data?.[0] });
 }
