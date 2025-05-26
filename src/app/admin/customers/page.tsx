@@ -9,7 +9,7 @@ interface Customer {
   id: string;
   email: string;
   full_name: string;
-  plan_type: string;
+  plan_id: string;
   billing_status?: string;
   camera_status?: string;
   custom_price?: number;
@@ -102,7 +102,7 @@ export default function CustomersPage() {
                 <tr key={customer.id} className="border-t hover:bg-gray-50">
                   <td className="px-4 py-2">{customer.full_name || "-"}</td>
                   <td className="px-4 py-2">{customer.email}</td>
-                  <td className="px-4 py-2">{customer.plan_type || "-"}</td>
+                  <td className="px-4 py-2">{customer.plan_id || "-"}</td>
                   <td className="px-4 py-2">₪{customer.custom_price ?? "-"}</td>
                   <td className="px-4 py-2">{customer.plan_duration_days ?? "-"} ימים</td>
                   <td className="px-4 py-2">{customer.camera_status ?? "4/4 פעילות"}</td>

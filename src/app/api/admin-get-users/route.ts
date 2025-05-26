@@ -9,7 +9,7 @@ export async function GET() {
 
   const { data: users, error } = await supabase
     .from("users")
-    .select("id, email, full_name, plan_type, phone, address, notes, custom_price, plan_duration_days, needs_support");
+    .select("id, email, full_name, plan_id, phone, address, notes, custom_price, plan_duration_days, needs_support");
 
   if (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

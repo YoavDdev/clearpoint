@@ -33,18 +33,26 @@ export async function POST(req: Request) {
     const fileExt = file.name.split('.').pop();
     const filePath = `support/${crypto.randomUUID()}.${fileExt}`;
 
+    const buffer = Buffer.from(await file.arrayBuffer());
+
     const { error: uploadError } = await supabase.storage
-      .from("support_uploads")
-      .upload(filePath, file.stream(), {
-        contentType: file.type,
-        upsert: false,
-      });
+  .from("supportuploads") // ✅ here
+  .upload(filePath, buffer, {
+    contentType: file.type,
+    upsert: false,
+  });
+
 
     if (uploadError) {
       return NextResponse.json({ success: false, error: uploadError.message }, { status: 500 });
     }
 
-    fileUrl = supabase.storage.from("support_uploads").getPublicUrl(filePath).data.publicUrl;
+    // ✅ Get public URL from the same bucket
+
+fileUrl = supabase.storage
+  .from("supportuploads") // ✅ here too
+  .getPublicUrl(filePath).data.publicUrl;
+
   }
 
   const { error } = await supabase.from("support_requests").insert({

@@ -1,8 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
+interface Plan {
+  id: string;
+  name: string;
+  monthly_price: number;
+  retention_days: number;
+  connection_type: string;
+}
 
 interface Props {
   user: {
@@ -20,18 +28,35 @@ interface Props {
 export default function EditCustomerForm({ user }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [plans, setPlans] = useState<Plan[]>([]);
 
   const [fullName, setFullName] = useState(user.full_name || "");
   const [phone, setPhone] = useState(user.phone || "");
   const [address, setAddress] = useState(user.address || "");
   const [notes, setNotes] = useState(user.notes || "");
-  const [plan, setPlan] = useState(user.plan_id || "local");
-  const [retention, setRetention] = useState(user.plan_duration_days || 7);
+  const [planId, setPlanId] = useState(user.plan_id || "");
   const [customPrice, setCustomPrice] = useState(user.custom_price?.toString() || "");
+  const [retention, setRetention] = useState(user.plan_duration_days || 7);
+
+  useEffect(() => {
+    fetch("/api/plans")
+      .then((res) => res.json())
+      .then((data) => {
+        setPlans(data.plans || []);
+      });
+  }, []);
+
+  // Auto-fill defaults from selected plan
+  useEffect(() => {
+    const selected = plans.find((p) => p.id === planId);
+    if (selected) {
+      if (!user.custom_price) setCustomPrice(selected.monthly_price.toString());
+      if (!user.plan_duration_days) setRetention(selected.retention_days);
+    }
+  }, [planId, plans]);
 
   const handleSave = async () => {
     setSaving(true);
-
     const response = await fetch("/api/admin-edit-user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -41,15 +66,15 @@ export default function EditCustomerForm({ user }: Props) {
         phone,
         address,
         notes,
-        plan_id: plan,
+        plan_id: planId,
         plan_duration_days: retention,
         custom_price: customPrice ? Number(customPrice) : null,
       }),
     });
 
     setSaving(false);
-
     const result = await response.json();
+
     if (!result.success) {
       alert("שגיאה בשמירה: " + result.error);
     } else {
@@ -70,6 +95,7 @@ export default function EditCustomerForm({ user }: Props) {
         <h1 className="text-2xl font-bold mb-6 text-right">עריכת לקוח</h1>
 
         <div className="grid grid-cols-1 gap-5">
+          {/* General Info */}
           <div className="text-right">
             <label className="block mb-1 font-medium">שם מלא</label>
             <input
@@ -110,19 +136,23 @@ export default function EditCustomerForm({ user }: Props) {
             />
           </div>
 
+          {/* Plan Selection */}
           <div className="text-right">
             <label className="block mb-1 font-medium">מסלול</label>
             <select
               className="w-full p-2 border border-gray-300 rounded text-right"
-              value={plan}
-              onChange={(e) => setPlan(e.target.value)}
+              value={planId}
+              onChange={(e) => setPlanId(e.target.value)}
             >
-              <option value="sim">חבילת סים</option>
-              <option value="wifi">אינטרנט ביתי</option>
-              <option value="local">מקומי בלבד</option>
+              {plans.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.connection_type})
+                </option>
+              ))}
             </select>
           </div>
 
+          {/* Retention Selection */}
           <div className="text-right">
             <label className="block mb-1 font-medium">שימור קבצים</label>
             <select
@@ -135,6 +165,7 @@ export default function EditCustomerForm({ user }: Props) {
             </select>
           </div>
 
+          {/* Custom Price */}
           <div className="text-right">
             <label className="block mb-1 font-medium">מחיר חודשי מותאם (אופציונלי)</label>
             <input
@@ -142,7 +173,7 @@ export default function EditCustomerForm({ user }: Props) {
               className="w-full p-2 border border-gray-300 rounded text-right"
               value={customPrice}
               onChange={(e) => setCustomPrice(e.target.value)}
-              placeholder="למשל: 100"
+              placeholder="למשל: 99"
             />
           </div>
         </div>

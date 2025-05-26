@@ -3,10 +3,20 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
+interface Plan {
+  id: string;
+  name: string;
+  monthly_price: number;
+  retention_days: number;
+  connection_type: string;
+}
+
 export default function NewCustomerPage() {
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [planId, setPlanId] = useState<string | null>(null);
+
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
-  const [plan, setPlan] = useState<string | null>(null);
   const [retention, setRetention] = useState<number | null>(null);
   const [customPrice, setCustomPrice] = useState<number | null>(null);
   const [phone, setPhone] = useState("");
@@ -16,33 +26,42 @@ export default function NewCustomerPage() {
 
   const searchParams = useSearchParams();
 
+  // ✅ Load plans
+  useEffect(() => {
+    fetch("/api/plans")
+      .then((res) => res.json())
+      .then((data) => setPlans(data.plans || []));
+  }, []);
+
+  // ✅ Populate from query string if needed
   useEffect(() => {
     const fullName = searchParams.get("fullName");
     const email = searchParams.get("email");
     const phone = searchParams.get("phone");
     const address = searchParams.get("address");
-    const planLabel = searchParams.get("plan");
 
     if (fullName) setFullName(fullName);
     if (email) setEmail(email);
     if (phone) setPhone(phone);
     if (address) setAddress(address);
-
-    if (planLabel) {
-      if (planLabel.includes("אינטרנט")) setPlan("wifi");
-      else if (planLabel.includes("סים")) setPlan("sim");
-      else if (planLabel.includes("מקומי")) setPlan("local");
-    }
   }, [searchParams]);
 
-  const handleCreateCustomer = async () => {
-    setLoading(true);
+  // ✅ Auto-fill price & retention when plan changes
+  useEffect(() => {
+    const selected = plans.find((p) => p.id === planId);
+    if (selected) {
+      setCustomPrice(selected.monthly_price);
+      setRetention(selected.retention_days);
+    }
+  }, [planId]);
 
-    if (!plan || !retention) {
+  const handleCreateCustomer = async () => {
+    if (!planId || !retention) {
       alert("יש לבחור מסלול מנוי ומשך שמירת קבצים.");
-      setLoading(false);
       return;
     }
+
+    setLoading(true);
 
     const response = await fetch("/api/admin-invite-user", {
       method: "POST",
@@ -53,7 +72,7 @@ export default function NewCustomerPage() {
         phone,
         address,
         notes,
-        plan_type: plan,
+        plan_type: planId, // legacy field name, still correct
         plan_duration_days: retention,
         custom_price: customPrice,
       }),
@@ -64,16 +83,13 @@ export default function NewCustomerPage() {
     if (!result.success) {
       alert("שגיאה ביצירת לקוח: " + result.error);
       console.error(result.error);
-      setLoading(false);
-      return;
+    } else {
+      alert("✅ הלקוח נוצר בהצלחה!");
     }
-
-    alert("✅ הלקוח נוצר בהצלחה!\n\nקישור ההתחברות נשלח ללקוח.");
-    console.log("Invite URL:", result.inviteUrl);
 
     setEmail("");
     setFullName("");
-    setPlan(null);
+    setPlanId(null);
     setRetention(null);
     setCustomPrice(null);
     setPhone("");
@@ -105,7 +121,6 @@ export default function NewCustomerPage() {
           <label className="block mb-2 font-medium">שם מלא</label>
           <input
             type="text"
-            placeholder="שם פרטי ומשפחה"
             className="w-full p-2 border border-gray-300 rounded text-right"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
@@ -114,10 +129,9 @@ export default function NewCustomerPage() {
 
         {/* Phone */}
         <div className="mb-4 text-right">
-          <label className="block mb-2 font-medium">מספר טלפון</label>
+          <label className="block mb-2 font-medium">טלפון</label>
           <input
             type="tel"
-            placeholder="050-0000000"
             className="w-full p-2 border border-gray-300 rounded text-right"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
@@ -129,7 +143,6 @@ export default function NewCustomerPage() {
           <label className="block mb-2 font-medium">כתובת</label>
           <input
             type="text"
-            placeholder="עיר, רחוב, מספר"
             className="w-full p-2 border border-gray-300 rounded text-right"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
@@ -140,56 +153,55 @@ export default function NewCustomerPage() {
         <div className="mb-4 text-right">
           <label className="block mb-2 font-medium">הערות</label>
           <textarea
-            placeholder="מידע נוסף על הלקוח (לא חובה)"
             className="w-full p-2 border border-gray-300 rounded text-right"
-            rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
         </div>
 
         {/* Plan */}
-        <div className="mb-6 text-right">
+        <div className="mb-4 text-right">
           <label className="block mb-2 font-medium">מסלול מנוי</label>
           <select
-            value={plan ?? ""}
-            onChange={(e) => setPlan(e.target.value)}
+            value={planId ?? ""}
+            onChange={(e) => setPlanId(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded text-right"
           >
-            <option value="" disabled>בחר מסלול מנוי</option>
-            <option value="sim">חבילת סים (SIM)</option>
-            <option value="wifi">חבילת אינטרנט ביתי (Wi-Fi)</option>
-            <option value="local">חבילת מקומית (Local)</option>
+            <option value="" disabled>בחר מסלול</option>
+            {plans.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} ({p.connection_type})
+              </option>
+            ))}
           </select>
         </div>
 
         {/* Retention */}
-        <div className="mb-6 text-right">
+        <div className="mb-4 text-right">
           <label className="block mb-2 font-medium">משך שמירת קבצים</label>
           <select
             value={retention ?? ""}
             onChange={(e) => setRetention(Number(e.target.value))}
             className="w-full p-2 border border-gray-300 rounded text-right"
           >
-            <option value="" disabled>בחר תקופת שמירה</option>
+            <option value="" disabled>בחר תקופה</option>
             <option value={7}>7 ימים</option>
             <option value={14}>14 ימים</option>
           </select>
         </div>
 
         {/* Custom Price */}
-        <div className="mb-4 text-right">
+        <div className="mb-6 text-right">
           <label className="block mb-2 font-medium">מחיר חודשי מותאם (אופציונלי)</label>
           <input
             type="number"
-            placeholder="למשל 120"
             className="w-full p-2 border border-gray-300 rounded text-right"
             value={customPrice ?? ""}
             onChange={(e) => setCustomPrice(e.target.value ? Number(e.target.value) : null)}
           />
         </div>
 
-        {/* Submit Button */}
+        {/* Submit */}
         <button
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded"
           onClick={handleCreateCustomer}

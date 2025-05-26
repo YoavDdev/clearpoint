@@ -82,11 +82,21 @@ export default function SupportPage() {
         <div>
           <label className="block text-sm font-medium mb-1">צרף קובץ (לא חובה)</label>
           <input
-            type="file"
-            accept="image/*,.pdf"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-            className="w-full"
-          />
+  type="file"
+  accept="image/*,.pdf,.png,.jpg,.jpeg"
+  onChange={(e) => {
+    const selected = e.target.files?.[0] || null;
+    if (selected && selected.size > 5 * 1024 * 1024) {
+      alert("הקובץ חורג מהגודל המקסימלי (5MB)");
+      e.target.value = ""; // Clear input
+      setFile(null);
+      return;
+    }
+    setFile(selected);
+  }}
+  className="w-full"
+/>
+
         </div>
 
         {/* Submit */}
