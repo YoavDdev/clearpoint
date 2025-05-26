@@ -145,16 +145,60 @@ export default function FootageTimelinePlayer({ clips }: Props) {
   }, [currentIndex]);
 
   return (
-    <div className="w-full space-y-4" dir="rtl">
-      <div className="text-sm text-gray-600 text-right">
-        {new Date(startTime + virtualTime * 1000).toLocaleTimeString()} ({Math.floor(virtualTime / 60)} דקות)
+    <div className="w-full space-y-6 bg-white rounded-xl border border-gray-200 p-6 shadow-sm" dir="rtl">
+      {/* Time Display */}
+      <div className="flex items-center justify-between bg-gray-50 px-4 py-3 rounded-lg">
+        <div className="text-sm font-medium text-gray-700">
+          <span className="text-blue-600">זמן נוכחי:</span> {new Date(startTime + virtualTime * 1000).toLocaleTimeString('he-IL')}
+        </div>
+        <div className="text-sm text-gray-500">
+          {Math.floor(virtualTime / 60)} דקות {virtualTime % 60} שניות
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-2 justify-center">
+      {/* Timeline Bar */}
+      <div className="py-2">
+        <CustomTimelineBar
+          duration={totalDuration}
+          currentTime={virtualTime}
+          cutStart={activeStart}
+          cutEnd={null}
+          cuts={cuts}
+          onScrub={handleScrub}
+        />
+      </div>
+
+      {/* Video Player */}
+      <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+        <video
+          ref={videoRef}
+          key={currentClip.url}
+          src={currentClip.url}
+          className="w-full h-full object-contain"
+          controls
+          muted
+          autoPlay
+          onEnded={handleEnded}
+        >
+          <source src={currentClip.url} type="video/mp4" />
+          הדפדפן שלך לא תומך בווידאו.
+        </video>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex flex-wrap gap-3 pt-2">
         <button
           onClick={() => setActiveStart(virtualTime)}
-          className="px-4 py-2 bg-yellow-400 text-black font-medium rounded-2xl shadow-sm hover:bg-yellow-300 transition"
-        >📍 התחלת חיתוך</button>
+          className={`px-4 py-2.5 text-sm font-medium rounded-lg transition-all ${
+            activeStart === null 
+              ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border border-yellow-200' 
+              : 'bg-gray-100 text-gray-500 cursor-not-allowed'
+          }`}
+          disabled={activeStart !== null}
+        >
+          ✂️ התחלת חיתוך
+        </button>
+        
         <button
           onClick={() => {
             if (activeStart !== null && virtualTime > activeStart) {
@@ -162,59 +206,87 @@ export default function FootageTimelinePlayer({ clips }: Props) {
               setActiveStart(null);
             }
           }}
-          className="px-4 py-2 bg-orange-400 text-black font-medium rounded-2xl shadow-sm hover:bg-orange-300 transition"
-        >📍 סיום חיתוך</button>
+          disabled={activeStart === null || virtualTime <= activeStart}
+          className={`px-4 py-2.5 text-sm font-medium rounded-lg transition-all ${
+            activeStart !== null && virtualTime > activeStart
+              ? 'bg-orange-100 text-orange-800 hover:bg-orange-200 border border-orange-200'
+              : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+          }`}
+        >
+          🎬 סיום חיתוך
+        </button>
+        
+        <div className="flex-1" />
+        
         <button
           onClick={handleTrimAndDownload}
-          disabled={isProcessing}
-          className="px-4 py-2 bg-green-500 text-white font-medium rounded-2xl shadow-sm hover:bg-green-400 transition disabled:opacity-50"
-        >{isProcessing ? '⏳ מעבד חיתוכים...' : '🔪 הורדת כל החיתוכים'}</button>
-        {activeStart !== null && (
+          disabled={isProcessing || cuts.length === 0}
+          className={`px-4 py-2.5 text-sm font-medium rounded-lg transition-all ${
+            !isProcessing && cuts.length > 0
+              ? 'bg-green-600 text-white hover:bg-green-700 shadow-sm'
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+          }`}
+        >
+          {isProcessing ? (
+            <span className="flex items-center gap-2">
+              <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              מעבד...
+            </span>
+          ) : (
+            `הורד חיתוכים (${cuts.length})`
+          )}
+        </button>
+        
+        {(activeStart !== null || cuts.length > 0) && (
           <button
             onClick={() => {
               setCuts([]);
               setActiveStart(null);
             }}
-            className="px-4 py-2 bg-gray-300 text-black font-medium rounded-2xl shadow-sm hover:bg-gray-200 transition"
-          >🔁 איפוס חיתוכים</button>
+            className="px-4 py-2.5 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-100 rounded-lg transition-all"
+          >
+            🗑️ איפוס הכל
+          </button>
         )}
       </div>
 
-      <div className="text-right text-sm">
+      {/* Status and Cuts List */}
+      <div className="space-y-3 pt-2">
         {activeStart !== null && (
-          <div className="text-red-600">✂️ חיתוך התחיל ב־{formatTime(activeStart)}</div>
+          <div className="bg-blue-50 border border-blue-100 text-blue-800 text-sm px-4 py-2.5 rounded-lg">
+            ✂️ חיתוך התחיל ב־{formatTime(activeStart)}
+          </div>
         )}
+        
         {cuts.length > 0 && (
-          <ul className="text-green-700 space-y-1">
-            {cuts.map((c, i) => (
-              <li key={i}>🎬 קטע {i + 1}: {formatTime(c.start)} עד {formatTime(c.end)} ({c.end - c.start} שניות)</li>
-            ))}
-          </ul>
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+              <h3 className="text-sm font-medium text-gray-700">קטעים שנבחרו ({cuts.length})</h3>
+            </div>
+            <ul className="divide-y divide-gray-100">
+              {cuts.map((c, i) => (
+                <li key={i} className="px-4 py-2.5 hover:bg-gray-50 flex justify-between items-center">
+                  <span className="text-sm text-gray-700">
+                    <span className="font-medium">קטע {i + 1}:</span> {formatTime(c.start)} - {formatTime(c.end)} 
+                    <span className="text-gray-400 text-xs mr-2">({c.end - c.start} שניות)</span>
+                  </span>
+                  <button
+                    onClick={() => {
+                      setCuts(cuts.filter((_, idx) => idx !== i));
+                    }}
+                    className="text-gray-400 hover:text-red-500 p-1 -mr-2 rounded-full hover:bg-red-50 transition-colors"
+                    aria-label="מחק קטע"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </div>
-
-      <CustomTimelineBar
-        duration={totalDuration}
-        currentTime={virtualTime}
-        cutStart={activeStart}
-        cutEnd={null}
-        cuts={cuts}
-        onScrub={handleScrub}
-      />
-
-      <video
-        ref={videoRef}
-        key={currentClip.url}
-        src={currentClip.url}
-        className="w-full rounded border shadow"
-        controls
-        muted
-        autoPlay
-        onEnded={handleEnded}
-      >
-        <source src={currentClip.url} type="video/mp4" />
-        הדפדפן שלך לא תומך בווידאו.
-      </video>
     </div>
   );
 }

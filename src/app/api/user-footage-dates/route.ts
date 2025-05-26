@@ -1,17 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { format } from 'date-fns';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const cameraId = url.searchParams.get('cameraId');
 
-export async function GET(req: NextRequest) {
-  const cameraId = req.nextUrl.searchParams.get('cameraId');
-
-  if (!cameraId) {
-    return NextResponse.json({ success: false, error: 'Missing cameraId' }, { status: 400 });
-  }
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
 
   const { data, error } = await supabase
     .from('vod_files')
@@ -19,15 +16,16 @@ export async function GET(req: NextRequest) {
     .eq('camera_id', cameraId);
 
   if (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return Response.json({ success: false, error: error.message });
   }
 
-  // Normalize timestamps into unique date strings
-  const dates = Array.from(
-    new Set(
-      data.map((clip) => new Date(clip.timestamp).toISOString().split('T')[0])
-    )
+  // Convert all timestamps to `yyyy-MM-dd` date strings
+  const dates = data.map((clip) =>
+    format(new Date(clip.timestamp), 'yyyy-MM-dd')
   );
 
-  return NextResponse.json({ success: true, dates });
+  // Keep only unique dates
+  const uniqueDates = [...new Set(dates)];
+
+  return Response.json({ success: true, dates: uniqueDates });
 }
