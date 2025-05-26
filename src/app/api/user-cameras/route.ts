@@ -15,15 +15,31 @@ export async function GET() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const { data, error } = await supabase
+  // Fetch user's cameras
+  const { data: cameras, error: cameraError } = await supabase
     .from("cameras")
     .select("*")
     .eq("user_email", session.user.email)
-    .eq("is_stream_active", true); // optional filter
+    .eq("is_stream_active", true);
 
-  if (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  if (cameraError) {
+    return NextResponse.json({ success: false, error: cameraError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true, cameras: data });
+  // Fetch user's plan retention
+  const { data: user, error: userError } = await supabase
+    .from("users")
+    .select("plan_duration_days")
+    .eq("email", session.user.email)
+    .single();
+
+  if (userError) {
+    return NextResponse.json({ success: false, error: userError.message }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    success: true,
+    cameras,
+    plan_duration_days: user?.plan_duration_days ?? 14, // fallback to 14 if null
+  });
 }

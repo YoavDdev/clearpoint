@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { CamerasTable } from "./CamerasTable";
 import Link from "next/link";
 
+
 // ✅ Match your Camera type
 type Camera = {
   id: string;

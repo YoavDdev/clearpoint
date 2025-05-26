@@ -452,3 +452,201 @@
 ⏳ Skipping (still writing): 2025-05-22_21-17-54.mp4
 
 [2025-05-22T18:22:52.506Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:21:41.174Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:21:44.997Z] ✅ STDOUT:
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-22_21-17-54.mp4?token=e6745fc5df0eeac8912de25f0ce23583c12b291a26b27fcfd6b4f051842f779d&expires=1749486104
+✅ Uploaded: 2025-05-22_21-17-54.mp4
+
+[2025-05-26T16:23:41.177Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:25:41.175Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:25:42.667Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-26_19-24-25.mp4
+
+[2025-05-26T16:27:41.172Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:27:42.673Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-26_19-24-25.mp4
+
+[2025-05-26T16:29:41.171Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:29:42.744Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-26_19-24-25.mp4
+
+[2025-05-26T16:31:41.239Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:31:42.954Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-26_19-24-25.mp4
+
+[2025-05-26T16:33:41.237Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:33:42.967Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-26_19-24-25.mp4
+
+[2025-05-26T16:35:41.237Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:35:42.885Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-26_19-24-25.mp4
+
+[2025-05-26T16:37:41.235Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:37:43.230Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-26_19-24-25.mp4
+
+[2025-05-26T16:39:41.235Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:39:42.726Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-26_19-24-25.mp4
+⏳ Skipping (still writing): 2025-05-26_19-39-27.mp4
+
+[2025-05-26T16:41:41.235Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:41:46.601Z] ✅ STDOUT:
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-26_19-24-25.mp4?token=6069e0314ba38793648026f69f0e98c5d79856eb3c4c6c03d8ec4b0bd89243fa&expires=1749487306
+✅ Uploaded: 2025-05-26_19-24-25.mp4
+⏳ Skipping (still writing): 2025-05-26_19-39-27.mp4
+
+[2025-05-26T16:43:41.234Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:43:42.745Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-26_19-39-27.mp4
+
+[2025-05-26T16:45:41.234Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:45:42.884Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-26_19-39-27.mp4
+
+[2025-05-26T16:47:41.273Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:47:43.148Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-26_19-39-27.mp4
+
+[2025-05-26T16:49:41.273Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:49:42.755Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-26_19-39-27.mp4
+
+[2025-05-26T16:51:41.274Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:51:42.759Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-26_19-39-27.mp4
+
+[2025-05-26T16:53:41.274Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:53:42.766Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-26_19-39-27.mp4
+
+[2025-05-26T16:55:41.275Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:55:46.167Z] ✅ STDOUT:
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-26_19-39-27.mp4?token=d978c739d437b1b197ee8e7a5c8b954a5d26f2cde895670265a492ecf293b5df&expires=1749488146
+✅ Uploaded: 2025-05-26_19-39-27.mp4
+⏳ Skipping (still writing): 2025-05-26_19-54-27.mp4
+
+[2025-05-26T16:57:41.274Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:57:42.675Z] ✅ STDOUT:
+⏳ Skipping (still writing): 2025-05-26_19-54-27.mp4
+
+[2025-05-26T16:59:41.275Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T16:59:44.807Z] ✅ STDOUT:
+✅ Logged to Supabase: https://clearpoint-cdn.b-cdn.net/4fbcc677-a7c0-4fd6-8ff5-8e3b261f2be6/47c63248-6458-48b6-bc32-ccf435a1b3ce/2025-05-26_19-54-27.mp4?token=d44f11e6c561d1d3a5f2ba54f3da138fbd605bcffc5ba2fd9185b154db3b7b91&expires=1749488384
+✅ Uploaded: 2025-05-26_19-54-27.mp4
+
+[2025-05-26T17:01:41.313Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:03:41.322Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:05:41.324Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:07:41.326Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:09:41.329Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:11:41.331Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:13:41.335Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:15:41.338Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:17:41.365Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:19:41.368Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:21:41.371Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:23:41.374Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:25:41.377Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:27:41.380Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:29:41.383Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:31:41.377Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:33:41.346Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:35:41.348Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:37:41.350Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:39:41.352Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:41:41.354Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:43:41.355Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:45:41.357Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:47:41.372Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:49:41.375Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:51:41.378Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:53:41.379Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:55:41.381Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:57:41.384Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T17:59:41.387Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:01:41.390Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:03:41.392Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:05:41.394Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:07:41.396Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:09:41.399Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:11:41.400Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:13:41.403Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:15:41.404Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:17:41.406Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:19:41.409Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:21:41.411Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:23:41.413Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:25:41.415Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:27:41.418Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:29:41.421Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:31:41.423Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:33:41.405Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:35:41.406Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:37:41.408Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:39:41.410Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:41:41.412Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:43:41.415Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:45:41.416Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:47:41.418Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:49:41.377Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:51:41.377Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:53:41.378Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:55:41.378Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:57:41.379Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T18:59:41.380Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:01:41.380Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:03:41.387Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:05:41.387Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:07:41.388Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:09:41.390Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:11:41.390Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:13:41.390Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:15:41.391Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:17:41.392Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:19:41.321Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:21:41.320Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:23:41.318Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:25:41.317Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:27:41.317Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:29:41.316Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:31:41.315Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:33:41.314Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:35:41.275Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:37:41.272Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:39:41.270Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:41:41.269Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:43:41.266Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:45:41.265Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:47:41.263Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:49:41.201Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:51:41.196Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:53:41.191Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:55:41.188Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:57:41.185Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T19:59:41.181Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:01:41.176Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:03:41.171Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:05:41.173Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:07:41.171Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:09:41.168Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:11:41.164Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:13:41.161Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:15:41.157Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:17:41.153Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:19:41.156Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:21:41.166Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:23:41.163Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:25:41.160Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:27:41.157Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:29:41.153Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:31:41.150Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:33:41.147Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:35:41.144Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:37:41.147Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:39:41.145Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:41:41.141Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:43:41.138Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:45:41.134Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-26T20:47:41.130Z] 🚀 Running uploadSegmentedMp4.ts

@@ -72,11 +72,6 @@ export default async function CustomerViewPage({ params }: { params: { id: strin
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">סוג חיבור</label>
-            <input disabled className="w-full border p-2 rounded bg-gray-100" value={user.plan?.connection_type || "-"} />
-          </div>
-
-          <div>
             <label className="block text-sm font-medium text-gray-700">הערות</label>
             <textarea disabled className="w-full border p-2 rounded bg-gray-100" rows={2} value={user.notes || "-"} />
           </div>

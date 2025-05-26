@@ -11,13 +11,13 @@ interface Customer {
   full_name: string;
   plan_id: string;
   billing_status?: string;
-  camera_status?: string;
   custom_price?: number;
   plan_duration_days?: number;
   needs_support?: boolean;
   has_pending_support?: boolean;
+  camera_count?: number;
+  initial_camera_count?: number;
 }
-
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,7 +105,17 @@ export default function CustomersPage() {
                   <td className="px-4 py-2">{customer.plan_id || "-"}</td>
                   <td className="px-4 py-2">₪{customer.custom_price ?? "-"}</td>
                   <td className="px-4 py-2">{customer.plan_duration_days ?? "-"} ימים</td>
-                  <td className="px-4 py-2">{customer.camera_status ?? "4/4 פעילות"}</td>
+<td className="px-4 py-2">
+  <Link
+    href={`/admin/cameras?user=${customer.id}`}
+    className="text-blue-600 hover:underline"
+  >
+    {customer.camera_count}
+  </Link>
+</td>
+
+
+
                   <td className="px-4 py-2">{customer.billing_status ?? "פעיל"}</td>
                   <td className="px-4 py-2">
                     {customer.needs_support ? (
