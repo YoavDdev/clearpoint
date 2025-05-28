@@ -855,3 +855,13 @@
 [2025-05-26T23:50:14.663Z] ✅ STDOUT:
 ⏳ Skipping (still writing): 2025-05-27_02-42-43.mp4
 
+[2025-05-28T01:30:26.320Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-28T01:30:33.028Z] ⚠️ STDERR: ⏳ Retrying upload for 2025-05-27_02-42-43.mp4 (attempt 2/3)...
+⏳ Retrying upload for 2025-05-27_02-42-43.mp4 (attempt 3/3)...
+❌ Failed after 3 attempts: 2025-05-27_02-42-43.mp4: Request failed with status code 401
+
+[2025-05-28T01:31:29.955Z] 🚀 Running uploadSegmentedMp4.ts
+[2025-05-28T01:31:36.399Z] ⚠️ STDERR: ⏳ Retrying upload for 2025-05-27_02-42-43.mp4 (attempt 2/3)...
+⏳ Retrying upload for 2025-05-27_02-42-43.mp4 (attempt 3/3)...
+❌ Failed after 3 attempts: 2025-05-27_02-42-43.mp4: Request failed with status code 401
+

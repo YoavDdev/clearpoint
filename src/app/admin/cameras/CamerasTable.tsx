@@ -29,40 +29,56 @@ export function CamerasTable({ cameras }: { cameras: Camera[] }) {
     navigator.clipboard.writeText(text).then(() => alert("הועתק ללוח״"));
   };
 
-  const downloadScript = (cameraId: string, vod: string, live: string) => {
-    const script = `#!/bin/bash\n\n# VOD Recording\n${vod}\n\n# Live Streaming\n${live}\n`;
-    const blob = new Blob([script], { type: "text/x-sh" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `camera-${cameraId}.sh`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const downloadScript = (cameraId: string, rtsp: string, userId: string) => {
+  const script = `#!/bin/bash
+
+# ==== Camera Info ====
+USER_ID="${userId}"
+CAMERA_ID="${cameraId}"
+RTSP_URL="${rtsp}"
+
+# ==== Folder Paths ====
+BASE_DIR=~/clearpoint-recordings/\${USER_ID}
+FOOTAGE_DIR=\${BASE_DIR}/footage/\${CAMERA_ID}
+LIVE_DIR=\${BASE_DIR}/live/\${CAMERA_ID}
+
+mkdir -p "\${FOOTAGE_DIR}"
+mkdir -p "\${LIVE_DIR}"
+
+echo "📂 Folders created:"
+echo "  - \$FOOTAGE_DIR"
+echo "  - \$LIVE_DIR"
+
+# ==== VOD Recording ====
+echo "🎥 Starting VOD recording..."
+ffmpeg -rtsp_transport tcp -i "\${RTSP_URL}" \\
+  -c:v copy -c:a aac -f segment -segment_time 900 -reset_timestamps 1 -strftime 1 \\
+  "\${FOOTAGE_DIR}/%Y-%m-%d_%H-%M-%S.mp4" > /dev/null 2>&1 &
+
+# ==== Live Streaming ====
+echo "🔴 Starting live stream..."
+ffmpeg -rtsp_transport tcp -i "\${RTSP_URL}" \\
+  -c copy -f hls -hls_time 2 -hls_list_size 5 -hls_flags delete_segments+append_list \\
+  -hls_segment_filename "\${LIVE_DIR}/stream-%03d.ts" \\
+  "\${LIVE_DIR}/stream.m3u8" > /dev/null 2>&1 &
+
+
+echo "✅ FFmpeg processes running in background."
+`;
+
+  const blob = new Blob([script], { type: "text/x-sh" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `camera-${cameraId}.sh`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
 
   const filtered = cameras.filter((cam) =>
     cam.user?.full_name?.toLowerCase().includes(search.toLowerCase())
   );
-
-  const generateFFmpeg = (camera: Camera) => {
-    const vodPath = `./recordings/${camera.user_id}/${camera.id}/%Y-%m-%d_%H-%M-%S.mp4`;
-    const livePath = `./public/stream/${camera.id}.m3u8`;
-
-    const masked = (camera.stream_path || "").replace(
-      /(rtsp:\/\/.*?:)(.*?)(@)/,
-      "$1****$3"
-    );
-
-    const vod = `ffmpeg -rtsp_transport tcp -i \"${masked}\" \\
-  -c:v copy -c:a aac -f segment -segment_time 900 -reset_timestamps 1 -strftime 1 \\
-  ${vodPath}`;
-
-    const live = `ffmpeg -rtsp_transport tcp -i \"${masked}\" \\
-  -c copy -f hls -hls_time 2 -hls_list_size 3 -hls_flags delete_segments \\
-  ${livePath}`;
-
-    return { vod, live, vodRaw: camera.stream_path, masked };
-  };
 
   return (
     <main dir="rtl" className="pt-20 p-6 bg-gray-100 min-h-screen">
@@ -101,11 +117,10 @@ export function CamerasTable({ cameras }: { cameras: Camera[] }) {
             <tbody>
               {filtered.map((camera) => {
                 const isOnline = camera.is_stream_active === true;
-                const { vod, live, vodRaw, masked } = generateFFmpeg(camera);
                 const isExpanded = expanded[camera.id];
 
                 return (
-                   <React.Fragment key={camera.id}>
+                  <React.Fragment key={camera.id}>
                     <tr key={`${camera.id}-main`} className="border-t hover:bg-gray-50">
                       <td className="px-4 py-2">
                         <button
@@ -132,32 +147,12 @@ export function CamerasTable({ cameras }: { cameras: Camera[] }) {
                         {isExpanded && (
                           <div className="space-y-2">
                             <div>
-                              <strong>🎥 VOD:</strong>
-                              <pre className="bg-gray-100 p-2 mt-1 whitespace-pre-wrap overflow-x-auto">{vod}</pre>
-                              <button
-                                onClick={() => copyToClipboard(vod)}
-                                className="text-blue-500 hover:underline"
-                              >
-                                העתק פקודת VOD
-                              </button>
-                            </div>
-                            <div>
-                              <strong>🔴 LIVE:</strong>
-                              <pre className="bg-gray-100 p-2 mt-1 whitespace-pre-wrap overflow-x-auto">{live}</pre>
-                              <button
-                                onClick={() => copyToClipboard(live)}
-                                className="text-blue-500 hover:underline"
-                              >
-                                העתק פקודת LIVE
-                              </button>
-                            </div>
-                            <div>
                               <button
                                 onClick={() =>
                                   downloadScript(
                                     camera.id,
-                                    vod.replace(masked, vodRaw),
-                                    live.replace(masked, vodRaw)
+                                    camera.stream_path,
+                                    camera.user_id
                                   )
                                 }
                                 className="text-green-600 hover:underline"
