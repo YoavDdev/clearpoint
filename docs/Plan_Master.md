@@ -7,10 +7,8 @@ It is intended for internal use to support website development, billing, and fea
 
 ## 🔧 Hardware Baseline (All Plans)
 
-- N6M Mini PC (Intel N150, 8GB RAM, Upgraded 256GB NVMe SSD): ₪483 (including payment fee)
-- Estimated import taxes & fees: ₪150
-- **Total PC cost (landed): ₪633**
-- 4 IP Cameras (H.265, 720p–1080p): ₪120
+- GMKtec Mini PC (Intel N100, 8GB, 256GB SSD): ₪392
+- 4 IP Cameras (H.265, 720p–1080p): ₪400–600
 - Cables, mounts, POE switch: ₪150–200
 - Installation Fee (one-time): ₪250–₪400
 - Storage buffer: ~10 days local VOD (SSD-based)
@@ -89,7 +87,7 @@ It is intended for internal use to support website development, billing, and fea
 - Clip download + snapshot tools
 - Role-based access control via Supabase
 - Camera → Date → Time selection UI
-- Powered by N6M Mini PC at site
+- Powered by GMKtec Mini PC at site
 - 4 camera support included in base price
 
 ---
