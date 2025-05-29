@@ -76,34 +76,47 @@ async function logToSupabase(userEmail: string, cameraId: string, url: string, f
 }
 
 async function processSegments() {
-  const rootPath = './recordings';
-  const users = fs.existsSync(rootPath) ? fs.readdirSync(rootPath) : [];
+  console.log("🚀 Starting VOD upload script...");
+  const rootPath = path.resolve(process.env.HOME || '', 'clearpoint-recordings');
+  console.log("📂 Reading folders in:", rootPath);
+  const folders = fs.existsSync(rootPath) ? fs.readdirSync(rootPath).filter(f => f !== '.DS_Store') : [];
 
-  const { data: userRows } = await supabase.from('users').select('id, email, plan_type, plan_duration_days');
-  const userMap: Record<string, { email: string; plan_type: string; retention: number }> = {};
+  const { data: userRows } = await supabase.from('users').select('id, email, plan_id, plan_duration_days');
+  const userMap: Record<string, { email: string; plan_id: string; retention: number }> = {};
   userRows?.forEach((u) => {
-    if (u.id && u.email && u.plan_type && u.plan_duration_days) {
-      userMap[u.id] = {
+    if (u.id && u.email && u.plan_id && u.plan_duration_days) {
+      userMap[u.id.trim()] = {
         email: u.email,
-        plan_type: u.plan_type,
+        plan_id: u.plan_id,
         retention: u.plan_duration_days
       };
     }
   });
 
-  for (const userId of users) {
-    const user = userMap[userId];
+  console.log('📂 Raw folder names:', folders);
+  console.log('📦 Available users in Supabase:', Object.keys(userMap));
+
+  const validUserFolders = folders.filter(f => userMap[f.trim()]);
+  console.log("🎯 Valid user folders:", validUserFolders);
+
+  for (const userId of validUserFolders) {
+    const user = userMap[userId.trim()];
     if (!user) {
       console.warn(`⚠️ Skipping unknown userId: ${userId}`);
       continue;
     }
 
-    const userPath = path.join(rootPath, userId);
-    const cameras = fs.readdirSync(userPath);
+    const userPath = path.join(rootPath, userId, 'footage');
+    if (!fs.existsSync(userPath)) continue;
+const cameras = fs.readdirSync(userPath).filter(name => {
+  const fullPath = path.join(userPath, name);
+  return fs.statSync(fullPath).isDirectory();
+});
 
     for (const cameraId of cameras) {
       const cameraPath = path.join(userPath, cameraId);
       const files = fs.readdirSync(cameraPath).filter(f => f.endsWith('.mp4'));
+      console.log(`📸 User ${userId} Camera ${cameraId} – ${files.length} files`);
 
       for (const file of files) {
         const filePath = path.join(cameraPath, file);
@@ -117,7 +130,7 @@ async function processSegments() {
             console.log(`🧪 [TEST] Would delete expired file: ${file}`);
           } else {
             fs.unlinkSync(filePath);
-            console.log(`🧹 Deleted expired file for ${user.plan_type}: ${file}`);
+            console.log(`🧹 Deleted expired file for ${user.plan_id}: ${file}`);
           }
           continue;
         }
@@ -127,7 +140,7 @@ async function processSegments() {
           continue;
         }
 
-        if (user.plan_type === 'local') {
+        if (user.plan_id === 'local') {
           console.log(`🟤 Skipping upload for Plan C (local): ${file}`);
           continue;
         }
@@ -169,4 +182,4 @@ async function processSegments() {
   }
 }
 
-processSegments();
+processSegments().catch(err => console.error("💥 Script error:", err));

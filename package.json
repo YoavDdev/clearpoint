@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "check-cameras": "ts-node scripts/camera-status-checker.ts"
+    "upload-vods": "ts-node scripts/uploadVods.ts",
+    "cleanup-vods": "ts-node scripts/cleanupExpiredVods.ts"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",

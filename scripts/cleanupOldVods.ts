@@ -14,14 +14,14 @@ async function deleteFromB2(fileName: string, fileId: string) {
     const authRes = await axios.get('https://api.backblazeb2.com/b2api/v2/b2_authorize_account', {
       headers: { Authorization: `Basic ${credentials}` }
     });
-    const apiUrl = authRes.data.apiUrl;
-    const authToken = authRes.data.authorizationToken;
+
+    const { apiUrl, authorizationToken } = authRes.data;
 
     await axios.post(`${apiUrl}/b2api/v2/b2_delete_file_version`, {
       fileName,
       fileId,
     }, {
-      headers: { Authorization: authToken }
+      headers: { Authorization: authorizationToken }
     });
 
     console.log(`🧹 Deleted from B2: ${fileName}`);
@@ -31,46 +31,52 @@ async function deleteFromB2(fileName: string, fileId: string) {
 }
 
 async function cleanupExpiredVods() {
-  // Fetch all videos with user retention info
-  const { data: vods, error: vodError } = await supabase.from('vod_files').select('id, url, timestamp, user_email, file_id');
+  const { data: vods, error: vodError } = await supabase
+    .from('vod_files')
+    .select('id, url, timestamp, user_id, file_id');
+
   if (vodError) {
     console.error('❌ Failed to fetch vod_files:', vodError.message);
     return;
   }
 
-  const { data: users, error: userError } = await supabase.from('users').select('email, plan_duration_days');
+  const { data: users, error: userError } = await supabase
+    .from('users')
+    .select('id, plan_duration_days');
+
   if (userError) {
     console.error('❌ Failed to fetch users:', userError.message);
     return;
   }
 
-  // Map user email to retention days (7 or 14)
-  const userRetentionMap: Record<string, number> = {};
+  const retentionMap: Record<string, number> = {};
   users.forEach(u => {
-    if (u.email && u.plan_duration_days) {
-      userRetentionMap[u.email] = u.plan_duration_days;
+    if (u.id && u.plan_duration_days) {
+      retentionMap[u.id] = u.plan_duration_days;
     }
   });
 
   const now = Date.now();
 
   for (const vod of vods) {
-    const retention = userRetentionMap[vod.user_email];
+    const retention = retentionMap[vod.user_id];
     if (!retention) {
-      console.log(`⚠️ Skipping VOD with unknown user or retention: ${vod.id}`);
+      console.warn(`⚠️ Skipping: Unknown retention for user ${vod.user_id}`);
       continue;
     }
 
-    const vodTime = new Date(vod.timestamp).getTime();
-    const ageInDays = (now - vodTime) / 86400000;
+    const vodDate = new Date(vod.timestamp);
+    const ageInDays = (now - vodDate.getTime()) / 86400000;
 
-    if (ageInDays > retention && vod.file_id) {
-      const url = new URL(vod.url);
-      const pathOnly = url.pathname.replace(/^\//, '');
-
-      await deleteFromB2(pathOnly, vod.file_id);
-      await supabase.from('vod_files').delete().eq('id', vod.id);
-      console.log(`🧺 Removed Supabase record for VOD ID: ${vod.id}`);
+    if (ageInDays > retention) {
+      try {
+        const urlPath = new URL(vod.url).pathname.replace(/^\//, '');
+        await deleteFromB2(urlPath, vod.file_id);
+        await supabase.from('vod_files').delete().eq('id', vod.id);
+        console.log(`🧺 Cleaned up expired VOD ID: ${vod.id}`);
+      } catch (err) {
+        console.error(`❌ Error cleaning VOD ID ${vod.id}:`, err);
+      }
     }
   }
 }

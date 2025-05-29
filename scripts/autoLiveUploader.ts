@@ -43,17 +43,22 @@ async function uploadFile(filePath: string, b2Key: string) {
 
   const fileBuffer = fs.readFileSync(filePath);
   const sha1 = crypto.createHash('sha1').update(fileBuffer).digest('hex');
+  const isM3U8 = path.extname(filePath) === '.m3u8';
+  const contentType = isM3U8 ? 'application/vnd.apple.mpegurl' : 'video/MP2T';
 
-  const response = await axios.post(upload.uploadUrl, fileBuffer, {
-    headers: {
-      Authorization: upload.authorizationToken,
-      'X-Bz-File-Name': encodeURIComponent(b2Key),
-      'Content-Type': path.extname(filePath) === '.m3u8' ? 'application/vnd.apple.mpegurl' : 'video/MP2T',
-      'Content-Length': fileBuffer.length,
-      'X-Bz-Content-Sha1': sha1,
-    }
-  });
+  const headers: any = {
+    Authorization: upload.authorizationToken,
+    'X-Bz-File-Name': encodeURIComponent(b2Key),
+    'Content-Type': contentType,
+    'Content-Length': fileBuffer.length,
+    'X-Bz-Content-Sha1': sha1,
+  };
 
+  if (isM3U8) {
+    headers['Cache-Control'] = 'no-cache';
+  }
+
+  const response = await axios.post(upload.uploadUrl, fileBuffer, { headers });
   console.log(`✅ Uploaded to B2: ${b2Key}`);
 }
 
@@ -68,7 +73,7 @@ function watchLiveHLS() {
     depth: 5,
   });
 
-  watcher.on('add', async (filePath) => {
+  const handleUpload = async (filePath: string) => {
     if (!filePath.endsWith('.ts') && !filePath.endsWith('.m3u8')) return;
     const relativeKey = path.relative(LOCAL_LIVE_PATH, filePath);
     try {
@@ -80,7 +85,10 @@ function watchLiveHLS() {
         console.error(`❌ Upload error: ${relativeKey}`, err.message || err);
       }
     }
-  });
+  };
+
+  watcher.on('add', handleUpload);
+  watcher.on('change', handleUpload);
 
   console.log(`📡 Watching: ${watchPath} for .ts/.m3u8 files...`);
 }
