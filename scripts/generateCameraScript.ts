@@ -53,3 +53,5 @@ fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.writeFileSync(outputPath, scriptContent, { mode: 0o755 });
 
 console.log(`✅ Script created at: ${outputPath}`);
+
+

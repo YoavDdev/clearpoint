@@ -15,9 +15,27 @@ export default function LiveStreamPlayer({ streamUrl }: Props) {
     if (!video) return;
 
     if (Hls.isSupported()) {
-      const hls = new Hls();
+      const hls = new Hls({
+  lowLatencyMode: true,
+  liveSyncDuration: 1.5,
+  maxLiveSyncPlaybackRate: 1.0,
+  maxBufferLength: 3,
+  maxMaxBufferLength: 5,
+  backBufferLength: 30,
+});
+
       hls.loadSource(streamUrl);
       hls.attachMedia(video);
+
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data?.fatal) {
+          console.error("🔥 Fatal HLS.js error:", data);
+          hls.destroy();
+        } else {
+          console.warn("⚠️ HLS.js warning:", data);
+        }
+      });
+
       return () => hls.destroy();
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = streamUrl;
@@ -32,11 +50,9 @@ export default function LiveStreamPlayer({ streamUrl }: Props) {
         autoPlay
         muted
         playsInline
-        className={`w-full h-full`}
-        onClick={(e) => e.preventDefault()}
+        preload="auto"
+        className="w-full h-full"
       />
-
     </div>
   );
 }
-

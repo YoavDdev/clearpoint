@@ -15,6 +15,7 @@ const supabase = createClient(
 
 const BUNNY_TOKEN_KEY = '7d50c21c-f068-4da0-a518-b214db713b3f';
 const BUNNY_CDN_BASE = 'https://clearpoint-cdn.b-cdn.net';
+const ROOT_PATH = process.env.LOCAL_LIVE_PATH || '/home/pi/clearpoint-recordings';
 
 function generateSignedBunnyUrl(filePath: string, expiresInSeconds = 1209600): string {
   const normalizedPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
@@ -62,124 +63,71 @@ async function uploadToB2(filePath: string, b2Key: string) {
   };
 }
 
-async function logToSupabase(userId: string, userEmail: string, cameraId: string, url: string, fileId: string, timestamp: string, duration = 900) {
-  if (TEST_MODE) {
-    console.log(`🧪 [TEST] Would log to Supabase for ${userEmail}: ${url}`);
-    return;
-  }
-  const { error } = await supabase.from('vod_files').insert([{
-    user_id: userId,
-    user_email: userEmail,
-    camera_id: cameraId,
-    url,
-    file_id: fileId,
-    timestamp,
-    duration
-  }]);
-  if (error) {
-    console.error(`❌ Supabase insert error:`, error.message);
-  } else {
-    console.log(`✅ Logged to Supabase: ${url}`);
-  }
+async function logToSupabase(userEmail: string, cameraId: string, url: string, fileId: string, timestamp: string, duration = 900) {
+  if (TEST_MODE) return;
+  const { error } = await supabase.from('vod_files').insert([{ user_email: userEmail, camera_id: cameraId, url, file_id: fileId, timestamp, duration }]);
+  if (error) console.error(`❌ Supabase insert error:`, error.message);
+  else console.log(`✅ Logged to Supabase: ${url}`);
 }
 
 async function processSegments() {
-  console.log("🚀 Starting VOD upload script...");
-  const rootPath = path.resolve(process.env.HOME || '', 'clearpoint-recordings');
-  console.log("📂 Reading folders in:", rootPath);
-  const folders = fs.existsSync(rootPath) ? fs.readdirSync(rootPath).filter(f => f !== '.DS_Store') : [];
+  const users = fs.existsSync(ROOT_PATH) ? fs.readdirSync(ROOT_PATH) : [];
 
-  const { data: userRows } = await supabase.from('users').select('id, email, plan_id, plan_duration_days');
-  const userMap: Record<string, { email: string; plan_id: string; retention: number }> = {};
+  const { data: userRows } = await supabase.from('users').select('id, email, plan_type, plan_duration_days');
+  const userMap: Record<string, { email: string; plan_type: string; retention: number }> = {};
   userRows?.forEach((u) => {
-    if (u.id && u.email && u.plan_id && u.plan_duration_days) {
-      userMap[u.id.trim()] = {
+    if (u.id && u.email && u.plan_type && u.plan_duration_days) {
+      userMap[u.id] = {
         email: u.email,
-        plan_id: u.plan_id,
+        plan_type: u.plan_type,
         retention: u.plan_duration_days
       };
     }
   });
 
-  console.log('📂 Raw folder names:', folders);
-  console.log('📦 Available users in Supabase:', Object.keys(userMap));
+  for (const userId of users) {
+    const user = userMap[userId];
+    if (!user) continue;
 
-  const validUserFolders = folders.filter(f => userMap[f.trim()]);
-  console.log("🎯 Valid user folders:", validUserFolders);
-
-  for (const userId of validUserFolders) {
-    const user = userMap[userId.trim()];
-    if (!user) {
-      console.warn(`⚠️ Skipping unknown userId: ${userId}`);
-      continue;
-    }
-
-    const userPath = path.join(rootPath, userId, 'footage');
-    if (!fs.existsSync(userPath)) continue;
-    const cameras = fs.readdirSync(userPath).filter(name => {
-      const fullPath = path.join(userPath, name);
-      return fs.statSync(fullPath).isDirectory();
-    });
+    const userPath = path.join(ROOT_PATH, userId, 'footage');
+    const cameras = fs.existsSync(userPath) ? fs.readdirSync(userPath) : [];
 
     for (const cameraId of cameras) {
       const cameraPath = path.join(userPath, cameraId);
       const files = fs.readdirSync(cameraPath).filter(f => f.endsWith('.mp4'));
-      console.log(`📸 User ${userId} Camera ${cameraId} – ${files.length} files`);
 
       for (const file of files) {
         const filePath = path.join(cameraPath, file);
-
         const stats = fs.statSync(filePath);
         const modifiedAgo = (Date.now() - stats.mtime.getTime()) / 1000;
         const ageInDays = modifiedAgo / 86400;
 
         if (ageInDays > user.retention) {
-          if (TEST_MODE) {
-            console.log(`🧪 [TEST] Would delete expired file: ${file}`);
-          } else {
-            fs.unlinkSync(filePath);
-            console.log(`🧹 Deleted expired file for ${user.plan_id}: ${file}`);
-          }
+          fs.unlinkSync(filePath);
+          console.log(`🧹 Deleted expired file: ${file}`);
           continue;
         }
 
-        if (modifiedAgo < 60) {
-          console.log(`⏳ Skipping (still writing): ${file}`);
-          continue;
-        }
-
-        if (user.plan_id === 'local') {
-          console.log(`🟤 Skipping upload for Plan C (local): ${file}`);
-          continue;
-        }
+        if (modifiedAgo < 60 || user.plan_type === 'local') continue;
 
         const match = file.match(/(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})/);
-        if (!match) {
-          console.warn(`⚠️ Skipping unrecognized filename: ${file}`);
-          continue;
-        }
+        if (!match) continue;
 
         const [_, date, time] = match;
         const timestamp = new Date(`${date}T${time.replace(/-/g, ':')}`).toISOString();
         const b2Key = `${userId}/${cameraId}/${file}`;
 
-        if (TEST_MODE) {
-          console.log(`🧪 [TEST] Would upload & log: ${file}`);
-          continue;
-        }
-
         for (let attempt = 0; attempt < 3; attempt++) {
           try {
             const { filePath: fullPath, fileId } = await uploadToB2(filePath, b2Key);
-            const signedUrl = generateSignedBunnyUrl(fullPath, 1209600);
-            await logToSupabase(userId, user.email, cameraId, signedUrl, fileId, timestamp);
+            const signedUrl = generateSignedBunnyUrl(fullPath);
+            await logToSupabase(user.email, cameraId, signedUrl, fileId, timestamp);
             fs.unlinkSync(filePath);
             console.log(`✅ Uploaded: ${file}`);
             break;
           } catch (err: any) {
-            if (attempt === 2) {
-              console.error(`❌ Failed after 3 attempts: ${file}:`, err.message || err);
-            } else {
+            if (attempt === 2) console.error(`❌ Failed after 3 attempts: ${file}:`, err.message || err);
+            else {
               console.warn(`⏳ Retrying upload for ${file} (attempt ${attempt + 2}/3)...`);
               await new Promise((r) => setTimeout(r, 2000));
             }
@@ -190,4 +138,4 @@ async function processSegments() {
   }
 }
 
-processSegments().catch(err => console.error("💥 Script error:", err));
+processSegments();

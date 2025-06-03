@@ -2,17 +2,18 @@ import LiveStreamPlayer from "./LiveStreamPlayer";
 
 export default function CameraCard({
   camera,
-  ...rest
+  tunnelName,
 }: {
   camera: any;
-  [key: string]: any;
+  tunnelName: string;
 }) {
-  const { name } = camera;
+  const { id, name } = camera;
+  const streamUrl = `https://${tunnelName}.clearpoint.co.il/${id}/stream.m3u8`;
 
   return (
     <div className="bg-white shadow-md overflow-hidden border border-gray-200">
-      <div className="flex justify-center items-center bg-black ">
-        <LiveStreamPlayer streamUrl={`/stream/${camera.id}.m3u8`} />
+      <div className="flex justify-center items-center bg-black">
+        <LiveStreamPlayer streamUrl={streamUrl} />
       </div>
       <div className="px-4 py-3 text-right text-sm text-gray-800 font-semibold">
         {name}

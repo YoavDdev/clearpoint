@@ -4,7 +4,6 @@ echo "🚀 Starting Clearpoint cameras..."
 
 # === Detect user_id dynamically ===
 USER_ID_DIR=$(find ~/clearpoint-recordings -mindepth 1 -maxdepth 1 -type d | head -n 1)
-
 if [[ -z "$USER_ID_DIR" ]]; then
   echo "❌ ERROR: No user directory found in ~/clearpoint-recordings"
   exit 1
@@ -24,8 +23,12 @@ for script in "$SCRIPT_DIR"/camera-*.sh; do
   fi
 done
 
-# === Start one HTTP server for all cameras ===
+# === Start HTTP server for all cameras ===
 echo "🌐 Starting HTTP server on port 8080..."
-npx serve -s "$LIVE_ROOT" -l 8080 > /dev/null 2>&1 &
+sudo fuser -k 8080/tcp > /dev/null 2>&1
+
+http-server "$USER_ID_DIR/live" -p 8080 --cors -c-1 \
+  -H "Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate" \
+  > /dev/null 2>&1 &
 
 echo "✅ All cameras and server started!"

@@ -14,7 +14,7 @@ echo "  - ~/clearpoint-core"
 
 # === Step 2: Move camera scripts ===
 if compgen -G "camera-*.sh" > /dev/null; then
-  mv camera-*.sh ~/clearpoint-scripts/
+  cp camera-*.sh ~/clearpoint-scripts/
   echo "📄 Camera scripts moved to ~/clearpoint-scripts"
 else
   echo "⚠️ No camera-*.sh scripts found to move."
@@ -30,7 +30,7 @@ else
   exit 1
 fi
 
-# === Step 4: Setup upload script ===
+# === Step 4: Move upload logic ===
 if [[ -f uploadVods.ts ]]; then
   mv uploadVods.ts ~/clearpoint-core/
   echo "📦 Moved uploadVods.ts to ~/clearpoint-core"
@@ -41,20 +41,32 @@ if [[ -f .env ]]; then
   echo "🔐 Moved .env to ~/clearpoint-core"
 fi
 
-cd ~/clearpoint-core
+# === Step 5: Move status-check script ===
+if [[ -f status-check.sh ]]; then
+  mv status-check.sh ~/clearpoint-scripts/
+  chmod +x ~/clearpoint-scripts/status-check.sh
+  echo "🛠️  Moved status-check.sh to ~/clearpoint-scripts"
+fi
 
+# === Step 6: Install Node packages ===
+cd ~/clearpoint-core
 echo "📥 Installing Node packages..."
 npm install
 npm install -D typescript ts-node @types/node @supabase/supabase-js dotenv axios
 
-# === Initialize tsconfig if missing ===
+# === Initialize tsconfig if needed ===
 if [[ ! -f tsconfig.json ]]; then
   npx tsc --init
 fi
 
-# === Step 5: Setup cron job for VOD uploader ===
-echo "⏱️ Setting up cron job for VOD uploader (every 5 min)..."
-(crontab -l 2>/dev/null; echo "*/5 * * * * cd ~/clearpoint-core && ts-node uploadVods.ts >> ~/vod-upload-log.txt 2>&1") | sort -u | crontab -
+# === Step 7: Setup CRON jobs ===
+echo "⏱️ Setting up CRON jobs..."
+
+# Upload script every 5 min
+(crontab -l 2>/dev/null; echo "*/5 * * * * cd ~/clearpoint-core && /usr/local/bin/ts-node uploadVods.ts >> ~/vod-upload-log.txt 2>&1") | sort -u | crontab -
+
+# On reboot: start cameras + tunnel
+(crontab -l 2>/dev/null; echo "@reboot sleep 15 && bash ~/start-clearpoint.sh") | sort -u | crontab -
 
 echo "✅ Clearpoint installation complete!"
-echo "➡️ Run with: bash ~/start-clearpoint.sh"
+echo "➡️ You can reboot now or run: bash ~/start-clearpoint.sh"

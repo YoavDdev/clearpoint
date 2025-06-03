@@ -5,6 +5,7 @@ import CameraCard from "@/components/CameraCard";
 
 export default function DashboardPage() {
   const [cameras, setCameras] = useState<any[]>([]);
+  const [tunnelName, setTunnelName] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadCameras() {
@@ -12,14 +13,8 @@ export default function DashboardPage() {
       const result = await res.json();
 
       if (result.success) {
-        const realCameras = result.cameras;
-        const mockCameras = [
-          { id: "mock-1", name: "מצלמה מדומה 1" },
-          { id: "mock-2", name: "מצלמה מדומה 2" },
-          { id: "mock-3", name: "מצלמה מדומה 3" },
-        ];
-
-        setCameras([...realCameras, ...mockCameras]);
+        setCameras(result.cameras);
+        setTunnelName(result.tunnel_name);
       } else {
         console.error("Error:", result.error);
       }
@@ -35,7 +30,7 @@ export default function DashboardPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {cameras.map((camera) => (
-            <CameraCard key={camera.id} camera={camera} />
+            <CameraCard key={camera.id} camera={camera} tunnelName={tunnelName!} />
           ))}
         </div>
       )}
