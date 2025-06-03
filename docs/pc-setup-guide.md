@@ -1,8 +1,8 @@
-# 🍓 Clearpoint Setup Guide – Raspberry Pi (Final)
+# 🖥️ Clearpoint Setup Guide – Mini PC (Final)
 
 ## ✅ Prerequisites
 
-Start with a clean Raspberry Pi OS install (preferably 64-bit Lite).
+Start with a clean Ubuntu/Debian-based OS on your Mini PC.
 
 ## 🧰 Step 1: Install Required Packages
 
@@ -15,17 +15,15 @@ sudo npm install -g typescript ts-node http-server
 ## ☁️ Step 2: Install Cloudflare Tunnel
 
 ```bash
-wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64.deb
-sudo dpkg -i cloudflared-linux-arm64.deb
+wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+sudo dpkg -i cloudflared-linux-amd64.deb
 cloudflared --version
 ```
-
-> Use `cloudflared-linux-armhf.deb` for older Raspberry Pi models
 
 ## 📁 Step 3: Insert USB and Run Installer
 
 ```bash
-bash /media/pi/YOUR_USB_NAME/install-clearpoint.sh
+bash /media/YOUR_USERNAME/YOUR_USB_NAME/install-clearpoint.sh
 ```
 
 This copies files to:
@@ -51,7 +49,7 @@ This copies files to:
 
 ```bash
 cloudflared tunnel login
-cloudflared tunnel create p5
+cloudflared tunnel create cam1
 ```
 
 After creating, copy the credentials file path printed.
@@ -65,11 +63,11 @@ sudo nano /etc/cloudflared/config.yml
 Paste and modify:
 
 ```yaml
-tunnel: p5
-credentials-file: /home/pi/.cloudflared/xxxxxxxx-xxxx.json
+tunnel: cam1
+credentials-file: /home/YOUR_USERNAME/.cloudflared/xxxxxxxx-xxxx.json
 
 ingress:
-  - hostname: p5.clearpoint.co.il
+  - hostname: cam1.clearpoint.co.il
     service: http://localhost:8080
   - service: http_status:404
 ```
@@ -120,7 +118,7 @@ You should see output like:
 
 ```
 🚀 Starting Clearpoint cameras...
-📁 Using live folder: /home/pi/clearpoint-recordings/[USER_ID]/live
+📁 Using live folder: /home/YOUR_USERNAME/clearpoint-recordings/[USER_ID]/live
 ▶️ Running camera-1.sh...
 🌐 Starting HTTP server on port 8080...
 ✅ All cameras and server started!
@@ -139,14 +137,14 @@ crontab -e
 Add this line:
 
 ```bash
-@reboot bash /home/pi/start-clearpoint.sh
+@reboot bash /home/YOUR_USERNAME/start-clearpoint.sh
 ```
 
 > This ensures camera scripts + HTTP server auto-run on every boot.
 
 ## ✅ Final Test
 
-Reboot the Pi:
+Reboot the Mini PC:
 
 ```bash
 sudo reboot
@@ -154,7 +152,7 @@ sudo reboot
 
 Wait 1–2 minutes, then:
 
-* Visit: `https://p5.clearpoint.co.il/[CAMERA_ID]/stream.m3u8`
+* Visit: `https://cam1.clearpoint.co.il/[CAMERA_ID]/stream.m3u8`
 * Or: `curl http://localhost:8080/[CAMERA_ID]/stream.m3u8`
 * Confirm FFmpeg is running:
 
@@ -164,4 +162,4 @@ ps aux | grep ffmpeg
 
 ---
 
-You're now fully set up! 🎉
+You're now fully set up on your Mini PC! 🎉
