@@ -14,32 +14,43 @@ export default function LiveStreamPlayer({ streamUrl }: Props) {
     const video = videoRef.current;
     if (!video) return;
 
+    let hls: Hls | null = null;
+
     if (Hls.isSupported()) {
-      const hls = new Hls({
-  lowLatencyMode: true,
-  liveSyncDuration: 1.5,
-  maxLiveSyncPlaybackRate: 1.0,
-  maxBufferLength: 3,
-  maxMaxBufferLength: 5,
-  backBufferLength: 30,
-});
-
-      hls.loadSource(streamUrl);
-      hls.attachMedia(video);
-
-      hls.on(Hls.Events.ERROR, (event, data) => {
-        if (data?.fatal) {
-          console.error("🔥 Fatal HLS.js error:", data);
-          hls.destroy();
-        } else {
-          console.warn("⚠️ HLS.js warning:", data);
-        }
+      hls = new Hls({
+        liveSyncDuration: 2,
+        maxLiveSyncPlaybackRate: 1.0,
+        maxBufferLength: 5,
+        backBufferLength: 10,
+        enableWorker: true,
+        lowLatencyMode: true,
+        nudgeMaxRetry: 5,
       });
 
-      return () => hls.destroy();
+      hls.attachMedia(video);
+      hls.loadSource(streamUrl);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.play().catch((err) => console.warn('🔁 Autoplay failed:', err));
+      });
+
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        if (data.fatal) {
+          console.error('🔥 Fatal HLS.js error:', data);
+          hls?.destroy();
+        } else {
+          console.warn('⚠️ HLS.js warning:', data);
+        }
+      });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = streamUrl;
+      video.addEventListener('loadedmetadata', () => {
+        video.play().catch((e) => console.warn('Autoplay failed:', e));
+      });
     }
+
+    return () => {
+      hls?.destroy();
+    };
   }, [streamUrl]);
 
   return (

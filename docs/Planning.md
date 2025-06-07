@@ -1,3 +1,4 @@
+
 # 📌 PLANNING.md – Clearpoint Project
 
 ## 🧭 Project Vision
@@ -36,6 +37,7 @@ Clearpoint is a **cloud-based and hybrid security camera system** built for:
 - Bunny CDN signs URLs for secure access (14-day expiration)
 - Auto-cleanup based on plan retention (7 or 14 days)
 - Local fallback (Plan C) shows footage via local LAN/HTTP
+- Temporary `.ts` live files written to RAM disk (`/mnt/ram-ts`)
 
 #### 📤 VOD Upload Logic (via `uploadVods.ts`)
 
@@ -85,7 +87,8 @@ Clearpoint is a **cloud-based and hybrid security camera system** built for:
 - `camera-[id].sh` scripts per camera handle:
   - `ffmpeg` VOD recording (.mp4)
   - `ffmpeg` HLS live stream (.m3u8 + .ts)
-- Local HTTP server (`serve`) exposes live streams on port 8080
+- `.ts` files served from `/mnt/ram-ts` for faster access
+- Custom Express server (`live-server.js`) serves `.m3u8` streams with proper CORS headers on port 8080
 
 ---
 
@@ -97,13 +100,26 @@ Clearpoint is a **cloud-based and hybrid security camera system** built for:
   - `camera-[id].sh`
   - `status-check.sh`
   - `uploadVods.ts` + `.env`
+  - `live-server.js`
 - `install-clearpoint.sh` sets up:
   - Required folders
   - Camera scripts
   - Upload logic
   - CRON job for VOD uploader
 - CRON runs every 5 min: `ts-node uploadVods.ts`
+- CRON at boot: `@reboot sleep 60 && node ~/live-server.js >> ~/express-log.txt 2>&1`
 - `.env` contains B2 keys, Supabase, Bunny token
+
+---
+
+## 📊 Health Check
+
+- `status-check.sh` script runs diagnostics:
+  - Cloudflared status
+  - Port 8080 (Express) status
+  - `.m3u8` availability
+  - CORS headers
+  - Last upload log from `vod-upload-log.txt`
 
 ---
 
@@ -151,6 +167,7 @@ Clearpoint is a **cloud-based and hybrid security camera system** built for:
 - **Bunny.net (CDN with pull zone)**
 - **Cloudflare Tunnel (remote live stream)**
 - **FFmpeg (recording + HLS stream)**
+- **Express (custom server with CORS)**
 - **Meshulam (payment gateway)**
 
 ---
@@ -162,6 +179,7 @@ Clearpoint is a **cloud-based and hybrid security camera system** built for:
 - `uploadVods.ts`: handles .mp4 upload to B2
 - `status-check.sh`: verifies recording, stream, tunnel, HTTP
 - `install-clearpoint.sh`: automatic setup from USB
+- `live-server.js`: Express HLS stream server with CORS
 
 ---
 

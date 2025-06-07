@@ -9,10 +9,11 @@ if [[ -z "$USER_ID_DIR" ]]; then
   exit 1
 fi
 
-LIVE_ROOT="$USER_ID_DIR/live"
+USER_ID=$(basename "$USER_ID_DIR")
+LIVE_ROOT="/mnt/ram-ts"
 SCRIPT_DIR=~/clearpoint-scripts
 
-echo "📂 Live folder: $LIVE_ROOT"
+echo "📂 Serving live from: $LIVE_ROOT/$USER_ID/live"
 
 # === Start camera scripts ===
 for script in "$SCRIPT_DIR"/camera-*.sh; do
@@ -20,19 +21,18 @@ for script in "$SCRIPT_DIR"/camera-*.sh; do
     echo "▶️ Running $script..."
     chmod +x "$script"
     bash "$script" &
-        sleep 2  # delay between scripts
+    sleep 2
   fi
 done
 
-# === Start HTTP server on port 8080 ===
-echo "🌐 Launching HTTP server..."
-sudo fuser -k 8080/tcp > /dev/null 2>&1
+# === Kill any old Express servers ===
+echo "🧹 Cleaning up old Express servers..."
+pkill -f "node live-server.js"
 
-HTTP_SERVER_BIN="/usr/local/bin/http-server"
+# === Start Express server ===
+echo "🌐 Launching Express live stream server..."
+cd ~
+LIVE_DIR="$LIVE_ROOT/$USER_ID/live"
+NODE_ENV=production USER_ID="$USER_ID" node live-server.js "$LIVE_DIR" > ~/express-server-log.txt 2>&1 &
 
-"$HTTP_SERVER_BIN" "$LIVE_ROOT" -p 8080 --cors -c-1 \
-  -H "Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate" \
-  > ~/http-server-log.txt 2>&1 &
-
-
-echo "✅ All cameras and HTTP server are running!"
+echo "✅ All cameras and Express server are running!"

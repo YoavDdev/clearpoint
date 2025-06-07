@@ -34,4 +34,16 @@ fi
 # === Move status-check ===
 [[ -f status-check.sh ]] && cp status-check.sh ~/clearpoint-scripts/ && chmod +x ~/clearpoint-scripts/status-check.sh
 
+# === Setup RAM disk for live stream ===
+echo "🧠 Setting up /mnt/ram-ts RAM folder..."
+sudo mkdir -p /mnt/ram-ts
+sudo chmod 777 /mnt/ram-ts
+
+if ! grep -q "/mnt/ram-ts" /etc/fstab; then
+  echo "tmpfs /mnt/ram-ts tmpfs defaults,size=128M 0 0" | sudo tee -a /etc/fstab
+fi
+
+sudo mount -a
+
+echo "✅ RAM stream folder ready at /mnt/ram-ts"
 echo "✅ Install complete. Now manually install Node, setup CRON, and run start-clearpoint.sh"

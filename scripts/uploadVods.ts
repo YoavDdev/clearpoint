@@ -24,6 +24,25 @@ function generateSignedBunnyUrl(filePath: string, expiresInSeconds = 1209600): s
   return `${BUNNY_CDN_BASE}${normalizedPath}?token=${token}&expires=${expires}`;
 }
 
+async function retryWithBackoff<T>(fn: () => Promise<T>, retries = 5, delay = 1000): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if ((status === 429 || status === 503) && i < retries - 1) {
+        const retryAfter = parseInt(err?.response?.headers['retry-after']) || delay;
+        const waitTime = retryAfter * Math.pow(2, i);
+        console.warn(`⚠️ B2 rate limit (HTTP ${status}). Waiting ${waitTime}ms before retry #${i + 1}...`);
+        await new Promise(res => setTimeout(res, waitTime));
+      } else {
+        throw err;
+      }
+    }
+  }
+  throw new Error("Max retries exceeded for Backblaze B2 upload");
+}
+
 async function getB2Auth() {
   const credentials = Buffer.from(`${process.env.B2_ACCOUNT_ID}:${process.env.B2_APP_KEY}`).toString('base64');
   const res = await axios.get('https://api.backblazeb2.com/b2api/v2/b2_authorize_account', {
@@ -37,29 +56,6 @@ async function getUploadUrl(apiUrl: string, authToken: string, bucketId: string)
     headers: { Authorization: authToken }
   });
   return res.data;
-}
-
-async function uploadToB2(filePath: string, b2Key: string) {
-  const auth = await getB2Auth();
-  const upload = await getUploadUrl(auth.apiUrl, auth.authorizationToken, process.env.B2_BUCKET_ID!);
-
-  const fileBuffer = fs.readFileSync(filePath);
-  const sha1 = crypto.createHash('sha1').update(fileBuffer).digest('hex');
-
-  const response = await axios.post(upload.uploadUrl, fileBuffer, {
-    headers: {
-      Authorization: upload.authorizationToken,
-      'X-Bz-File-Name': encodeURIComponent(b2Key),
-      'Content-Type': 'video/mp4',
-      'Content-Length': fileBuffer.length,
-      'X-Bz-Content-Sha1': sha1,
-    }
-  });
-
-  return {
-    filePath: `/${b2Key}`,
-    fileId: response.data.fileId,
-  };
 }
 
 async function logToSupabase(userId: string, userEmail: string, cameraId: string, url: string, fileId: string, timestamp: string, duration = 900) {
@@ -95,6 +91,8 @@ async function processSegments() {
   const rootPath = path.resolve(process.env.HOME || '', 'clearpoint-recordings');
   const folders = fs.existsSync(rootPath) ? fs.readdirSync(rootPath).filter(f => f !== '.DS_Store') : [];
 
+  const auth = await getB2Auth(); // ✅ Only once
+
   for (const userFolder of folders) {
     const userPath = path.join(rootPath, userFolder, 'footage');
     if (!fs.existsSync(userPath)) continue;
@@ -109,7 +107,6 @@ async function processSegments() {
       const files = fs.readdirSync(cameraPath).filter(f => f.endsWith('.mp4'));
       console.log(`📸 Camera ${cameraId} – ${files.length} files`);
 
-      // Fetch user info from camera table
       const { data: cameraRow, error: cameraErr } = await supabase
         .from('cameras')
         .select('user_id, user_email')
@@ -124,11 +121,18 @@ async function processSegments() {
       const userId = cameraRow.user_id;
       const userEmail = cameraRow.user_email || 'unknown@clearpoint.local';
 
+      let upload: { uploadUrl: string; authorizationToken: string };
+      try {
+        upload = await getUploadUrl(auth.apiUrl, auth.authorizationToken, process.env.B2_BUCKET_ID!);
+      } catch (err: any) {
+        console.error(`❌ Failed to get upload URL for camera ${cameraId}:`, err.message || err);
+        continue;
+      }
+
       for (const file of files) {
         const filePath = path.join(cameraPath, file);
         const stats = fs.statSync(filePath);
         const modifiedAgo = (Date.now() - stats.mtime.getTime()) / 1000;
-        const ageInDays = modifiedAgo / 86400;
 
         if (modifiedAgo < 60) {
           console.log(`⏳ Skipping (still writing): ${file}`);
@@ -145,10 +149,26 @@ async function processSegments() {
         const timestamp = new Date(`${date}T${time.replace(/-/g, ':')}`).toISOString();
         const b2Key = `${userId}/${cameraId}/${file}`;
 
+        const fileBuffer = fs.readFileSync(filePath);
+        const sha1 = crypto.createHash('sha1').update(fileBuffer).digest('hex');
+
+        const uploadCall = () => axios.post(upload.uploadUrl, fileBuffer, {
+          headers: {
+            Authorization: upload.authorizationToken,
+            'X-Bz-File-Name': encodeURIComponent(b2Key),
+            'Content-Type': 'video/mp4',
+            'Content-Length': fileBuffer.length,
+            'X-Bz-Content-Sha1': sha1,
+          }
+        });
+
         for (let attempt = 0; attempt < 3; attempt++) {
           try {
-            const { filePath: fullPath, fileId } = await uploadToB2(filePath, b2Key);
+            const response = await retryWithBackoff(uploadCall);
+            const fullPath = `/${b2Key}`;
+            const fileId = response.data.fileId;
             const signedUrl = generateSignedBunnyUrl(fullPath);
+
             await logToSupabase(userId, userEmail, cameraId, signedUrl, fileId, timestamp);
             fs.unlinkSync(filePath);
             console.log(`✅ Uploaded: ${file}`);

@@ -46,7 +46,7 @@ RTSP_URL="${rtsp}"
 # ==== Folder Paths ====
 BASE_DIR=~/clearpoint-recordings/\${USER_ID}
 FOOTAGE_DIR=\${BASE_DIR}/footage/\${CAMERA_ID}
-LIVE_DIR=\${BASE_DIR}/live/\${CAMERA_ID}
+LIVE_DIR=/mnt/ram-ts/\${USER_ID}/live/\${CAMERA_ID}
 
 mkdir -p "\${FOOTAGE_DIR}"
 mkdir -p "\${LIVE_DIR}"
@@ -64,7 +64,7 @@ ffmpeg -rtsp_transport tcp -i "\${RTSP_URL}" \\
 # ==== Live Streaming ====
 echo "🔴 Starting live stream..."
 ffmpeg -rtsp_transport tcp -i "\${RTSP_URL}" \\
-  -c copy -f hls -hls_time 2 -hls_list_size 5 -hls_flags delete_segments+append_list \\
+  -c copy -f hls -hls_time 1.5 -hls_list_size 8 -hls_flags "program_date_time+delete_segments+append_list" \\
   -hls_segment_filename "\${LIVE_DIR}/stream-%03d.ts" \\
   "\${LIVE_DIR}/stream.m3u8" > /dev/null 2>&1 &
 

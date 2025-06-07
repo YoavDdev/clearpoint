@@ -1,18 +1,29 @@
-# 🖥️ Clearpoint Setup Guide – Mini PC (Final)
+# 📦 Clearpoint Mini PC Installation Flow
 
-## ✅ Prerequisites
+This guide is split into two phases:
 
-Start with a clean Ubuntu/Debian-based OS on your Mini PC.
+1. **Phase 1: Office Setup** – Prepare the Mini PC before visiting the customer.
+2. **Phase 2: On-Site Setup** – Install cameras, create user, and connect everything.
 
-## 🧰 Step 1: Install Required Packages
+---
+
+## 🧰 Phase 1: Office Setup (Before the Customer)
+
+### ✅ 1. Install Ubuntu Desktop 22.04 LTS
+
+* Choose **Minimal installation**
+* Enable **auto-login** (optional but recommended)
+
+### ✅ 2. Install Required Software
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y ffmpeg nodejs npm curl git
-sudo npm install -g typescript ts-node http-server
+sudo apt install -y ffmpeg nodejs npm git curl cron
+sudo npm install -g ts-node
+npm install express serve-static cors
 ```
 
-## ☁️ Step 2: Install Cloudflare Tunnel
+### ✅ 3. Install Cloudflared (Tunnel Tool)
 
 ```bash
 wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
@@ -20,59 +31,107 @@ sudo dpkg -i cloudflared-linux-amd64.deb
 cloudflared --version
 ```
 
-## 📁 Step 3: Insert USB and Run Installer
+### ✅ 4. Prepare USB with Files:
+
+```
+USB/
+├── install-clearpoint.sh
+├── setup-cron.sh
+├── start-clearpoint.sh
+├── uploadVods.ts
+├── live-server.js
+├── .env (placeholder)
+└── status-check.sh (optional)
+```
+
+### ✅ 5. Run Setup from USB
 
 ```bash
-bash /media/YOUR_USERNAME/YOUR_USB_NAME/install-clearpoint.sh
+bash /media/YOUR_USB/install-clearpoint.sh
+bash /media/YOUR_USB/setup-cron.sh
 ```
 
-This copies files to:
+### ✅ 6. Install Node Dependencies for Uploader
 
-* `~/clearpoint-core/`
-* `~/clearpoint-scripts/`
-* `~/start-clearpoint.sh`
-
-## 🗂️ USB Example Layout
-
-```
-📁 USB Root
-├── install-clearpoint.sh
-├── clearpoint-core/
-│   ├── .env
-│   └── uploadVods.ts
-└── clearpoint-scripts/
-    ├── camera-[ID].sh
-    └── status-check.sh
+```bash
+cd ~/clearpoint-core
+npm init -y
+npm install axios dotenv @supabase/supabase-js
+npm install --save-dev typescript ts-node @types/node
 ```
 
-## 🔐 Step 4: Cloudflare Tunnel Setup
+### ✅ 7. (Optional) Pre-create a Tunnel (can also do on-site)
 
 ```bash
 cloudflared tunnel login
-cloudflared tunnel create cam1
+cloudflared tunnel create generic-clearpoint
 ```
 
-After creating, copy the credentials file path printed.
+Then store the credentials file and config.
 
-Then:
+---
+
+## 🏠 Phase 2: On-Site Customer Setup
+
+### ✅ 1. Connect All 4 Cameras
+
+* Access via browser: `192.168.x.x`
+* Configure RTSP, username/password
+* Write down the IPs
+
+### ✅ 2. Create User and Cameras in Supabase
+
+* Add user with assigned plan
+* Add 4 cameras linked to user
+* Copy `user_id` and `camera_id`s
+
+### ✅ 3. Run Each Camera Script Once
 
 ```bash
+cp camera-*.sh ~/clearpoint-scripts/
+bash ~/clearpoint-scripts/camera-1.sh
+# Wait 5s, then pkill -f ffmpeg
+bash ~/clearpoint-scripts/camera-2.sh
+...
+```
+
+### ✅ 4. Update `.env`
+
+```bash
+nano ~/clearpoint-core/.env
+```
+
+Paste your real credentials:
+
+```env
+SUPABASE_URL=...
+SUPABASE_SERVICE_KEY=...
+B2_ACCOUNT_ID=...
+B2_APP_KEY=...
+BUNNY_TOKEN=...
+```
+
+### ✅ 5. Create Customer Tunnel
+
+```bash
+cloudflared tunnel login
+cloudflared tunnel create customername
+```
+
+```bash
+sudo mkdir -p /etc/cloudflared
 sudo nano /etc/cloudflared/config.yml
 ```
 
-Paste and modify:
-
 ```yaml
-tunnel: cam1
-credentials-file: /home/YOUR_USERNAME/.cloudflared/xxxxxxxx-xxxx.json
+tunnel: customername
+credentials-file: /home/YOUR_USER/.cloudflared/xxx.json
 
 ingress:
-  - hostname: cam1.clearpoint.co.il
+  - hostname: customername.clearpoint.co.il
     service: http://localhost:8080
   - service: http_status:404
 ```
-
-Enable the tunnel to start on boot:
 
 ```bash
 sudo cloudflared service install
@@ -80,86 +139,50 @@ sudo systemctl enable cloudflared
 sudo systemctl start cloudflared
 ```
 
-## 📋 Step 5: Manual FFmpeg Folder Creation
+### ✅ 6. Add DNS Record in Cloudflare Dashboard
 
-Run **any camera script** manually once to generate the folder structure:
+* Go to your domain’s DNS settings
+* Add a new **CNAME** record:
 
-```bash
-bash ~/clearpoint-scripts/camera-1.sh
-```
+  * **Name**: `customername`
+  * **Target**: `[TUNNEL_ID].cfargotunnel.com`
+  * Enable **Proxy (orange cloud)**
 
-Make sure it creates:
-
-* `~/clearpoint-recordings/[USER_ID]/footage/[CAMERA_ID]/`
-* `~/clearpoint-recordings/[USER_ID]/live/[CAMERA_ID]/`
-
-Then press Ctrl+C to stop it.
-
-## ⚙️ Step 6: Add .env File
-
-Place `.env` under `~/clearpoint-core/`. Example:
-
-```ini
-USER_ID=your-user-id-from-supabase
-CAMERA_ID=your-camera-id-from-supabase
-BUCKET=b2-bucket-name
-FOLDER=footage
-B2_KEY_ID=your-backblaze-key-id
-B2_APP_KEY=your-backblaze-app-key
-```
-
-## 🚀 Step 7: Start Cameras and Server
+### ✅ 7. Start Everything
 
 ```bash
 bash ~/start-clearpoint.sh
-```
-
-You should see output like:
-
-```
-🚀 Starting Clearpoint cameras...
-📁 Using live folder: /home/YOUR_USERNAME/clearpoint-recordings/[USER_ID]/live
-▶️ Running camera-1.sh...
-🌐 Starting HTTP server on port 8080...
-✅ All cameras and server started!
-```
-
-## 🔁 Auto-Start After Reboot
-
-To keep Clearpoint running after restart:
-
-Open crontab:
-
-```bash
-crontab -e
-```
-
-Add this line:
-
-```bash
-@reboot bash /home/YOUR_USERNAME/start-clearpoint.sh
-```
-
-> This ensures camera scripts + HTTP server auto-run on every boot.
-
-## ✅ Final Test
-
-Reboot the Mini PC:
-
-```bash
+# or just
 sudo reboot
 ```
 
-Wait 1–2 minutes, then:
+Live stream will now be at:
 
-* Visit: `https://cam1.clearpoint.co.il/[CAMERA_ID]/stream.m3u8`
-* Or: `curl http://localhost:8080/[CAMERA_ID]/stream.m3u8`
-* Confirm FFmpeg is running:
+```
+https://customername.clearpoint.co.il/camera1/stream.m3u8
+```
+
+### ✅ 8. (Optional) Install Remote Access (RustDesk)
 
 ```bash
-ps aux | grep ffmpeg
+wget https://github.com/rustdesk/rustdesk/releases/download/nightly/rustdesk-1.2.3.deb
+sudo dpkg -i rustdesk-1.2.3.deb
 ```
+
+Write down the remote ID.
 
 ---
 
-You're now fully set up on your Mini PC! 🎉
+## ✅ Final Checklist
+
+| ✅                                          | Item |
+| ------------------------------------------ | ---- |
+| 🔁 Auto-reboot enabled                     |      |
+| 🧠 RAM disk mounted                        |      |
+| 📡 Cameras recording and streaming         |      |
+| 🗂️ Upload script working (every 20 min)   |      |
+| 🌐 Tunnel active                           |      |
+| 🚀 Express HLS server working on port 8080 |      |
+| 🧺 `status-check.sh` passes                |      |
+| 🔐 Remote support installed                |      |
+| 🌍 Cloudflare DNS record added             |      |

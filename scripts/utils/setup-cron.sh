@@ -2,28 +2,27 @@
 
 echo "🔁 Setting up Clearpoint CRON jobs..."
 
-UPLOAD_LINE="*/5 * * * * cd ~/clearpoint-core && /usr/local/bin/ts-node uploadVods.ts >> ~/vod-upload-log.txt 2>&1"
+UPLOAD_LINE="*/20 * * * * cd ~/clearpoint-core && /usr/local/bin/ts-node uploadVods.ts >> ~/vod-upload-log.txt 2>&1"
 REBOOT_LINE="@reboot sleep 45 && bash ~/start-clearpoint.sh"
+EXPRESS_LINE="@reboot sleep 60 && node ~/live-server.js >> ~/express-log.txt 2>&1"
 
 # === Get existing CRON (safe fallback if none) ===
 CRON_TEMP=$(mktemp)
 crontab -l 2>/dev/null > "$CRON_TEMP" || true
 
-# === Add uploadVods.ts CRON if missing ===
-if ! grep -Fxq "$UPLOAD_LINE" "$CRON_TEMP"; then
-  echo "$UPLOAD_LINE" >> "$CRON_TEMP"
-  echo "✅ Added CRON: uploadVods.ts every 5 min"
-else
-  echo "ℹ️ CRON for uploadVods.ts already exists"
-fi
+# === Remove any previous lines to avoid duplicates ===
+sed -i '/uploadVods\.ts/ d' "$CRON_TEMP"
+sed -i '/start-clearpoint\.sh/ d' "$CRON_TEMP"
+sed -i '/live-server\.js/ d' "$CRON_TEMP"
 
-# === Add start-clearpoint.sh on reboot if missing ===
-if ! grep -Fxq "$REBOOT_LINE" "$CRON_TEMP"; then
-  echo "$REBOOT_LINE" >> "$CRON_TEMP"
-  echo "✅ Added CRON: start-clearpoint.sh on reboot"
-else
-  echo "ℹ️ CRON for start-clearpoint.sh already exists"
-fi
+# === Add lines ===
+echo "$UPLOAD_LINE" >> "$CRON_TEMP"
+echo "$REBOOT_LINE" >> "$CRON_TEMP"
+echo "$EXPRESS_LINE" >> "$CRON_TEMP"
+
+echo "✅ Added CRON: uploadVods.ts every 20 min"
+echo "✅ Added CRON: start-clearpoint.sh on reboot"
+echo "✅ Added CRON: Express live-server.js on reboot"
 
 # === Install updated CRON ===
 crontab "$CRON_TEMP"
