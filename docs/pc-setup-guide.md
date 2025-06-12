@@ -1,4 +1,4 @@
-# 📦 Clearpoint Mini PC Installation Flow
+# 📦 Clearpoint Mini PC Installation Flow (Updated)
 
 This guide is split into two phases:
 
@@ -7,12 +7,12 @@ This guide is split into two phases:
 
 ---
 
-## 🧰 Phase 1: Office Setup (Before the Customer)
+## 🪰 Phase 1: Office Setup (Before the Customer)
 
 ### ✅ 1. Install Ubuntu Desktop 22.04 LTS
 
-* Choose **Minimal installation**
-* Enable **auto-login** (optional but recommended)
+- Choose **Minimal installation**
+- Enable **auto-login** (optional but recommended)
 
 ### ✅ 2. Install Required Software
 
@@ -35,21 +35,25 @@ cloudflared --version
 
 ```
 USB/
-├── install-clearpoint.sh
-├── setup-cron.sh
-├── start-clearpoint.sh
-├── uploadVods.ts
-├── live-server.js
+├── install-clearpoint.sh      # includes auto .service install and CRON
+├── setup-cron.sh              # now auto-executed by installer
+├── start-clearpoint.sh        # fallback launcher for testing
+├── uploadVods.ts              # upload logic
+├── live-server.js             # Express server for HLS
 ├── .env (placeholder)
-└── status-check.sh (optional)
+├── status-check.sh            # self-heals stale streams
+├── disk-check.sh              # logs disk space status
+├── camera-xxxx.sh             # per-camera FFmpeg script
+└── camera-xxxx.service        # per-camera systemd service
 ```
 
 ### ✅ 5. Run Setup from USB
 
 ```bash
-bash /media/YOUR_USB/install-clearpoint.sh
-bash /media/YOUR_USB/setup-cron.sh
+bash /media/YOUR_USB/install-clearpoint.sh   # Installs everything, sets up CRON automatically
 ```
+
+> No need to run `setup-cron.sh` manually. It's triggered by the installer.
 
 ### ✅ 6. Install Node Dependencies for Uploader
 
@@ -75,25 +79,30 @@ Then store the credentials file and config.
 
 ### ✅ 1. Connect All 4 Cameras
 
-* Access via browser: `192.168.x.x`
-* Configure RTSP, username/password
-* Write down the IPs
+- Access via browser: `192.168.x.x`
+- Configure RTSP, username/password
+- Write down the IPs
 
 ### ✅ 2. Create User and Cameras in Supabase
 
-* Add user with assigned plan
-* Add 4 cameras linked to user
-* Copy `user_id` and `camera_id`s
+- Add user with assigned plan
+- Add 4 cameras linked to user
+- Copy `user_id` and `camera_id`s
 
-### ✅ 3. Run Each Camera Script Once
+### ✅ 3. Install Camera Services (if not done from USB)
 
 ```bash
+# If not already installed via USB:
 cp camera-*.sh ~/clearpoint-scripts/
-bash ~/clearpoint-scripts/camera-1.sh
-# Wait 5s, then pkill -f ffmpeg
-bash ~/clearpoint-scripts/camera-2.sh
-...
+sudo cp camera-*.service /etc/systemd/system/
+sudo systemctl daemon-reload
+
+# Enable + start each camera service
+sudo systemctl enable camera-82015c1c.service
+sudo systemctl start camera-82015c1c.service
 ```
+
+> Skip this step if `install-clearpoint.sh` already handled service setup.
 
 ### ✅ 4. Update `.env`
 
@@ -141,22 +150,24 @@ sudo systemctl start cloudflared
 
 ### ✅ 6. Add DNS Record in Cloudflare Dashboard
 
-* Go to your domain’s DNS settings
-* Add a new **CNAME** record:
+- Go to your domain’s DNS settings
+- Add a new **CNAME** record:
 
-  * **Name**: `customername`
-  * **Target**: `[TUNNEL_ID].cfargotunnel.com`
-  * Enable **Proxy (orange cloud)**
+  - **Name**: `customername`
+  - **Target**: `[TUNNEL_ID].cfargotunnel.com`
+  - Enable **Proxy (orange cloud)**
 
 ### ✅ 7. Start Everything
 
 ```bash
-bash ~/start-clearpoint.sh
-# or just
+# Option 1: If using systemd (recommended)
 sudo reboot
+
+# Option 2: For dev/testing manually
+bash ~/start-clearpoint.sh
 ```
 
-Live stream will now be at:
+Stream will now be available at:
 
 ```
 https://customername.clearpoint.co.il/camera1/stream.m3u8
@@ -171,18 +182,33 @@ sudo dpkg -i rustdesk-1.2.3.deb
 
 Write down the remote ID.
 
+### ✅ 9. (Optional) Confirm Health Logs
+
+```bash
+cat ~/clearpoint-logs/health.log
+```
+
+Check for:
+
+- ✅ Fresh streams (less than 60s old)
+- ✅ Disk usage below 90%
+- ✅ No restart errors or crash loops
+
 ---
 
 ## ✅ Final Checklist
 
-| ✅                                          | Item |
+| ✅                                         | Item |
 | ------------------------------------------ | ---- |
 | 🔁 Auto-reboot enabled                     |      |
 | 🧠 RAM disk mounted                        |      |
-| 📡 Cameras recording and streaming         |      |
-| 🗂️ Upload script working (every 20 min)   |      |
+| 🛱️ Cameras recording and streaming         |      |
+| 🗂️ Upload script working (every 20 min)    |      |
 | 🌐 Tunnel active                           |      |
 | 🚀 Express HLS server working on port 8080 |      |
 | 🧺 `status-check.sh` passes                |      |
 | 🔐 Remote support installed                |      |
 | 🌍 Cloudflare DNS record added             |      |
+| 🔢 `.service` files enabled for cameras    |      |
+| 🧮 `disk-check.sh` logs daily usage        |      |
+| 🧾 CRON fully configured (auto)            |      |

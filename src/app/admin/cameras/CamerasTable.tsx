@@ -87,6 +87,37 @@ echo "✅ All processes running in background."`;
     alert(`📄 קובץ camera-${cameraId}.sh נוצר והורד בהצלחה`);
   };
 
+
+  const downloadServiceFile = (
+  cameraId: string,
+  cameraName: string
+) => {
+  const serviceFile = `[Unit]
+Description=Clearpoint Camera – ${cameraName}
+After=network.target
+
+[Service]
+ExecStart=/home/clearpoint/clearpoint-scripts/camera-${cameraId}.sh
+Restart=always
+RestartSec=10
+User=clearpoint
+
+[Install]
+WantedBy=multi-user.target
+`;
+
+  const serviceBlob = new Blob([serviceFile], { type: "text/plain" });
+  const serviceUrl = URL.createObjectURL(serviceBlob);
+  const serviceLink = document.createElement("a");
+  serviceLink.href = serviceUrl;
+  serviceLink.download = `camera-${cameraId}.service`;
+  serviceLink.click();
+  URL.revokeObjectURL(serviceUrl);
+
+  alert(`📄 קובץ camera-${cameraId}.service נוצר והורד בהצלחה`);
+};
+
+
   const filtered = cameras.filter((cam) =>
     cam.user?.full_name?.toLowerCase().includes(search.toLowerCase())
   );
@@ -153,20 +184,32 @@ echo "✅ All processes running in background."`;
                         </span>
                       </td>
                       <td className="px-4 py-2">
-                        <button
-                          title="הורד קובץ הפעלה למצלמה"
-                          onClick={() =>
-                            downloadScript(
-                              camera.id,
-                              camera.stream_path,
-                              camera.user_id,
-                              camera.name
-                            )
-                          }
-                          className="text-sm text-green-600 hover:underline"
-                        >
-                          📄 הורד סקריפט .sh
-                        </button>
+ <div className="flex flex-col gap-1">
+  <button
+    title="הורד קובץ הפעלה למצלמה"
+    onClick={() =>
+      downloadScript(
+        camera.id,
+        camera.stream_path,
+        camera.user_id,
+        camera.name
+      )
+    }
+    className="text-sm text-green-600 hover:underline"
+  >
+    📄 הורד סקריפט .sh
+  </button>
+  <button
+    title="הורד קובץ Systemd"
+    onClick={() =>
+      downloadServiceFile(camera.id, camera.name)
+    }
+    className="text-sm text-blue-600 hover:underline"
+  >
+    ⚙️ הורד .service
+  </button>
+</div>
+
                       </td>
                       <td className="px-4 py-2">
                         <DeleteButton cameraId={camera.id} />
