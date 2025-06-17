@@ -1,69 +1,86 @@
 #!/bin/bash
 
-LOG_DIR=~/clearpoint-logs
-LOG_FILE="$LOG_DIR/health.log"
-mkdir -p "$LOG_DIR"
+# === Detect user ID ===
+USER_ID=$(ls /mnt/ram-ts | head -n 1)
+DEVICE_NAME=$(hostname)
+LIVE_BASE="/mnt/ram-ts/${USER_ID}/live"
 
-NOW=$(date '+%Y-%m-%d %H:%M:%S')
-echo "🩺 Running Clearpoint System Health Check at $NOW" | tee -a "$LOG_FILE"
-echo "------------------------------------------" | tee -a "$LOG_FILE"
+SUPABASE_URL=https://tphagljqhgjkavzokzbd.supabase.co
+SUPABASE_API_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwaGFnbGpxaGdqa2F2em9remJkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTc3MjgwNywiZXhwIjoyMDYxMzQ4ODA3fQ.Q9MO25qwMRDWMz4DXPr4XAc_owcjB0MnK71H2rCzC_Y
 
-# 1. Check cloudflared service
-echo "📡 Cloudflared status:" | tee -a "$LOG_FILE"
-systemctl is-active cloudflared && echo "✅ cloudflared is running" | tee -a "$LOG_FILE" || echo "❌ cloudflared NOT running" | tee -a "$LOG_FILE"
-echo | tee -a "$LOG_FILE"
+# === Disk usage ===
+DISK_ROOT=$(df / | awk 'END{print $5}' | tr -d '%')
+DISK_RAM=$(df /mnt/ram-ts | awk 'END{print $5}' | tr -d '%')
 
-# 2. Check port 8080 is listening
-echo "🔌 Checking if Express server is listening on port 8080..." | tee -a "$LOG_FILE"
-PORT_CHECK=$(ss -tuln | grep ':8080')
-if [ -n "$PORT_CHECK" ]; then
-  echo "✅ Port 8080 is active" | tee -a "$LOG_FILE"
-else
-  echo "❌ Port 8080 not open — Express may not be running" | tee -a "$LOG_FILE"
-fi
-echo | tee -a "$LOG_FILE"
+# === Retry Config ===
+MAX_RETRIES=3
+WINDOW_MINUTES=10
+RETRY_DIR="/tmp/clearpoint-restarts"
+mkdir -p "$RETRY_DIR"
 
-# 3. Check if any .m3u8 stream is served
-echo "📺 Checking for stale .m3u8 streams..." | tee -a "$LOG_FILE"
-LIVE_DIR="/mnt/ram-ts"
-M3U8_FILES=$(find $LIVE_DIR -name "stream.m3u8")
+# === Loop over each camera ===
+for CAMERA_ID in $(ls "$LIVE_BASE"); do
+  M3U8="$LIVE_BASE/$CAMERA_ID/stream.m3u8"
+  STATUS="OK"
+  MESSAGE="Healthy"
+  SHOULD_RESTART=0
 
-if [ -z "$M3U8_FILES" ]; then
-  echo "❌ No .m3u8 files found in $LIVE_DIR" | tee -a "$LOG_FILE"
-else
-  for m3u8 in $M3U8_FILES; do
-    CAMERA_ID=$(basename $(dirname "$m3u8"))
-    AGE=$(($(date +%s) - $(stat -c %Y "$m3u8")))
-    if [ "$AGE" -gt 60 ]; then
-      echo "⚠️ $CAMERA_ID stream stale ($AGE sec old) – restarting service..." | tee -a "$LOG_FILE"
-      sudo systemctl restart camera-$CAMERA_ID.service
-      echo "🔁 Restarted camera-$CAMERA_ID.service" | tee -a "$LOG_FILE"
-    else
-      echo "✅ $CAMERA_ID stream fresh ($AGE sec old)" | tee -a "$LOG_FILE"
+  if [[ ! -f "$M3U8" ]]; then
+    STATUS="MISSING"
+    MESSAGE="No m3u8"
+    SHOULD_RESTART=1
+  else
+    AGE=$(($(date +%s) - $(date -r "$M3U8" +%s)))
+    if [[ $AGE -gt 60 ]]; then
+      STATUS="STALE"
+      MESSAGE="Stream stale ($AGE sec)"
+      SHOULD_RESTART=1
     fi
-  done
-fi
+  fi
 
-echo | tee -a "$LOG_FILE"
+  # === Retry Tracking ===
+  RETRY_FILE="${RETRY_DIR}/${CAMERA_ID}.log"
+  NOW=$(date +%s)
 
-# 4. CORS header check
-echo "🌐 Testing CORS headers from Express server..." | tee -a "$LOG_FILE"
-CORS=$(curl -s -I http://localhost:8080 | grep -i "Access-Control-Allow-Origin")
-if [ -n "$CORS" ]; then
-  echo "✅ CORS headers OK: $CORS" | tee -a "$LOG_FILE"
-else
-  echo "❌ Missing CORS headers — check live-server.js" | tee -a "$LOG_FILE"
-fi
+  # Purge old retry file if outside the window
+  if [[ -f "$RETRY_FILE" ]]; then
+    FIRST_TS=$(head -n 1 "$RETRY_FILE")
+    if [[ $((NOW - FIRST_TS)) -gt $((60 * WINDOW_MINUTES)) ]]; then
+      rm -f "$RETRY_FILE"
+    fi
+  fi
 
-echo | tee -a "$LOG_FILE"
+  if [[ $SHOULD_RESTART -eq 1 ]]; then
+    COUNT=0
 
-# 5. Show last footage upload time
-echo "📤 Last VOD upload timestamp:" | tee -a "$LOG_FILE"
-if [ -f ~/vod-upload-log.txt ]; then
-  tail -n 10 ~/vod-upload-log.txt | grep "✅ Uploaded" | tail -n 1 | tee -a "$LOG_FILE"
-else
-  echo "⚠️ No vod-upload-log.txt found" | tee -a "$LOG_FILE"
-fi
+    if [[ -f "$RETRY_FILE" ]]; then
+      COUNT=$(wc -l < "$RETRY_FILE")
+    fi
 
-echo "✅ Done." | tee -a "$LOG_FILE"
-echo "" | tee -a "$LOG_FILE"
+    if [[ $COUNT -lt $MAX_RETRIES ]]; then
+      echo "$NOW" >> "$RETRY_FILE"
+      echo "🔁 Restarting camera: $CAMERA_ID ($STATUS)..."
+      pkill -f "camera-${CAMERA_ID}.sh"
+      bash ~/clearpoint-scripts/camera-${CAMERA_ID}.sh &
+    else
+      echo "⏳ Retry limit reached for $CAMERA_ID — skipping restart"
+    fi
+  fi
+
+  # === Report to Supabase ===
+  curl -s -X POST "$SUPABASE_URL/rest/v1/device_health" \
+    -H "apikey: $SUPABASE_API_KEY" \
+    -H "Authorization: Bearer $SUPABASE_API_KEY" \
+    -H "Content-Type: application/json" \
+    -H "Prefer: resolution=merge-duplicates" \
+    -d "{
+      \"user_id\": \"$USER_ID\",
+      \"device_name\": \"$DEVICE_NAME\",
+      \"camera_id\": \"$CAMERA_ID\",
+      \"stream_status\": \"$STATUS\",
+      \"disk_root_pct\": $DISK_ROOT,
+      \"disk_ram_pct\": $DISK_RAM,
+      \"last_checked\": \"$(date -Is)\",
+      \"log_message\": \"$MESSAGE\"
+    }" > /dev/null
+done

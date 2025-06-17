@@ -109,8 +109,15 @@ export default function FootageTimelinePlayer({ clips }: Props) {
     }
 
     await ffmpeg.writeFile('final.txt', parts.join('\n'));
-    await ffmpeg.exec(['-f', 'concat', '-safe', '0', '-i', 'final.txt', '-c', 'copy', 'final.mp4']);
-
+await ffmpeg.exec([
+  '-f', 'concat',
+  '-safe', '0',
+  '-i', 'final.txt',
+  '-c:v', 'libx264',     // ✅ convert video to H.264
+  '-c:a', 'aac',         // ✅ convert audio to AAC (already good)
+  '-preset', 'veryfast', // ⚡ fast encoding
+  'final.mp4'
+]);
     const result = await ffmpeg.readFile('final.mp4');
     const blob = new Blob([result], { type: 'video/mp4' });
     const url = URL.createObjectURL(blob);

@@ -199,15 +199,7 @@ WantedBy=multi-user.target
   >
     📄 הורד סקריפט .sh
   </button>
-  <button
-    title="הורד קובץ Systemd"
-    onClick={() =>
-      downloadServiceFile(camera.id, camera.name)
-    }
-    className="text-sm text-blue-600 hover:underline"
-  >
-    ⚙️ הורד .service
-  </button>
+
 </div>
 
                       </td>
