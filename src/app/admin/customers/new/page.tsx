@@ -22,6 +22,7 @@ export default function NewCustomerPage() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
+  const [tunnelName, setTunnelName] = useState("");
   const [loading, setLoading] = useState(false);
 
   const searchParams = useSearchParams();
@@ -72,9 +73,10 @@ export default function NewCustomerPage() {
         phone,
         address,
         notes,
-        plan_type: planId, // legacy field name, still correct
+        plan_type: planId, // legacy field name
         plan_duration_days: retention,
         custom_price: customPrice,
+        tunnel_name: tunnelName,
       }),
     });
 
@@ -95,6 +97,7 @@ export default function NewCustomerPage() {
     setPhone("");
     setAddress("");
     setNotes("");
+    setTunnelName("");
     setLoading(false);
   };
 
@@ -146,6 +149,18 @@ export default function NewCustomerPage() {
             className="w-full p-2 border border-gray-300 rounded text-right"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
+          />
+        </div>
+
+        {/* Tunnel Name */}
+        <div className="mb-4 text-right">
+          <label className="block mb-2 font-medium">שם טאנל (tunnel_name)</label>
+          <input
+            type="text"
+            className="w-full p-2 border border-gray-300 rounded text-right"
+            value={tunnelName}
+            onChange={(e) => setTunnelName(e.target.value)}
+            placeholder="example-tunnel"
           />
         </div>
 

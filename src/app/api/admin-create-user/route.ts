@@ -21,6 +21,7 @@ export async function POST(req: Request) {
     phone,
     address,
     notes,
+    tunnel_name, 
   } = body;
 
   const supabaseAdmin = createClient(
@@ -46,10 +47,11 @@ export async function POST(req: Request) {
     full_name,
     plan_type,
     plan_duration_days,
-    custom_price, 
+    custom_price,
     phone,
     address,
     notes,
+    tunnel_name,
   });
 
   if (dbError) {

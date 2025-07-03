@@ -27,7 +27,8 @@ export async function POST(req: Request) {
     notes,
     plan_type,             // → becomes plan_id in table
     plan_duration_days,
-    custom_price           // ✅ NEW
+    custom_price,
+    tunnel_name            // ✅ ADDED HERE
   } = body;
 
   // 1. Create user in Supabase Auth (no password yet)
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
 
   const userId = authUser.user.id;
 
-  // 2. Add to users table (now supports custom_price)
+  // 2. Add to users table (now includes tunnel_name)
   const { error: dbError } = await supabaseAdmin.from("users").insert({
     id: userId,
     email,
@@ -50,9 +51,10 @@ export async function POST(req: Request) {
     phone,
     address,
     notes,
-    plan_id: plan_type,                  // use correct FK column
+    plan_id: plan_type,
     plan_duration_days,
-    custom_price: custom_price ?? null,  // allow optional
+    custom_price: custom_price ?? null,
+    tunnel_name: tunnel_name || null,  // ✅ ADDED HERE
     subscription_status: "active",
   });
 
