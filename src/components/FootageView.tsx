@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { format, isBefore } from 'date-fns';
 import FootageTimelinePlayer from './FootageTimelinePlayer';
+import CustomTimelineBar from './CustomTimelineBar';
 import {
   Loader2,
   Camera,
@@ -12,8 +13,16 @@ import {
   Calendar as CalendarIcon,
   ChevronDown,
   ChevronUp,
-  ChevronLeft
+  ChevronLeft,
+  Scissors
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from './ui/dialog';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 
@@ -42,6 +51,10 @@ export default function FootageView({ cameras }: FootageViewProps) {
   const [cameraPlayingClip, setCameraPlayingClip] = useState<{[cameraId: string]: VodClip | null}>({});
   const [currentClipIndex, setCurrentClipIndex] = useState<{[cameraId: string]: number}>({});
   const [isShowingPreviousDay, setIsShowingPreviousDay] = useState<boolean>(false);
+  
+  // Clip creation modal state
+  const [clipModalOpen, setClipModalOpen] = useState<boolean>(false);
+  const [selectedCameraForClip, setSelectedCameraForClip] = useState<string | null>(null);
 
   // Load current day's recordings for all cameras on component mount
   useEffect(() => {
@@ -434,6 +447,17 @@ export default function FootageView({ cameras }: FootageViewProps) {
                         <span className="text-gray-400 text-sm">#{index + 1}</span>
                       </div>
                       <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                        <button
+                          onClick={() => {
+                            setSelectedCameraForClip(camera.id);
+                            setClipModalOpen(true);
+                          }}
+                          className="p-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors flex items-center gap-1"
+                          title="יצירת קליפ מהקלטה"
+                        >
+                          <Scissors className="w-3.5 h-3.5" />
+                          <span className="text-xs">צור קליפ</span>
+                        </button>
                         <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
                         <span className="text-sm text-gray-300">{clips.length} קטעים</span>
                       </div>
@@ -491,49 +515,82 @@ export default function FootageView({ cameras }: FootageViewProps) {
                             <div className="space-y-2">
                               
                               {/* Timeline Bar */}
-                              <div className="relative bg-gray-50 rounded-lg p-4 border border-gray-200">
-
-                                
-                                {/* Hour markers */}
-                                <div className="flex justify-between text-xs text-gray-400 mb-2">
-                                  {Array.from({ length: 9 }, (_, i) => {
-                                    const hour = (6 + i * 3) % 24;
-                                    return (
-                                      <div key={i} className="text-center">
-                                        <div className="font-medium">{hour.toString().padStart(2, '0')}:00</div>
-                                        <div className="w-px h-2 bg-gray-300 mx-auto mt-1"></div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                                
-                                {/* Timeline background */}
-                                <div 
-                                  className="relative h-8 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-lg shadow-inner border border-gray-300 cursor-pointer hover:shadow-md transition-all duration-200"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    const clickX = e.clientX - rect.left;
-                                    const percentage = Math.max(0, Math.min(1, clickX / rect.width));
-                                    // Invert percentage for RTL - right side is beginning (6AM), left side is end (6AM next day)
-                                    const invertedPercentage = 1 - percentage;
+                              <div>
+                                {/* Custom Timeline Bar */}
+                                <CustomTimelineBar
+                                  duration={24 * 60 * 60} // 24 hours in seconds
+                                  currentTime={(() => {
+                                    const playingClip = cameraPlayingClip[camera.id];
+                                    if (!playingClip) return 0;
                                     
-                                    // Calculate target time in the 6AM-6AM cycle
-                                    const totalMinutes = invertedPercentage * 24 * 60; // 24 hours in minutes
+                                    const clipStartTime = new Date(playingClip.timestamp);
+                                    const video = document.querySelector(`#video-${camera.id}`) as HTMLVideoElement;
+                                    if (!video) return 0;
                                     
-                                    // Create target time based on the selected date or current date
+                                    const currentVideoTime = video.currentTime * 1000; // Convert to milliseconds
+                                    const actualTime = new Date(clipStartTime.getTime() + currentVideoTime);
+                                    
+                                    // Calculate seconds from 6AM
+                                    const baseDate = selectedDate || new Date();
+                                    const timelineStart = new Date(baseDate);
+                                    timelineStart.setHours(6, 0, 0, 0);
+                                    
+                                    // Handle next day if time is before 6AM
+                                    if (actualTime.getHours() < 6) {
+                                      timelineStart.setDate(timelineStart.getDate() + 1);
+                                    }
+                                    
+                                    const timeOffset = actualTime.getTime() - timelineStart.getTime();
+                                    return Math.max(0, timeOffset / 1000); // Convert to seconds
+                                  })()}
+                                  cutStart={null}
+                                  cutEnd={null}
+                                  cuts={[]}
+                                  isCurrentDay={(() => {
+                                    // Simple check: is selected date today?
+                                    const today = new Date();
+                                    const selected = selectedDate || today;
+                                    return selected.toDateString() === today.toDateString();
+                                  })()}
+                                  availablePercentage={(() => {
+                                    // Simple calculation: current time as percentage of 24-hour day
+                                    const today = new Date();
+                                    const selected = selectedDate || today;
+                                    
+                                    // Only restrict for current day
+                                    if (selected.toDateString() !== today.toDateString()) {
+                                      return 1; // Full timeline for past days
+                                    }
+                                    
+                                    // Calculate current time as percentage from 6AM to 6AM next day
+                                    // Subtract 30 minutes for safety buffer (ensure footage is uploaded)
+                                    const now = new Date(new Date().getTime() - 30 * 60 * 1000); // 30 min earlier
+                                    
+                                    // Create 6AM start time for the selected date
+                                    const baseDate = selectedDate || new Date();
+                                    const timelineStart = new Date(baseDate);
+                                    timelineStart.setHours(6, 0, 0, 0);
+                                    
+                                    // Create 6AM end time (next day)
+                                    const timelineEnd = new Date(timelineStart.getTime() + 24 * 60 * 60 * 1000);
+                                    
+                                    // Calculate how much of the 24-hour timeline is available
+                                    const availableEnd = Math.min(now.getTime(), timelineEnd.getTime());
+                                    const availableDuration = availableEnd - timelineStart.getTime();
+                                    const totalDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+                                    
+                                    // Convert to percentage (0-1)
+                                    return Math.max(0, Math.min(1, availableDuration / totalDuration));
+                                  })()}
+                                  onScrub={(time) => {
+                                    // Convert time (seconds from 6AM) to target timestamp
                                     const baseDate = selectedDate || new Date();
                                     const targetTime = new Date(baseDate);
-                                    
-                                    // Set to 6 AM of the selected date
                                     targetTime.setHours(6, 0, 0, 0);
+                                    targetTime.setSeconds(targetTime.getSeconds() + time);
                                     
-                                    // Add the offset from the timeline click
-                                    targetTime.setMinutes(targetTime.getMinutes() + totalMinutes);
-                                    
-                                    console.log('Timeline click:', {
-                                      percentage,
-                                      totalMinutes,
+                                    console.log('Timeline scrub:', {
+                                      time,
                                       targetTime: targetTime.toISOString(),
                                       availableClips: clips.length
                                     });
@@ -579,7 +636,8 @@ export default function FootageView({ cameras }: FootageViewProps) {
                                     // Update the current timeline time display for this camera
                                     setCameraTimelineTime(prev => ({ ...prev, [camera.id]: targetTime }));
                                     // Store the timeline position for the dot indicator for this camera
-                                    setCameraTimelinePosition(prev => ({ ...prev, [camera.id]: invertedPercentage }));
+                                    const timelinePercentage = time / (24 * 60 * 60);
+                                    setCameraTimelinePosition(prev => ({ ...prev, [camera.id]: timelinePercentage }));
                                     
                                     // Handle video seeking
                                     const video = document.querySelector(`#video-${camera.id}`) as HTMLVideoElement;
@@ -640,165 +698,28 @@ export default function FootageView({ cameras }: FootageViewProps) {
                                       video.addEventListener('timeupdate', handleTimeUpdate);
                                     }
                                   }}
+                                />
+                              </div>
+                              
+                              {/* Clip Creation Button */}
+                              <div className="absolute top-2 right-2 z-20">
+                                <button
+                                  onClick={() => {
+                                    setSelectedCameraForClip(camera.id);
+                                    setClipModalOpen(true);
+                                  }}
+                                  className="p-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors"
+                                  title="יצירת קליפ מהקלטה"
                                 >
-                                  {(() => {
-                                    // Calculate if this is the current day and available footage range
-                                    const now = new Date();
-                                    const currentHour = now.getHours();
-                                    const effectiveDate = new Date(now);
-                                    if (currentHour < 6) {
-                                      effectiveDate.setDate(effectiveDate.getDate() - 1);
-                                    }
-                                    
-                                    const isCurrentDay = selectedDate ? 
-                                      selectedDate.toDateString() === effectiveDate.toDateString() : true;
-                                    
-                                    let availablePercentage = 1; // Default to full timeline
-                                    
-                                    if (isCurrentDay) {
-                                      // Use actual current time for live edge calculation
-                                      const currentTime = new Date();
-                                      const currentHour = currentTime.getHours();
-                                      const currentMinute = currentTime.getMinutes();
-                                      
-                                      // Calculate position in 6AM-6AM cycle
-                                      let hoursFromSix;
-                                      if (currentHour >= 6) {
-                                        // Same day: 6:00 AM to 11:59 PM
-                                        hoursFromSix = currentHour - 6;
-                                      } else {
-                                        // Next day: 12:00 AM to 5:59 AM
-                                        hoursFromSix = (currentHour + 24) - 6;
-                                      }
-                                      
-                                      // Convert to total minutes and calculate percentage
-                                      const totalMinutesFromSix = hoursFromSix * 60 + currentMinute;
-                                      const totalCycleMinutes = 24 * 60; // 1440 minutes in 24 hours
-                                      availablePercentage = Math.min(1, totalMinutesFromSix / totalCycleMinutes);
-                                      
-                                      console.log('Timeline Debug:', {
-                                        currentTime: currentTime.toLocaleTimeString(),
-                                        currentHour,
-                                        currentMinute,
-                                        hoursFromSix,
-                                        totalMinutesFromSix,
-                                        availablePercentage,
-                                        expectedPosition: `${(1 - availablePercentage) * 100}% from left (RTL)`
-                                      });
-                                    }
-                                    
-                                    return (
-                                      <>
-                                        {/* Timeline segments for better visualization */}
-                                        <div className="absolute inset-0 flex">
-                                          {Array.from({ length: 24 }, (_, i) => {
-                                            const segmentPercentage = (i + 1) / 24;
-                                            const isAvailable = segmentPercentage <= availablePercentage;
-                                            return (
-                                              <div 
-                                                key={i} 
-                                                className={`flex-1 border-r border-gray-200 last:border-r-0 ${
-                                                  isAvailable ? 'opacity-20' : 'opacity-5'
-                                                }`}
-                                              />
-                                            );
-                                          })}
-                                        </div>
-                                        
-                                        {/* Available footage area */}
-                                        <div 
-                                          className="absolute inset-y-0 right-0 bg-blue-50/20 border-l-2 border-blue-300/50"
-                                          style={{ width: `${availablePercentage * 100}%` }}
-                                        />
-                                        
-                                        {/* Subtle time period indicators - only for available portion */}
-                                        <div className="absolute inset-0 flex">
-                                          {/* Morning (6AM-12PM) */}
-                                          <div 
-                                            className="bg-gradient-to-r from-yellow-100/30 to-yellow-200/30 rounded-l-lg"
-                                            style={{ width: `${Math.min(25, availablePercentage * 100)}%` }}
-                                          ></div>
-                                          {/* Afternoon (12PM-6PM) */}
-                                          {availablePercentage > 0.25 && (
-                                            <div 
-                                              className="bg-gradient-to-r from-orange-100/30 to-orange-200/30"
-                                              style={{ width: `${Math.min(25, (availablePercentage - 0.25) * 100)}%` }}
-                                            ></div>
-                                          )}
-                                          {/* Evening (6PM-12AM) */}
-                                          {availablePercentage > 0.5 && (
-                                            <div 
-                                              className="bg-gradient-to-r from-purple-100/30 to-purple-200/30"
-                                              style={{ width: `${Math.min(25, (availablePercentage - 0.5) * 100)}%` }}
-                                            ></div>
-                                          )}
-                                          {/* Night (12AM-6AM) */}
-                                          {availablePercentage > 0.75 && (
-                                            <div 
-                                              className="bg-gradient-to-r from-indigo-100/30 to-indigo-200/30 rounded-r-lg"
-                                              style={{ width: `${Math.min(25, (availablePercentage - 0.75) * 100)}%` }}
-                                            ></div>
-                                          )}
-                                        </div>
-                                        
-                                        {/* Live edge indicator for current day */}
-                                        {isCurrentDay && availablePercentage < 1 && (
-                                          <div 
-                                            className="absolute top-0 bottom-0 w-1 bg-red-500 z-20"
-                                            style={{ left: `${(1 - availablePercentage) * 100}%` }}
-                                          >
-                                            <div className="absolute -top-1 -left-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                                            <div className="absolute -bottom-6 -left-8 text-xs text-red-600 font-medium whitespace-nowrap">
-                                              עכשיו
-                                            </div>
-                                          </div>
-                                        )}
-                                      </>
-                                    );
-                                  })()}
-                                  
-                                  {/* Timeline Position Dot */}
-                                  {cameraTimelinePosition[camera.id] !== null && cameraTimelinePosition[camera.id] !== undefined && (
-                                    <div 
-                                      className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 z-10"
-                                      style={{ left: `${(1 - cameraTimelinePosition[camera.id]!) * 100}%` }}
-                                    >
-                                      <div className="w-4 h-4 bg-blue-500 border-2 border-white rounded-full shadow-lg animate-pulse"></div>
-                                    </div>
-                                  )}
-                                </div>
-                                
-
-                                
-                                {/* Enhanced Timeline legend */}
-                                <div className="mt-4 space-y-2">
-                                  {/* Time period labels */}
-                                  <div className="flex justify-between text-xs text-gray-400 px-2">
-                                    <span className="flex items-center gap-1">
-                                      <span className="w-2 h-2 bg-yellow-200 rounded-full"></span>
-                                      בוקר
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                      <span className="w-2 h-2 bg-orange-200 rounded-full"></span>
-                                      צהריים
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                      <span className="w-2 h-2 bg-purple-200 rounded-full"></span>
-                                      ערב
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                      <span className="w-2 h-2 bg-indigo-200 rounded-full"></span>
-                                      לילה
-                                    </span>
-                                  </div>
-                                </div>
+                                  <Scissors className="w-3.5 h-3.5" />
+                                </button>
                               </div>
                             </div>
                           </div>
                         )}
                       </div>
                     ) : (
-                      <div className="text-center py-8">
+                      <div className="flex flex-col items-center justify-center h-full py-12">
                         <VideoOff className="w-8 h-8 text-gray-500 mx-auto mb-2" />
                         <p className="text-gray-400 text-sm">אין הקלטות בתאריך זה</p>
                       </div>
@@ -809,6 +730,30 @@ export default function FootageView({ cameras }: FootageViewProps) {
             })}
           </div>
         </div>
+      )}
+
+      {/* Clip Creation Modal */}
+      {selectedCameraForClip && (
+        <Dialog open={clipModalOpen} onOpenChange={setClipModalOpen}>
+          <DialogContent className="max-w-5xl w-[90vw]">
+            <DialogHeader>
+              <DialogTitle className="text-right">יצירת קליפ מהקלטה</DialogTitle>
+              <DialogDescription className="text-right">
+                בחר קטעים מההקלטה ליצירת קליפ להורדה
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-4">
+              {allCameraClips[selectedCameraForClip] && allCameraClips[selectedCameraForClip].length > 0 && (
+                <FootageTimelinePlayer
+                  clips={allCameraClips[selectedCameraForClip].map(clip => ({
+                    url: clip.url,
+                    timestamp: clip.timestamp
+                  }))}
+                />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

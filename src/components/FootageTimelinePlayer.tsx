@@ -22,10 +22,22 @@ export default function FootageTimelinePlayer({ clips }: Props) {
   const [isProcessing, setIsProcessing] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Calculate proper 6AM-6AM timeline for the day
   const timestamps = clips.map((c) => new Date(c.timestamp).getTime());
-  const startTime = Math.min(...timestamps);
-  const endTime = Math.max(...timestamps) + 15 * 60 * 1000;
-  const totalDuration = Math.floor((endTime - startTime) / 1000);
+  const firstClipDate = new Date(Math.min(...timestamps));
+  
+  // Create 6AM start time for the day of the first clip
+  const timelineStartDate = new Date(firstClipDate);
+  timelineStartDate.setHours(6, 0, 0, 0);
+  
+  // If first clip is before 6AM, it belongs to previous day's 6AM-6AM cycle
+  if (firstClipDate.getHours() < 6) {
+    timelineStartDate.setDate(timelineStartDate.getDate() - 1);
+  }
+  
+  const startTime = timelineStartDate.getTime();
+  const endTime = startTime + 24 * 60 * 60 * 1000; // 24 hours later
+  const totalDuration = 24 * 60 * 60; // 24 hours in seconds
 
   const currentClip = clips[currentIndex];
 
@@ -172,6 +184,37 @@ await ffmpeg.exec([
           cutEnd={null}
           cuts={cuts}
           onScrub={handleScrub}
+          isCurrentDay={(() => {
+            // Check if any clip is from today
+            const today = new Date();
+            return clips.some(clip => {
+              const clipDate = new Date(clip.timestamp);
+              return clipDate.toDateString() === today.toDateString();
+            });
+          })()}
+          availablePercentage={(() => {
+            // Only restrict for current day clips
+            const today = new Date();
+            const hasCurrentDayClips = clips.some(clip => {
+              const clipDate = new Date(clip.timestamp);
+              return clipDate.toDateString() === today.toDateString();
+            });
+            
+            if (!hasCurrentDayClips) {
+              return 1; // Full timeline for past days
+            }
+            
+            // Calculate available time with 30-minute buffer
+            const now = new Date(new Date().getTime() - 30 * 60 * 1000); // 30 min earlier
+            const nowMs = now.getTime();
+            
+            // Calculate how much of the 24-hour timeline is available
+            const availableEnd = Math.min(nowMs, endTime);
+            const availableDuration = availableEnd - startTime;
+            const totalTimelineDuration = 24 * 60 * 60 * 1000; // Always 24 hours
+            
+            return Math.max(0, Math.min(1, availableDuration / totalTimelineDuration));
+          })()}
         />
       </div>
 
