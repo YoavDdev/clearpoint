@@ -206,6 +206,9 @@ export default function FootageView({ cameras }: FootageViewProps) {
     const dateStr = format(targetDate, 'yyyy-MM-dd');
     const allClips: {[cameraId: string]: VodClip[]} = {};
     
+    // Store current timeline positions before loading new footage
+    const previousTimelinePositions = { ...cameraTimelinePosition };
+    
     // Get plan info
     const planRes = await fetch('/api/user-cameras');
     const planResult = await planRes.json();
@@ -272,27 +275,68 @@ export default function FootageView({ cameras }: FootageViewProps) {
     cameras.forEach(camera => {
       const clips = allClips[camera.id];
       if (clips && clips.length > 0) {
-        // Initialize with the first clip's timestamp
-        const firstClip = clips[0];
-        const firstClipTime = new Date(firstClip.timestamp);
+        // Preserve previous timeline position if it exists
+        const previousPosition = previousTimelinePositions[camera.id];
         
-        // Calculate initial position on 6AM-6AM timeline
-        const baseDate = targetDate;
-        const timelineStart = new Date(baseDate);
-        timelineStart.setHours(6, 0, 0, 0);
-        
-        // Handle next day if time is before 6AM
-        if (firstClipTime.getHours() < 6) {
-          timelineStart.setDate(timelineStart.getDate() + 1);
+        if (previousPosition !== undefined && previousPosition !== null) {
+          // Keep the previous timeline position when changing dates
+          // This prevents the blue "עכשיו" indicator from resetting
+          
+          // Calculate time based on the preserved position
+          const baseDate = targetDate;
+          const timelineStart = new Date(baseDate);
+          timelineStart.setHours(6, 0, 0, 0);
+          
+          // Calculate time from position percentage (24 hours in milliseconds)
+          const timeOffsetMs = previousPosition * 24 * 60 * 60 * 1000;
+          const calculatedTime = new Date(timelineStart.getTime() + timeOffsetMs);
+          
+          // If calculated time is before 6AM, it belongs to next day
+          if (calculatedTime.getHours() < 6) {
+            calculatedTime.setDate(calculatedTime.getDate() + 1);
+          }
+          
+          // Preserve the position and update the time
+          setCameraTimelineTime(prev => ({ ...prev, [camera.id]: calculatedTime }));
+          setCameraTimelinePosition(prev => ({ ...prev, [camera.id]: previousPosition }));
+          
+          // Find closest clip to the preserved position
+          let closestClipIndex = 0;
+          let minTimeDiff = Infinity;
+          
+          clips.forEach((clip, index) => {
+            const clipTime = new Date(clip.timestamp).getTime();
+            const timeDiff = Math.abs(clipTime - calculatedTime.getTime());
+            if (timeDiff < minTimeDiff) {
+              minTimeDiff = timeDiff;
+              closestClipIndex = index;
+            }
+          });
+          
+          setCurrentClipIndex(prev => ({ ...prev, [camera.id]: closestClipIndex }));
+        } else {
+          // If no previous position, initialize with the first clip's timestamp
+          const firstClip = clips[0];
+          const firstClipTime = new Date(firstClip.timestamp);
+          
+          // Calculate initial position on 6AM-6AM timeline
+          const baseDate = targetDate;
+          const timelineStart = new Date(baseDate);
+          timelineStart.setHours(6, 0, 0, 0);
+          
+          // Handle next day if time is before 6AM
+          if (firstClipTime.getHours() < 6) {
+            timelineStart.setDate(timelineStart.getDate() + 1);
+          }
+          
+          const timeOffset = firstClipTime.getTime() - timelineStart.getTime();
+          const timelinePercentage = Math.max(0, Math.min(1, timeOffset / (24 * 60 * 60 * 1000)));
+          
+          // Set initial timeline position and time
+          setCameraTimelineTime(prev => ({ ...prev, [camera.id]: firstClipTime }));
+          setCameraTimelinePosition(prev => ({ ...prev, [camera.id]: timelinePercentage }));
+          setCurrentClipIndex(prev => ({ ...prev, [camera.id]: 0 }));
         }
-        
-        const timeOffset = firstClipTime.getTime() - timelineStart.getTime();
-        const timelinePercentage = Math.max(0, Math.min(1, timeOffset / (24 * 60 * 60 * 1000)));
-        
-        // Set initial timeline position and time
-        setCameraTimelineTime(prev => ({ ...prev, [camera.id]: firstClipTime }));
-        setCameraTimelinePosition(prev => ({ ...prev, [camera.id]: timelinePercentage }));
-        setCurrentClipIndex(prev => ({ ...prev, [camera.id]: 0 }));
       }
     });
     
@@ -456,10 +500,8 @@ export default function FootageView({ cameras }: FootageViewProps) {
                           title="יצירת קליפ מהקלטה"
                         >
                           <Scissors className="w-3.5 h-3.5" />
-                          <span className="text-xs">צור קליפ</span>
+                          <span className="text-xs">גזור קליפ</span>
                         </button>
-                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                        <span className="text-sm text-gray-300">{clips.length} קטעים</span>
                       </div>
                     </div>
                   </div>
@@ -530,17 +572,16 @@ export default function FootageView({ cameras }: FootageViewProps) {
                                     const currentVideoTime = video.currentTime * 1000; // Convert to milliseconds
                                     const actualTime = new Date(clipStartTime.getTime() + currentVideoTime);
                                     
-                                    // Calculate seconds from 6AM
-                                    const baseDate = selectedDate || new Date();
-                                    const timelineStart = new Date(baseDate);
-                                    timelineStart.setHours(6, 0, 0, 0);
+                                    // Use same logic as FootageTimelinePlayer: calculate 6AM start based on clip date
+                                    const timelineStartDate = new Date(clipStartTime);
+                                    timelineStartDate.setHours(6, 0, 0, 0);
                                     
-                                    // Handle next day if time is before 6AM
-                                    if (actualTime.getHours() < 6) {
-                                      timelineStart.setDate(timelineStart.getDate() + 1);
+                                    // If clip is before 6AM, it belongs to previous day's 6AM-6AM cycle
+                                    if (clipStartTime.getHours() < 6) {
+                                      timelineStartDate.setDate(timelineStartDate.getDate() - 1);
                                     }
                                     
-                                    const timeOffset = actualTime.getTime() - timelineStart.getTime();
+                                    const timeOffset = actualTime.getTime() - timelineStartDate.getTime();
                                     return Math.max(0, timeOffset / 1000); // Convert to seconds
                                   })()}
                                   cutStart={null}
@@ -553,34 +594,42 @@ export default function FootageView({ cameras }: FootageViewProps) {
                                     return selected.toDateString() === today.toDateString();
                                   })()}
                                   availablePercentage={(() => {
-                                    // Simple calculation: current time as percentage of 24-hour day
+                                    // Use same logic as FootageTimelinePlayer for consistency
                                     const today = new Date();
-                                    const selected = selectedDate || today;
+                                    const hasCurrentDayClips = clips.some(clip => {
+                                      const clipDate = new Date(clip.timestamp);
+                                      return clipDate.toDateString() === today.toDateString();
+                                    });
                                     
-                                    // Only restrict for current day
-                                    if (selected.toDateString() !== today.toDateString()) {
+                                    if (!hasCurrentDayClips) {
                                       return 1; // Full timeline for past days
                                     }
                                     
-                                    // Calculate current time as percentage from 6AM to 6AM next day
-                                    // Subtract 30 minutes for safety buffer (ensure footage is uploaded)
+                                    // Calculate timeline start based on first clip (same as FootageTimelinePlayer)
+                                    const timestamps = clips.map((c) => new Date(c.timestamp).getTime());
+                                    const firstClipDate = new Date(Math.min(...timestamps));
+                                    
+                                    const timelineStartDate = new Date(firstClipDate);
+                                    timelineStartDate.setHours(6, 0, 0, 0);
+                                    
+                                    // If first clip is before 6AM, it belongs to previous day's 6AM-6AM cycle
+                                    if (firstClipDate.getHours() < 6) {
+                                      timelineStartDate.setDate(timelineStartDate.getDate() - 1);
+                                    }
+                                    
+                                    const startTime = timelineStartDate.getTime();
+                                    const endTime = startTime + 24 * 60 * 60 * 1000; // 24 hours later
+                                    
+                                    // Calculate available time with 30-minute buffer
                                     const now = new Date(new Date().getTime() - 30 * 60 * 1000); // 30 min earlier
-                                    
-                                    // Create 6AM start time for the selected date
-                                    const baseDate = selectedDate || new Date();
-                                    const timelineStart = new Date(baseDate);
-                                    timelineStart.setHours(6, 0, 0, 0);
-                                    
-                                    // Create 6AM end time (next day)
-                                    const timelineEnd = new Date(timelineStart.getTime() + 24 * 60 * 60 * 1000);
+                                    const nowMs = now.getTime();
                                     
                                     // Calculate how much of the 24-hour timeline is available
-                                    const availableEnd = Math.min(now.getTime(), timelineEnd.getTime());
-                                    const availableDuration = availableEnd - timelineStart.getTime();
-                                    const totalDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+                                    const availableEnd = Math.min(nowMs, endTime);
+                                    const availableDuration = availableEnd - startTime;
+                                    const totalTimelineDuration = 24 * 60 * 60 * 1000; // Always 24 hours
                                     
-                                    // Convert to percentage (0-1)
-                                    return Math.max(0, Math.min(1, availableDuration / totalDuration));
+                                    return Math.max(0, Math.min(1, availableDuration / totalTimelineDuration));
                                   })()}
                                   onScrub={(time) => {
                                     // Convert time (seconds from 6AM) to target timestamp
@@ -701,19 +750,7 @@ export default function FootageView({ cameras }: FootageViewProps) {
                                 />
                               </div>
                               
-                              {/* Clip Creation Button */}
-                              <div className="absolute top-2 right-2 z-20">
-                                <button
-                                  onClick={() => {
-                                    setSelectedCameraForClip(camera.id);
-                                    setClipModalOpen(true);
-                                  }}
-                                  className="p-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors"
-                                  title="יצירת קליפ מהקלטה"
-                                >
-                                  <Scissors className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
+
                             </div>
                           </div>
                         )}
@@ -735,10 +772,10 @@ export default function FootageView({ cameras }: FootageViewProps) {
       {/* Clip Creation Modal */}
       {selectedCameraForClip && (
         <Dialog open={clipModalOpen} onOpenChange={setClipModalOpen}>
-          <DialogContent className="max-w-5xl w-[90vw]">
+          <DialogContent className="max-w-5xl w-[90vw] bg-gray-900 border-gray-700">
             <DialogHeader>
-              <DialogTitle className="text-right">יצירת קליפ מהקלטה</DialogTitle>
-              <DialogDescription className="text-right">
+              <DialogTitle className="text-right text-white">יצירת קליפ מהקלטה</DialogTitle>
+              <DialogDescription className="text-right text-gray-300">
                 בחר קטעים מההקלטה ליצירת קליפ להורדה
               </DialogDescription>
             </DialogHeader>
@@ -749,6 +786,7 @@ export default function FootageView({ cameras }: FootageViewProps) {
                     url: clip.url,
                     timestamp: clip.timestamp
                   }))}
+                  initialPosition={cameraTimelinePosition[selectedCameraForClip] || null}
                 />
               )}
             </div>

@@ -46,51 +46,78 @@ export default function CustomTimelineBar({
 
   return (
     <div className="space-y-2">
-      <div className="relative bg-gray-50 rounded-lg p-4 border border-gray-200">
-        {/* Time markers - Reversed order (לילה → בוקר) */}
-        <div className="flex justify-between text-xs text-gray-400 mb-2">
-          <div className="text-center">
-            <div className="font-medium">06:00</div>
-            <div className="w-px h-2 bg-gray-300 mx-auto mt-1"></div>
+      <div className="relative bg-gray-800 rounded-lg p-2 sm:p-4 border border-gray-700">
+        {/* Responsive Time markers - Show fewer on mobile */}
+        <div className="flex justify-between text-xs text-gray-300 mb-2">
+          {/* Mobile: Show only key times */}
+          <div className="sm:hidden flex justify-between w-full">
+            <div className="text-center">
+              <div className="font-medium text-xs">06:00</div>
+              <div className="w-px h-1 bg-gray-500 mx-auto mt-0.5"></div>
+            </div>
+            <div className="text-center">
+              <div className="font-medium text-xs">12:00</div>
+              <div className="w-px h-1 bg-gray-500 mx-auto mt-0.5"></div>
+            </div>
+            <div className="text-center">
+              <div className="font-medium text-xs">18:00</div>
+              <div className="w-px h-1 bg-gray-500 mx-auto mt-0.5"></div>
+            </div>
+            <div className="text-center">
+              <div className="font-medium text-xs">00:00</div>
+              <div className="w-px h-1 bg-gray-500 mx-auto mt-0.5"></div>
+            </div>
+            <div className="text-center">
+              <div className="font-medium text-xs">06:00</div>
+              <div className="w-px h-1 bg-gray-500 mx-auto mt-0.5"></div>
+            </div>
           </div>
-          <div className="text-center">
-            <div className="font-medium">03:00</div>
-            <div className="w-px h-2 bg-gray-300 mx-auto mt-1"></div>
-          </div>
-          <div className="text-center">
-            <div className="font-medium">00:00</div>
-            <div className="w-px h-2 bg-gray-300 mx-auto mt-1"></div>
-          </div>
-          <div className="text-center">
-            <div className="font-medium">21:00</div>
-            <div className="w-px h-2 bg-gray-300 mx-auto mt-1"></div>
-          </div>
-          <div className="text-center">
-            <div className="font-medium">18:00</div>
-            <div className="w-px h-2 bg-gray-300 mx-auto mt-1"></div>
-          </div>
-          <div className="text-center">
-            <div className="font-medium">15:00</div>
-            <div className="w-px h-2 bg-gray-300 mx-auto mt-1"></div>
-          </div>
-          <div className="text-center">
-            <div className="font-medium">12:00</div>
-            <div className="w-px h-2 bg-gray-300 mx-auto mt-1"></div>
-          </div>
-          <div className="text-center">
-            <div className="font-medium">09:00</div>
-            <div className="w-px h-2 bg-gray-300 mx-auto mt-1"></div>
-          </div>
-          <div className="text-center">
-            <div className="font-medium">06:00</div>
-            <div className="w-px h-2 bg-gray-300 mx-auto mt-1"></div>
+          
+          {/* Desktop: Show all times */}
+          <div className="hidden sm:flex justify-between w-full">
+            <div className="text-center">
+              <div className="font-medium">06:00</div>
+              <div className="w-px h-2 bg-gray-500 mx-auto mt-1"></div>
+            </div>
+            <div className="text-center">
+              <div className="font-medium">03:00</div>
+              <div className="w-px h-2 bg-gray-500 mx-auto mt-1"></div>
+            </div>
+            <div className="text-center">
+              <div className="font-medium">00:00</div>
+              <div className="w-px h-2 bg-gray-500 mx-auto mt-1"></div>
+            </div>
+            <div className="text-center">
+              <div className="font-medium">21:00</div>
+              <div className="w-px h-2 bg-gray-500 mx-auto mt-1"></div>
+            </div>
+            <div className="text-center">
+              <div className="font-medium">18:00</div>
+              <div className="w-px h-2 bg-gray-500 mx-auto mt-1"></div>
+            </div>
+            <div className="text-center">
+              <div className="font-medium">15:00</div>
+              <div className="w-px h-2 bg-gray-500 mx-auto mt-1"></div>
+            </div>
+            <div className="text-center">
+              <div className="font-medium">12:00</div>
+              <div className="w-px h-2 bg-gray-500 mx-auto mt-1"></div>
+            </div>
+            <div className="text-center">
+              <div className="font-medium">09:00</div>
+              <div className="w-px h-2 bg-gray-500 mx-auto mt-1"></div>
+            </div>
+            <div className="text-center">
+              <div className="font-medium">06:00</div>
+              <div className="w-px h-2 bg-gray-500 mx-auto mt-1"></div>
+            </div>
           </div>
         </div>
         
-        {/* Timeline background - Two-tone for current day */}
+        {/* Responsive Timeline background - Two-tone for current day */}
         <div 
           ref={barRef}
-          className="relative h-8 rounded-lg shadow-inner border border-gray-300 cursor-pointer hover:shadow-md transition-all duration-200 overflow-hidden"
+          className="relative h-6 sm:h-8 rounded-lg shadow-inner border border-gray-300 cursor-pointer hover:shadow-md transition-all duration-200 overflow-hidden"
           onClick={handleClick}
         >
           {isCurrentDay ? (
@@ -112,21 +139,21 @@ export default function CustomTimelineBar({
             </>
           ) : (
             // Full gradient for past days
-            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50" />
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-blue-900/30 via-indigo-900/30 to-purple-900/30" />
           )}
           {/* Hour divisions */}
           <div className="absolute inset-0 flex">
             {Array.from({ length: 24 }, (_, i) => (
-              <div key={i} className="flex-1 border-r border-gray-200 last:border-r-0 opacity-20"></div>
+              <div key={i} className="flex-1 border-r border-gray-600 last:border-r-0 opacity-20"></div>
             ))}
           </div>
           
           {/* Time period gradients (Reversed: לילה → בוקר) */}
           <div className="absolute inset-0 flex">
-            <div className="bg-gradient-to-r from-indigo-100/30 to-indigo-200/30 rounded-l-lg" style={{ width: '25%' }}></div>
-            <div className="bg-gradient-to-r from-purple-100/30 to-purple-200/30" style={{ width: '25%' }}></div>
-            <div className="bg-gradient-to-r from-orange-100/30 to-orange-200/30" style={{ width: '25%' }}></div>
-            <div className="bg-gradient-to-r from-yellow-100/30 to-yellow-200/30 rounded-r-lg" style={{ width: '25%' }}></div>
+            <div className="bg-gradient-to-r from-indigo-600/20 to-indigo-500/20" style={{ width: '25%' }}></div>
+            <div className="bg-gradient-to-r from-purple-600/20 to-purple-500/20" style={{ width: '25%' }}></div>
+            <div className="bg-gradient-to-r from-orange-600/20 to-orange-500/20" style={{ width: '25%' }}></div>
+            <div className="bg-gradient-to-r from-yellow-600/20 to-yellow-500/20" style={{ width: '25%' }}></div>
           </div>
           
           {/* Confirmed cuts */}
@@ -153,36 +180,44 @@ export default function CustomTimelineBar({
             ></div>
           )}
           
-          {/* Current position indicator - Blue dot with עכשיו */}
+          {/* Responsive Current position indicator - Blue dot with עכשיו */}
           <motion.div 
-            className="absolute top-0 bottom-0 w-1 bg-blue-500 z-20" 
+            className="absolute top-0 bottom-0 w-0.5 sm:w-1 bg-blue-500 z-30" 
             initial={false}
             animate={{ left: `${playheadPercent}%` }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
           >
-            <div className="absolute -top-1 -left-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-            <div className="absolute -bottom-6 -left-8 text-xs text-blue-600 font-medium whitespace-nowrap">עכשיו</div>
+            <div className="absolute -top-0.5 sm:-top-1 -left-1 sm:-left-1 w-2 h-2 sm:w-3 sm:h-3 bg-blue-500 rounded-full animate-pulse shadow-md"></div>
+            {/* Fixed positioning for עכשיו text - always relative to left with dynamic offset */}
+            <div 
+              className="absolute -bottom-5 sm:-bottom-6 text-xs text-blue-400 font-medium whitespace-nowrap"
+              style={{
+                left: playheadPercent > 85 ? '-32px' : playheadPercent < 10 ? '8px' : '-24px'
+              }}
+            >
+              עכשיו
+            </div>
           </motion.div>
         </div>
         
-        {/* Time period legend */}
-        <div className="mt-4 space-y-2">
-          <div className="flex justify-between text-xs text-gray-400 px-2">
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 bg-indigo-200 rounded-full"></span>
-              לילה
+        {/* Responsive Time period legend */}
+        <div className="mt-2 sm:mt-4 space-y-2">
+          <div className="flex justify-between text-xs text-gray-300 px-1 sm:px-2">
+            <span className="flex items-center gap-0.5 sm:gap-1">
+              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-indigo-400 rounded-full"></span>
+              <span className="text-xs">לילה</span>
             </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 bg-purple-200 rounded-full"></span>
-              ערב
+            <span className="flex items-center gap-0.5 sm:gap-1">
+              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-purple-400 rounded-full"></span>
+              <span className="text-xs">ערב</span>
             </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 bg-orange-200 rounded-full"></span>
-              צהריים
+            <span className="flex items-center gap-0.5 sm:gap-1">
+              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-orange-400 rounded-full"></span>
+              <span className="text-xs">צהריים</span>
             </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 bg-yellow-200 rounded-full"></span>
-              בוקר
+            <span className="flex items-center gap-0.5 sm:gap-1">
+              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-yellow-400 rounded-full"></span>
+              <span className="text-xs">בוקר</span>
             </span>
           </div>
         </div>

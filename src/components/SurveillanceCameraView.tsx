@@ -142,26 +142,26 @@ export default function SurveillanceCameraView({ camera, tunnelName, cameraNumbe
   };
 
   return (
-    <div className="relative w-full bg-black rounded-lg overflow-hidden border border-gray-700 shadow-lg group">
-      {/* Camera Header */}
-      <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent p-3">
+    <div className="relative bg-gray-800 rounded-lg overflow-hidden shadow-lg group aspect-video">
+      {/* Responsive Header */}
+      <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent p-2 sm:p-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2 rtl:space-x-reverse">
-            <Camera className="w-4 h-4 text-blue-400" />
-            <span className="text-white font-medium text-sm">{name}</span>
-            <span className="text-gray-400 text-xs">#{cameraNumber}</span>
+          <div className="flex items-center space-x-1 sm:space-x-2 rtl:space-x-reverse">
+            <Camera className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400" />
+            <span className="text-white font-medium text-xs sm:text-sm truncate max-w-24 sm:max-w-none">{name}</span>
+            <span className="text-gray-400 text-xs hidden sm:inline">#{cameraNumber}</span>
           </div>
           
-          <div className="flex items-center space-x-2 rtl:space-x-reverse">
+          <div className="flex items-center space-x-1 sm:space-x-2 rtl:space-x-reverse">
             {isConnected ? (
-              <Wifi className="w-4 h-4 text-green-400" />
+              <Wifi className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
             ) : (
-              <WifiOff className="w-4 h-4 text-red-400" />
+              <WifiOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-400" />
             )}
             {isRecording && (
               <div className="flex items-center space-x-1 rtl:space-x-reverse">
-                <Circle className="w-3 h-3 text-red-500 animate-pulse fill-current" />
-                <span className="text-red-400 text-xs">REC</span>
+                <Circle className="w-2 h-2 sm:w-3 sm:h-3 text-red-500 animate-pulse fill-current" />
+                <span className="text-red-400 text-xs hidden sm:inline">REC</span>
               </div>
             )}
           </div>
@@ -199,35 +199,35 @@ export default function SurveillanceCameraView({ camera, tunnelName, cameraNumbe
           className="w-full h-full object-cover"
         />
 
-        {/* Control Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/80 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        {/* Responsive Control Overlay */}
+        <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/80 to-transparent p-2 sm:p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 rtl:space-x-reverse">
+            <div className="flex items-center space-x-1 sm:space-x-2 rtl:space-x-reverse">
               <span className="text-white text-xs font-mono">
                 {isMounted ? formatTime(currentTime) : '--:--:--'}
               </span>
-              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}></div>
+              <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}></div>
             </div>
             
-            <div className="flex items-center space-x-2 rtl:space-x-reverse">
+            <div className="flex items-center space-x-1 sm:space-x-2 rtl:space-x-reverse">
               <button
                 onClick={toggleMute}
-                className="p-1.5 hover:bg-white/20 rounded transition-colors"
+                className="p-1 sm:p-1.5 hover:bg-white/20 rounded transition-colors"
                 title={isMuted ? 'הפעל קול' : 'השתק'}
               >
                 {isMuted ? (
-                  <VolumeX className="w-4 h-4 text-white" />
+                  <VolumeX className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                 ) : (
-                  <Volume2 className="w-4 h-4 text-white" />
+                  <Volume2 className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                 )}
               </button>
               
               <button
                 onClick={toggleFullscreen}
-                className="p-1.5 hover:bg-white/20 rounded transition-colors"
+                className="p-1 sm:p-1.5 hover:bg-white/20 rounded transition-colors"
                 title="מסך מלא"
               >
-                <Maximize2 className="w-4 h-4 text-white" />
+                <Maximize2 className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
               </button>
             </div>
           </div>
