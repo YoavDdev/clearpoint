@@ -105,7 +105,7 @@ export default function DashboardPage() {
                 onClick={() => setViewMode('live')}
                 className={`flex items-center space-x-1 sm:space-x-2 rtl:space-x-reverse px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors ${
                   viewMode === 'live'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-red-600 text-white'
                     : 'text-gray-300 hover:text-white hover:bg-gray-600'
                 }`}
               >

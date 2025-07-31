@@ -123,19 +123,29 @@ export default function CustomTimelineBar({
           {isCurrentDay ? (
             // Two-tone timeline for current day
             <>
-              {/* Available footage area - normal gradient */}
+              {/* Available footage area - same beautiful gradient as past days */}
               <div 
-                className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50"
+                className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-900/30 via-indigo-900/30 to-purple-900/30"
                 style={{ width: `${availablePercentage * 100}%` }}
               />
-              {/* Unavailable footage area - gray */}
+              {/* Unavailable footage area - professional design matching dashboard */}
               <div 
-                className="absolute top-0 h-full bg-gray-300 opacity-70"
+                className="absolute top-0 h-full bg-gradient-to-r from-gray-500/60 to-gray-600/70 border-l border-gray-400"
                 style={{ 
                   left: `${availablePercentage * 100}%`, 
                   width: `${(1 - availablePercentage) * 100}%` 
                 }}
-              />
+              >
+                {/* Subtle diagonal pattern */}
+                <div 
+                  className="absolute inset-0 opacity-30"
+                  style={{
+                    backgroundImage: `repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(156, 163, 175, 0.4) 4px, rgba(156, 163, 175, 0.4) 8px)`
+                  }}
+                />
+                {/* Professional overlay with subtle animation */}
+                <div className="absolute inset-0 bg-gray-700/20 animate-pulse" style={{ animationDuration: '3s' }} />
+              </div>
             </>
           ) : (
             // Full gradient for past days

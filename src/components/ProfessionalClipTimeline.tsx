@@ -45,6 +45,24 @@ export default function ProfessionalClipTimeline({ clips, onTrimComplete, onClos
   const startTime = timelineStartDate.getTime();
   const totalDayDuration = 24 * 60 * 60; // 24 hours in seconds
 
+  // Check if this is current day footage and calculate available percentage
+  const now = new Date();
+  const currentDayStart = new Date(now);
+  currentDayStart.setHours(6, 0, 0, 0);
+  if (now.getHours() < 6) {
+    currentDayStart.setDate(currentDayStart.getDate() - 1);
+  }
+  
+  const isCurrentDay = Math.abs(timelineStartDate.getTime() - currentDayStart.getTime()) < 1000; // Same day
+  
+  let availablePercentage = 1; // Default: all available for past days
+  if (isCurrentDay) {
+    const currentTimeMs = now.getTime();
+    const dayStartMs = currentDayStart.getTime();
+    const dayEndMs = dayStartMs + (24 * 60 * 60 * 1000);
+    availablePercentage = Math.min(1, Math.max(0, (currentTimeMs - dayStartMs) / (dayEndMs - dayStartMs)));
+  }
+
   const currentClip = clips[currentClipIndex];
 
   useEffect(() => {
@@ -53,6 +71,12 @@ export default function ProfessionalClipTimeline({ clips, onTrimComplete, onClos
 
     const handleLoadedMetadata = () => {
       setDuration(video.duration || 100);
+      // Auto-play video when it loads
+      video.play().then(() => {
+        setIsPlaying(true);
+      }).catch((error) => {
+        console.log('Auto-play prevented by browser:', error);
+      });
     };
 
     const handleTimeUpdate = () => {
@@ -354,6 +378,8 @@ export default function ProfessionalClipTimeline({ clips, onTrimComplete, onClos
             cutEnd={null}
             cuts={[]}
             onScrub={handleDayTimelineScrub}
+            isCurrentDay={isCurrentDay}
+            availablePercentage={availablePercentage}
           />
         </div>
       </div>
