@@ -23,6 +23,16 @@ export async function GET(req: Request) {
     .limit(1)
     .single();
 
+  // If no health data found, return success with null health (camera exists but no health data yet)
+  if (error && error.code === 'PGRST116') {
+    return NextResponse.json({ 
+      success: true, 
+      health: null,
+      message: "No health data available for this camera yet" 
+    });
+  }
+
+  // If other database error, return error
   if (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

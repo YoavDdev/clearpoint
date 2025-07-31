@@ -2,6 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import {
+  UserPlus,
+  Mail,
+  User,
+  Phone,
+  MapPin,
+  FileText,
+  CreditCard,
+  Wifi,
+  Smartphone,
+  CheckCircle,
+  AlertCircle,
+  ArrowLeft,
+} from "lucide-react";
 
 interface Plan {
   id: string;
@@ -57,8 +71,15 @@ export default function NewCustomerPage() {
   }, [planId]);
 
   const handleCreateCustomer = async () => {
-    if (!planId || !retention) {
-      alert("יש לבחור מסלול מנוי ומשך שמירת קבצים.");
+    if (!planId) {
+      alert("יש לבחור מסלול מנוי.");
+      return;
+    }
+    
+    // Get the selected plan to ensure we have the correct retention
+    const selectedPlan = plans.find((p) => p.id === planId);
+    if (!selectedPlan) {
+      alert("מסלול המנוי שנבחר לא נמצא.");
       return;
     }
 
@@ -73,8 +94,8 @@ export default function NewCustomerPage() {
         phone,
         address,
         notes,
-        plan_type: planId, // legacy field name
-        plan_duration_days: retention,
+        plan_type: planId,
+        plan_duration_days: selectedPlan.retention_days,
         custom_price: customPrice,
         tunnel_name: tunnelName,
       }),
@@ -102,128 +123,250 @@ export default function NewCustomerPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-100 pt-20 px-6 flex flex-col items-center">
-      <div className="w-full max-w-xl bg-white p-8 rounded-lg shadow-lg">
-        <h1 className="text-2xl font-bold mb-6 text-right">הוספת לקוח חדש</h1>
-
-        {/* Email */}
-        <div className="mb-4 text-right">
-          <label className="block mb-2 font-medium">אימייל</label>
-          <input
-            type="email"
-            placeholder="example@email.com"
-            className="w-full p-2 border border-gray-300 rounded text-right"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoFocus
-          />
+    <main dir="rtl" className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pt-20 px-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="text-right">
+              <h1 className="text-4xl font-bold text-slate-800 mb-2">הוספת לקוח חדש</h1>
+              <p className="text-slate-600">יצירת חשבון לקוח חדש במערכת</p>
+            </div>
+            <div className="w-16 h-16 bg-gradient-to-br from-green-600 to-green-700 rounded-2xl flex items-center justify-center shadow-lg">
+              <UserPlus size={32} className="text-white" />
+            </div>
+          </div>
         </div>
 
-        {/* Full Name */}
-        <div className="mb-4 text-right">
-          <label className="block mb-2 font-medium">שם מלא</label>
-          <input
-            type="text"
-            className="w-full p-2 border border-gray-300 rounded text-right"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-          />
-        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          {/* Form Header */}
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 border-b border-slate-200">
+            <h2 className="text-xl font-semibold text-slate-800 text-right">פרטי הלקוח החדש</h2>
+            <p className="text-slate-600 text-right mt-1">מלא את כל הפרטים הנדרשים ליצירת חשבון לקוח</p>
+          </div>
 
-        {/* Phone */}
-        <div className="mb-4 text-right">
-          <label className="block mb-2 font-medium">טלפון</label>
-          <input
-            type="tel"
-            className="w-full p-2 border border-gray-300 rounded text-right"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
-        </div>
+          <div className="p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Left Column - Contact Info */}
+              <div className="space-y-6">
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2 justify-end">
+                    <span>פרטי יצירת קשר</span>
+                    <Mail className="text-blue-600" size={20} />
+                  </h3>
+                </div>
 
-        {/* Address */}
-        <div className="mb-4 text-right">
-          <label className="block mb-2 font-medium">כתובת</label>
-          <input
-            type="text"
-            className="w-full p-2 border border-gray-300 rounded text-right"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-          />
-        </div>
+                {/* Email */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
+                    <span>כתובת אימייל *</span>
+                    <Mail size={16} className="text-slate-400" />
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="example@email.com"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoFocus
+                  />
+                </div>
 
-        {/* Tunnel Name */}
-        <div className="mb-4 text-right">
-          <label className="block mb-2 font-medium">שם טאנל (tunnel_name)</label>
-          <input
-            type="text"
-            className="w-full p-2 border border-gray-300 rounded text-right"
-            value={tunnelName}
-            onChange={(e) => setTunnelName(e.target.value)}
-            placeholder="example-tunnel"
-          />
-        </div>
+                {/* Full Name */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
+                    <span>שם מלא *</span>
+                    <User size={16} className="text-slate-400" />
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="שם פרטי ומשפחה"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                  />
+                </div>
 
-        {/* Notes */}
-        <div className="mb-4 text-right">
-          <label className="block mb-2 font-medium">הערות</label>
-          <textarea
-            className="w-full p-2 border border-gray-300 rounded text-right"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-        </div>
+                {/* Phone */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
+                    <span>מספר טלפון</span>
+                    <Phone size={16} className="text-slate-400" />
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="050-1234567"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                </div>
 
-        {/* Plan */}
-        <div className="mb-4 text-right">
-          <label className="block mb-2 font-medium">מסלול מנוי</label>
-          <select
-            value={planId ?? ""}
-            onChange={(e) => setPlanId(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded text-right"
-          >
-            <option value="" disabled>בחר מסלול</option>
-            {plans.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.connection_type})
-              </option>
-            ))}
-          </select>
-        </div>
+                {/* Address */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
+                    <span>כתובת</span>
+                    <MapPin size={16} className="text-slate-400" />
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="רחוב, עיר"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                  />
+                </div>
+              </div>
 
-        {/* Retention */}
-        <div className="mb-4 text-right">
-          <label className="block mb-2 font-medium">משך שמירת קבצים</label>
-          <select
-            value={retention ?? ""}
-            onChange={(e) => setRetention(Number(e.target.value))}
-            className="w-full p-2 border border-gray-300 rounded text-right"
-          >
-            <option value="" disabled>בחר תקופה</option>
-            <option value={7}>7 ימים</option>
-            <option value={14}>14 ימים</option>
-          </select>
-        </div>
+              {/* Right Column - Technical & Plan Info */}
+              <div className="space-y-6">
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2 justify-end">
+                    <span>הגדרות טכניות ומנוי</span>
+                    <CreditCard className="text-purple-600" size={20} />
+                  </h3>
+                </div>
 
-        {/* Custom Price */}
-        <div className="mb-6 text-right">
-          <label className="block mb-2 font-medium">מחיר חודשי מותאם (אופציונלי)</label>
-          <input
-            type="number"
-            className="w-full p-2 border border-gray-300 rounded text-right"
-            value={customPrice ?? ""}
-            onChange={(e) => setCustomPrice(e.target.value ? Number(e.target.value) : null)}
-          />
-        </div>
+                {/* Tunnel Name */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
+                    <span>שם טאנל (tunnel_name)</span>
+                    <Wifi size={16} className="text-slate-400" />
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="example-tunnel"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    value={tunnelName}
+                    onChange={(e) => setTunnelName(e.target.value)}
+                  />
+                </div>
 
-        {/* Submit */}
-        <button
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded"
-          onClick={handleCreateCustomer}
-          disabled={loading}
-        >
-          {loading ? "יוצר לקוח..." : "צור לקוח"}
-        </button>
+                {/* Plan Selection */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
+                    <span>בחר מסלול מנוי *</span>
+                    <CreditCard size={16} className="text-slate-400" />
+                  </label>
+                  <select
+                    value={planId ?? ""}
+                    onChange={(e) => setPlanId(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors text-lg"
+                  >
+                    <option value="" disabled>בחר מסלול מנוי</option>
+                    
+                    {/* SIM Plans */}
+                    <optgroup label="📡 תוכניות SIM/4G - מקומות ללא Wi-Fi">
+                      {plans.filter(p => p.connection_type === 'SIM').map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} - ₪{p.monthly_price}/חודש
+                        </option>
+                      ))}
+                    </optgroup>
+                    
+                    {/* Cloud Plans */}
+                    <optgroup label="☁️ תוכניות Wi-Fi Cloud - גישה ללא הגבלה">
+                      {plans.filter(p => p.connection_type === 'Wi-Fi').map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} - ₪{p.monthly_price}/חודש
+                        </option>
+                      ))}
+                    </optgroup>
+                  </select>
+                  
+                  {/* Show selected plan details */}
+                  {planId && (
+                    <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center gap-2 justify-end mb-3">
+                        <span className="font-semibold text-blue-800">פרטי המסלול הנבחר</span>
+                        <CheckCircle size={16} className="text-blue-600" />
+                      </div>
+                      <div className="space-y-2 text-sm text-blue-800 text-right">
+                        <div className="flex items-center gap-2 justify-end">
+                          <span><strong>שם המסלול:</strong> {plans.find(p => p.id === planId)?.name}</span>
+                          {plans.find(p => p.id === planId)?.connection_type === 'SIM' ? 
+                            <Smartphone size={16} className="text-blue-600" /> : 
+                            <Wifi size={16} className="text-blue-600" />
+                          }
+                        </div>
+                        <div><strong>תקופת שמירה:</strong> {plans.find(p => p.id === planId)?.retention_days} ימים</div>
+                        <div><strong>מחיר:</strong> ₪{plans.find(p => p.id === planId)?.monthly_price}/חודש</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Custom Price */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
+                    <span>מחיר חודשי מותאם (אופציונלי)</span>
+                    <CreditCard size={16} className="text-slate-400" />
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="הכנס מחיר מותאם"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    value={customPrice ?? ""}
+                    onChange={(e) => setCustomPrice(e.target.value ? Number(e.target.value) : null)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Notes - Full Width */}
+            <div className="mt-8 space-y-2">
+              <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
+                <span>הערות נוספות</span>
+                <FileText size={16} className="text-slate-400" />
+              </label>
+              <textarea
+                rows={4}
+                placeholder="הערות, הוראות מיוחדות או מידע נוסף על הלקוח..."
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors resize-none"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-8 pt-6 border-t border-slate-200">
+              <div className="flex items-center gap-4 justify-end">
+                <button
+                  type="button"
+                  onClick={() => window.history.back()}
+                  className="inline-flex items-center gap-2 px-6 py-3 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  <ArrowLeft size={16} />
+                  <span>ביטול</span>
+                </button>
+                
+                <button
+                  onClick={handleCreateCustomer}
+                  disabled={loading || !email || !fullName || !planId}
+                  className="inline-flex items-center gap-2 px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors font-semibold"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                      <span>יוצר לקוח...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus size={16} />
+                      <span>צור לקוח חדש</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              
+              {/* Required fields note */}
+              <div className="mt-4 flex items-center gap-2 justify-end text-sm text-slate-600">
+                <span>שדות חובה מסומנים ב-*</span>
+                <AlertCircle size={16} className="text-slate-400" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   );

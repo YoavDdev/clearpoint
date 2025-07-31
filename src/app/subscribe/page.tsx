@@ -27,10 +27,10 @@ export default function SubscribeFormPage() {
     if (plan) {
       const hebrewName =
         plan === "sim"
-          ? "חבילת סים"
-          : plan === "wifi"
-          ? "חבילת אינטרנט ביתי"
-          : "חבילת מקומית";
+          ? "📡 תוכנית SIM/4G - מקומות ללא Wi-Fi"
+          : plan === "cloud" || plan === "wifi"
+          ? "☁️ תוכנית Wi-Fi Cloud - גישה ללא הגבלה"
+          : "בחר תוכנית";
       setSelectedPlan(hebrewName);
     }
   }, [searchParams]);

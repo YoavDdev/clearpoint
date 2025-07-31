@@ -1,5 +1,7 @@
 'use client';
 
+import { Trash2 } from 'lucide-react';
+
 type DeleteButtonProps = {
   cameraId: string;
 };
@@ -24,9 +26,11 @@ export function DeleteButton({ cameraId }: DeleteButtonProps) {
   return (
     <button
       onClick={handleDelete}
-                        className="text-red-600 hover:underline"
-                      >
-                        מחיקה
-                      </button>
+      className="inline-flex items-center gap-1 px-3 py-1.5 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors text-sm font-medium"
+      title="מחק מצלמה"
+    >
+      <Trash2 size={14} />
+      <span>מחק</span>
+    </button>
   );
 }

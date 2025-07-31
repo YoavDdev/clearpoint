@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { CamerasTable } from "./CamerasTable";
 import Link from "next/link";
+import { Camera, Plus } from "lucide-react";
 
 
 // ✅ Match your Camera type
@@ -46,8 +47,33 @@ export default async function CamerasPage() {
   })) as Camera[];
 
   return (
-    <main>
-      <CamerasTable cameras={cameras} />
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pt-20 px-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="text-right">
+              <h1 className="text-4xl font-bold text-slate-800 mb-2">ניהול מצלמות</h1>
+              <p className="text-slate-600">ניטור וניהול כל המצלמות במערכת</p>
+            </div>
+            <div className="w-16 h-16 bg-gradient-to-br from-green-600 to-green-700 rounded-2xl flex items-center justify-center shadow-lg">
+              <Camera size={32} className="text-white" />
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <Link
+              href="/admin/cameras/new"
+              className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-all hover:shadow-lg group"
+            >
+              <Plus size={20} className="group-hover:scale-110 transition-transform" />
+              <span>הוסף מצלמה חדשה</span>
+            </Link>
+          </div>
+        </div>
+        
+        <CamerasTable cameras={cameras} />
+      </div>
     </main>
   );
 }
