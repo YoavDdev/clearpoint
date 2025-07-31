@@ -143,28 +143,29 @@ export default function SurveillanceCameraView({ camera, tunnelName, cameraNumbe
 
   return (
     <div className="relative bg-gray-800 rounded-lg overflow-hidden shadow-lg group aspect-video">
-      {/* Responsive Header */}
-      <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent p-2 sm:p-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-1 sm:space-x-2 rtl:space-x-reverse">
-            <Camera className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400" />
-            <span className="text-white font-medium text-xs sm:text-sm truncate max-w-24 sm:max-w-none">{name}</span>
-            <span className="text-gray-400 text-xs hidden sm:inline">#{cameraNumber}</span>
-          </div>
-          
-          <div className="flex items-center space-x-1 sm:space-x-2 rtl:space-x-reverse">
-            {isConnected ? (
-              <Wifi className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
-            ) : (
-              <WifiOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-400" />
-            )}
-            {isRecording && (
-              <div className="flex items-center space-x-1 rtl:space-x-reverse">
-                <Circle className="w-2 h-2 sm:w-3 sm:h-3 text-red-500 animate-pulse fill-current" />
-                <span className="text-red-400 text-xs hidden sm:inline">REC</span>
-              </div>
-            )}
-          </div>
+      {/* Camera Name Overlay - Top Right */}
+      <div className="absolute top-0 right-0 z-20 p-2 sm:p-3">
+        <div className="flex items-center space-x-1 sm:space-x-2 rtl:space-x-reverse">
+          <Camera className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400" />
+          <span className="text-white font-medium text-xs sm:text-sm truncate max-w-24 sm:max-w-none">{name}</span>
+          <span className="text-gray-400 text-xs hidden sm:inline">#{cameraNumber}</span>
+        </div>
+      </div>
+
+      {/* Status Indicators Overlay - Moved Down */}
+      <div className="absolute top-8 right-0 z-20 p-2 sm:p-3">
+        <div className="flex items-center space-x-1 sm:space-x-2 rtl:space-x-reverse">
+          {isConnected ? (
+            <Wifi className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
+          ) : (
+            <WifiOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-400" />
+          )}
+          {isRecording && (
+            <div className="flex items-center space-x-1 rtl:space-x-reverse">
+              <Circle className="w-2 h-2 sm:w-3 sm:h-3 text-red-500 animate-pulse fill-current" />
+              <span className="text-red-400 text-xs hidden sm:inline">REC</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -202,12 +203,7 @@ export default function SurveillanceCameraView({ camera, tunnelName, cameraNumbe
         {/* Responsive Control Overlay */}
         <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/80 to-transparent p-2 sm:p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-1 sm:space-x-2 rtl:space-x-reverse">
-              <span className="text-white text-xs font-mono">
-                {isMounted ? formatTime(currentTime) : '--:--:--'}
-              </span>
-              <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}></div>
-            </div>
+            <div></div>
             
             <div className="flex items-center space-x-1 sm:space-x-2 rtl:space-x-reverse">
               <button
@@ -234,12 +230,7 @@ export default function SurveillanceCameraView({ camera, tunnelName, cameraNumbe
         </div>
       </div>
 
-      {/* Status Indicator */}
-      <div className="absolute top-3 right-3 z-20">
-        <div className={`w-3 h-3 rounded-full ${
-          isConnected ? 'bg-green-400' : 'bg-red-400'
-        } ${isConnected ? 'animate-pulse' : ''}`}></div>
-      </div>
+
     </div>
   );
 }

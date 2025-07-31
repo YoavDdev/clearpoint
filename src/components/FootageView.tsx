@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { format, isBefore } from 'date-fns';
-import FootageTimelinePlayer from './FootageTimelinePlayer';
+import ProfessionalClipTimeline from './ProfessionalClipTimeline';
 import CustomTimelineBar from './CustomTimelineBar';
 import {
   Loader2,
@@ -770,28 +770,32 @@ export default function FootageView({ cameras }: FootageViewProps) {
       )}
 
       {/* Clip Creation Modal */}
-      {selectedCameraForClip && (
-        <Dialog open={clipModalOpen} onOpenChange={setClipModalOpen}>
-          <DialogContent className="max-w-5xl w-[90vw] bg-gray-900 border-gray-700">
-            <DialogHeader>
-              <DialogTitle className="text-right text-white">יצירת קליפ מהקלטה</DialogTitle>
-              <DialogDescription className="text-right text-gray-300">
-                בחר קטעים מההקלטה ליצירת קליפ להורדה
-              </DialogDescription>
-            </DialogHeader>
-            <div className="mt-4">
-              {allCameraClips[selectedCameraForClip] && allCameraClips[selectedCameraForClip].length > 0 && (
-                <FootageTimelinePlayer
-                  clips={allCameraClips[selectedCameraForClip].map(clip => ({
-                    url: clip.url,
-                    timestamp: clip.timestamp
-                  }))}
-                  initialPosition={cameraTimelinePosition[selectedCameraForClip] || null}
-                />
-              )}
+      {selectedCameraForClip && clipModalOpen && (
+        <div className="fixed inset-0 z-[99999] bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-lg max-w-5xl w-full max-h-[90vh] overflow-auto relative">
+            {/* Accessibility headers */}
+            <div className="sr-only">
+              <h2>עריכת קליפ מקצועית</h2>
+              <p>ממשק עריכת קליפים מקצועי לחיתוך והורדת קטעי וידאו</p>
             </div>
-          </DialogContent>
-        </Dialog>
+            
+            {allCameraClips[selectedCameraForClip] && allCameraClips[selectedCameraForClip].length > 0 && (
+              <ProfessionalClipTimeline
+                clips={allCameraClips[selectedCameraForClip].map(clip => ({
+                  url: clip.url,
+                  timestamp: clip.timestamp
+                }))}
+                onTrimComplete={(startTime, endTime) => {
+                  console.log('Clip trimmed:', { startTime, endTime });
+                  // Here you can add logic to handle the trimmed clip
+                  // For example, send to server for processing
+                  alert(`קליפ נחתך בהצלחה: ${Math.floor(endTime - startTime)} שניות`);
+                }}
+                onClose={() => setClipModalOpen(false)}
+              />
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
