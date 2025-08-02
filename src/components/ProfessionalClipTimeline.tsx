@@ -18,10 +18,10 @@ type Props = {
 
 export default function ProfessionalClipTimeline({ clips, onTrimComplete, onClose }: Props) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(100); // Simple 100-unit timeline
-  const [selectionStart, setSelectionStart] = useState<number | null>(10);
-  const [selectionEnd, setSelectionEnd] = useState<number | null>(30);
+  const [currentTime, setCurrentTime] = useState(300); // Start at 5 minutes (300 seconds)
+  const [duration, setDuration] = useState(900); // 15 minutes = 900 seconds
+  const [selectionStart, setSelectionStart] = useState<number | null>(400); // Around 6.5 minutes
+  const [selectionEnd, setSelectionEnd] = useState<number | null>(500); // Around 8.5 minutes
   const [isDragging, setIsDragging] = useState<'start' | 'end' | 'selection' | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
@@ -171,9 +171,9 @@ export default function ProfessionalClipTimeline({ clips, onTrimComplete, onClos
     
     // Switch to the closest clip
     setCurrentClipIndex(bestClipIndex);
-    setCurrentTime(0);
-    setSelectionStart(10);
-    setSelectionEnd(30);
+    setCurrentTime(300); // Start at 5 minutes into the new clip
+    setSelectionStart(400); // Center selection around 6.5 minutes
+    setSelectionEnd(500); // Center selection around 8.5 minutes
   };
 
   const toggleFullscreen = () => {
@@ -317,9 +317,7 @@ export default function ProfessionalClipTimeline({ clips, onTrimComplete, onClos
   return (
     <div 
       ref={containerRef}
-      className={`bg-gray-900 text-white rounded-lg transition-all duration-300 ${
-        isFullscreen ? 'fixed inset-0 z-50 p-3 sm:p-6 lg:p-8 overflow-y-auto' : 'p-3 sm:p-4 lg:p-6'
-      }`} 
+      className="fixed inset-0 z-50 bg-gray-900 text-white p-3 sm:p-6 lg:p-8 overflow-y-auto"
       dir="rtl"
     >
       {/* Responsive Header */}
@@ -349,231 +347,259 @@ export default function ProfessionalClipTimeline({ clips, onTrimComplete, onClos
               <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           )}
-          <div className="text-xs sm:text-sm text-gray-400 hidden sm:block">
-            {formatTime(currentTime)} / {formatTime(duration)}
-          </div>
+
         </div>
       </div>
 
-      {/* Step 1: Day Timeline Navigation */}
-      <div className="mb-6 sm:mb-8 lg:mb-10">
-        <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3 sm:p-4 mb-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</div>
-            <h3 className="text-sm sm:text-base font-semibold text-blue-300">בחר זמן מהיום (6:00-6:00)</h3>
-          </div>
-          <p className="text-xs sm:text-sm text-blue-100 mb-3">
-            לחץ על הסרט כדי לבחור איזה זמן מהיום אתה רוצה לערוך
-          </p>
-          
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-gray-300">זמן נבחר:</span>
-            <span className="text-xs sm:text-sm text-blue-400 font-mono">{formatDayTime(currentClipIndex)}</span>
-          </div>
-          
-          <CustomTimelineBar
-            duration={totalDayDuration}
-            currentTime={getDayCurrentTime()}
-            cutStart={null}
-            cutEnd={null}
-            cuts={[]}
-            onScrub={handleDayTimelineScrub}
-            isCurrentDay={isCurrentDay}
-            availablePercentage={availablePercentage}
-          />
-        </div>
-      </div>
 
-      {/* Responsive Large Video Player */}
-      <div className="bg-black rounded-lg overflow-hidden mb-3 sm:mb-4 lg:mb-6 relative">
-        <video
-          ref={videoRef}
-          src={currentClip.url}
-          className="w-full object-contain"
-          style={{ 
-            minHeight: isFullscreen ? '40vh' : '200px',
-            maxHeight: isFullscreen ? '60vh' : '50vh'
-          }}
-          muted
-        />
+
+      {/* Unified Video & Timeline Control View */}
+      <div className="bg-gray-900/40 border border-gray-600/50 rounded-lg p-4 mb-6">
+        <h3 className="text-lg font-semibold text-white mb-4 text-center">בקרת וידאו ובחירת קטע</h3>
         
-        {/* Responsive Video Controls Overlay */}
-        <div className="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition-opacity duration-300">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <button
-              onClick={togglePlayPause}
-              className="bg-white/20 backdrop-blur-sm rounded-full p-3 sm:p-4 lg:p-6 hover:bg-white/30 transition-colors shadow-lg"
-            >
-              {isPlaying ? (
-                <Pause className="w-6 h-6 sm:w-8 sm:h-8 lg:w-12 lg:h-12 text-white" />
-              ) : (
-                <Play className="w-6 h-6 sm:w-8 sm:h-8 lg:w-12 lg:h-12 text-white ml-0.5 sm:ml-1" />
-              )}
-            </button>
-          </div>
+        {/* Main Layout: Video + Controls Side by Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
           
-
-        </div>
-      </div>
-
-      {/* Step 2: Clip Timeline Section */}
-      <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-        <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-3 sm:p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</div>
-            <h3 className="text-sm sm:text-base font-semibold text-green-300">בחר קטע לעריכה (מקסימום 15 דקות)</h3>
-          </div>
-          <p className="text-xs sm:text-sm text-green-100 mb-3">
-            גרור את הסימנים הכחולים כדי לבחור איזה חלק מהקליפ לשמור או למחוק
-          </p>
-          
-          {/* Time Display */}
-          <div className="flex justify-between items-center text-xs sm:text-sm font-mono mb-3">
-            <div className="text-blue-400">
-              {formatTime(currentTime)}
-            </div>
-            <div className="text-gray-400">
-              {selectionStart !== null && selectionEnd !== null ? (
-                <span className="text-green-400">
-                  נבחר: {formatTime(selectionEnd - selectionStart)} / מקס: 15:00
-                </span>
-              ) : (
-                <span>מקסימום: 15:00</span>
-              )}
-            </div>
-            <div className="text-gray-400">
-              {formatTime(duration)}
-            </div>
-          </div>
-
-        {/* Responsive Professional Timeline */}
-        <div className="space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-6 xl:space-y-8">
-          <div 
-            ref={timelineRef}
-            className="relative h-8 sm:h-10 md:h-12 lg:h-16 xl:h-20 bg-gray-800 rounded-lg cursor-pointer overflow-hidden touch-manipulation"
-            onClick={handleTimelineClick}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onTouchStart={handleMouseDown}
-            onTouchMove={handleMouseMove}
-            onTouchEnd={handleMouseUp}
-          >
-            {/* Timeline Background */}
-            <div className="absolute inset-0 bg-gradient-to-r from-gray-700 to-gray-600"></div>
+          {/* Left Side: Video Player */}
+          <div className="bg-transparent lg:bg-black rounded-lg lg:rounded-lg overflow-hidden relative flex items-center justify-center" style={{ minHeight: '250px', maxHeight: '70vh' }}>
+            <video
+              ref={videoRef}
+              src={currentClip?.url || ''}
+              className="w-full h-auto object-contain rounded-lg lg:rounded-none"
+              style={{ 
+                maxHeight: '70vh',
+                minHeight: '250px',
+                backgroundColor: 'transparent'
+              }}
+              muted
+              onError={(e) => {
+                console.warn('Video loading error for clip:', currentClip?.url);
+                // Optionally show a placeholder or error message
+              }}
+              onLoadStart={() => {
+                // Reset any previous errors
+              }}
+            />
             
-            {/* Time Markers */}
-            <div className="absolute inset-0 flex">
-              {Array.from({ length: 11 }, (_, i) => (
-                <div 
-                  key={i} 
-                  className="flex-1 border-r border-gray-600 last:border-r-0 opacity-30"
-                  style={{ left: `${i * 10}%` }}
+            {/* Video Controls Overlay */}
+            <div className="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition-opacity duration-300">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <button
+                  onClick={togglePlayPause}
+                  className="bg-white/20 backdrop-blur-sm rounded-full p-4 hover:bg-white/30 transition-colors shadow-lg"
                 >
-                  <div className="absolute top-0 w-px h-2 bg-gray-400"></div>
-                  <div className="absolute bottom-0 w-px h-2 bg-gray-400"></div>
-                </div>
-              ))}
+                  {isPlaying ? (
+                    <Pause className="w-8 h-8 text-white" />
+                  ) : (
+                    <Play className="w-8 h-8 text-white ml-0.5" />
+                  )}
+                </button>
+              </div>
             </div>
+            
 
-            {/* Selection Area */}
-            {selectionStart !== null && selectionEnd !== null && (
-              <div
-                className="absolute top-0 bottom-0 bg-blue-500/30 border-l-2 border-r-2 border-blue-500 cursor-move"
-                style={{
-                  left: `${getTimelinePosition(selectionStart)}%`,
-                  width: `${getTimelinePosition(selectionEnd - selectionStart)}%`
-                }}
-                onMouseDown={handleSelectionMouseDown}
-              >
-                {/* Selection Start Marker */}
-                <div
-                  className="absolute top-0 bottom-0 -left-1 w-2 bg-blue-500 cursor-ew-resize hover:bg-blue-400 transition-colors"
-                  onMouseDown={(e) => handleMarkerMouseDown('start', e)}
-                >
-                  <div className="absolute top-1 left-0.5 w-1 h-1 bg-white rounded-full"></div>
-                  <div className="absolute bottom-1 left-0.5 w-1 h-1 bg-white rounded-full"></div>
-                </div>
+          </div>
+          
+          {/* Right Side: Timeline Controls */}
+          <div className="space-y-4">
 
-                {/* Selection End Marker */}
-                <div
-                  className="absolute top-0 bottom-0 -right-1 w-2 bg-blue-500 cursor-ew-resize hover:bg-blue-400 transition-colors"
-                  onMouseDown={(e) => handleMarkerMouseDown('end', e)}
-                >
-                  <div className="absolute top-1 right-0.5 w-1 h-1 bg-white rounded-full"></div>
-                  <div className="absolute bottom-1 right-0.5 w-1 h-1 bg-white rounded-full"></div>
+
+            {/* Step 1: Day Timeline - Choose Time of Day */}
+            <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">1</div>
+                <h4 className="text-sm font-semibold text-blue-300">בחר זמן מהיום (06:00-06:00)</h4>
+              </div>
+
+              
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-gray-300">זמן נבחר:</span>
+                <div className="relative">
+                  <select
+                    value={currentClipIndex}
+                    onChange={(e) => {
+                      const selectedClipIndex = parseInt(e.target.value);
+                      if (selectedClipIndex >= 0 && selectedClipIndex < clips.length && clips[selectedClipIndex]?.url) {
+                        // Jump to the start of the selected 15-minute clip
+                        handleDayTimelineScrub(selectedClipIndex * 15 * 60); // Convert to seconds
+                      }
+                    }}
+                    className="text-xs text-blue-400 font-mono bg-gray-800 border border-blue-400/30 rounded px-2 py-1 hover:border-blue-400 focus:border-blue-400 focus:outline-none cursor-pointer appearance-none pr-6"
+                    title="בחר זמן מהיום"
+                  >
+                    {clips.map((clip, index) => {
+                      // Only show clips that have valid URLs
+                      if (!clip?.url) {
+                        return null;
+                      }
+                      
+                      // Use the actual timestamp from the clip data
+                      let timeString = clip.timestamp;
+                      
+                      // If timestamp is in a different format, parse and format it
+                      if (clip.timestamp && clip.timestamp.includes('T')) {
+                        // Handle ISO timestamp format (e.g., "2025-08-02T21:04:00")
+                        const date = new Date(clip.timestamp);
+                        const hours = date.getHours();
+                        const minutes = date.getMinutes();
+                        timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                      } else if (clip.timestamp && clip.timestamp.includes(':')) {
+                        // Handle time format (e.g., "21:04" or "21:04:00")
+                        const timeParts = clip.timestamp.split(':');
+                        const hours = parseInt(timeParts[0]);
+                        const minutes = parseInt(timeParts[1]);
+                        timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                      }
+                      
+                      return (
+                        <option key={index} value={index} className="bg-gray-800 text-blue-400">
+                          {timeString}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                    <svg className="w-3 h-3 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
                 </div>
               </div>
-            )}
+              
+              <CustomTimelineBar
+                duration={totalDayDuration}
+                currentTime={getDayCurrentTime()}
+                cutStart={null}
+                cutEnd={null}
+                cuts={[]}
+                onScrub={handleDayTimelineScrub}
+                isCurrentDay={isCurrentDay}
+                availablePercentage={availablePercentage}
+              />
+            </div>
 
-            {/* Current Time Indicator */}
-            <motion.div
-              className="absolute top-0 bottom-0 w-0.5 bg-white z-20"
-              style={{ left: `${getTimelinePosition(currentTime)}%` }}
-              initial={false}
-              animate={{ left: `${getTimelinePosition(currentTime)}%` }}
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            >
-              <div className="absolute -top-1 -left-1 w-2 h-2 bg-white rounded-full shadow-md"></div>
-              <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-white rounded-full shadow-md"></div>
-            </motion.div>
-          </div>
+            {/* Step 2: Clip Selection */}
+            <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">2</div>
+                <h4 className="text-sm font-semibold text-green-300">בחר קטע לגזירה</h4>
+              </div>
 
 
-        </div>
+              {/* Clip Timeline */}
+              <div 
+                ref={timelineRef}
+                className="relative h-12 bg-gray-800 rounded-lg cursor-pointer overflow-hidden mb-3"
+                onClick={handleTimelineClick}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onTouchStart={handleMouseDown}
+                onTouchMove={handleMouseMove}
+                onTouchEnd={handleMouseUp}
+              >
+                {/* Timeline Background */}
+                <div className="absolute inset-0 bg-gradient-to-r from-gray-700 to-gray-600"></div>
+                
+                {/* Time Markers */}
+                <div className="absolute inset-0 flex">
+                  {Array.from({ length: 11 }, (_, i) => (
+                    <div 
+                      key={i} 
+                      className="flex-1 border-r border-gray-600 last:border-r-0 opacity-30"
+                      style={{ left: `${i * 10}%` }}
+                    >
+                      <div className="absolute top-0 w-px h-2 bg-gray-400"></div>
+                      <div className="absolute bottom-0 w-px h-2 bg-gray-400"></div>
+                    </div>
+                  ))}
+                </div>
 
-        </div>
-        
-        {/* Step 3: Action Buttons */}
-        <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-3 sm:p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="bg-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3</div>
-            <h3 className="text-sm sm:text-base font-semibold text-purple-300">שמור או מחק את הקטע</h3>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3 lg:gap-4">
-            <button
-              onClick={resetSelection}
-              className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-sm sm:text-base"
-              title="איפוס הבחירה"
-            >
-              <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span>איפוס</span>
-            </button>
-            
-            <button
-              onClick={handleSaveSelectedPart}
-              disabled={isProcessing || selectionStart === null || selectionEnd === null}
-              className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors text-sm sm:text-base"
-              title="שמירת הקטע הנבחר כקובץ וידאו"
-            >
-              {isProcessing ? (
+                {/* Selection Area */}
+                {selectionStart !== null && selectionEnd !== null && (
+                  <div
+                    className="absolute top-0 bottom-0 bg-blue-500/30 border-l-2 border-r-2 border-blue-500 cursor-move"
+                    style={{
+                      left: `${getTimelinePosition(selectionStart)}%`,
+                      width: `${getTimelinePosition(selectionEnd - selectionStart)}%`
+                    }}
+                    onMouseDown={handleSelectionMouseDown}
+                  >
+                    {/* Selection Start Marker */}
+                    <div
+                      className="absolute top-0 bottom-0 -left-1 w-2 bg-blue-500 cursor-ew-resize hover:bg-blue-400 transition-colors"
+                      onMouseDown={(e) => handleMarkerMouseDown('start', e)}
+                    >
+                      <div className="absolute top-1 left-0.5 w-1 h-1 bg-white rounded-full"></div>
+                      <div className="absolute bottom-1 left-0.5 w-1 h-1 bg-white rounded-full"></div>
+                    </div>
+
+                    {/* Selection End Marker */}
+                    <div
+                      className="absolute top-0 bottom-0 -right-1 w-2 bg-blue-500 cursor-ew-resize hover:bg-blue-400 transition-colors"
+                      onMouseDown={(e) => handleMarkerMouseDown('end', e)}
+                    >
+                      <div className="absolute top-1 right-0.5 w-1 h-1 bg-white rounded-full"></div>
+                      <div className="absolute bottom-1 right-0.5 w-1 h-1 bg-white rounded-full"></div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Current Time Indicator */}
                 <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full"
-                />
-              ) : (
-                <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-              )}
-              <span className="hidden sm:inline">{isProcessing ? 'מעבד...' : 'שמור חלק נבחר'}</span>
-              <span className="sm:hidden">{isProcessing ? 'מעבד...' : 'שמירה'}</span>
-            </button>
-            
-            <button
-              onClick={handleDeleteSelectedPart}
-              disabled={isProcessing || selectionStart === null || selectionEnd === null}
-              className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors text-sm sm:text-base"
-              title="מחיקת הקטע הנבחר מההקלטה"
-            >
-              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">מחק חלק נבחר</span>
-              <span className="sm:hidden">מחיקה</span>
-            </button>
+                  className="absolute top-0 bottom-0 w-0.5 bg-white z-20"
+                  style={{ left: `${getTimelinePosition(currentTime)}%` }}
+                  initial={false}
+                  animate={{ left: `${getTimelinePosition(currentTime)}%` }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                >
+                  <div className="absolute -top-1 -left-1 w-2 h-2 bg-white rounded-full shadow-md"></div>
+                  <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-white rounded-full shadow-md"></div>
+                </motion.div>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex justify-center gap-2">
+                <button
+                  onClick={resetSelection}
+                  className="flex items-center gap-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-sm"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>איפוס</span>
+                </button>
+                
+                <button
+                  onClick={handleSaveSelectedPart}
+                  disabled={isProcessing || selectionStart === null || selectionEnd === null}
+                  className="flex items-center gap-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors font-semibold text-sm"
+                >
+                  {isProcessing ? (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      className="w-3 h-3 border-2 border-white border-t-transparent rounded-full"
+                    />
+                  ) : (
+                    <Download className="w-3 h-3" />
+                  )}
+                  <span>{isProcessing ? 'מעבד...' : 'שמור'}</span>
+                </button>
+                
+                <button
+                  onClick={handleDeleteSelectedPart}
+                  disabled={isProcessing || selectionStart === null || selectionEnd === null}
+                  className="flex items-center gap-1 px-3 py-2 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors text-sm"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>מחק</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
     </div>
   );
 }

@@ -49,14 +49,14 @@ export default function CustomTimelineBar({
       <div className="relative bg-gray-800 rounded-lg p-2 sm:p-4 border border-gray-700">
         {/* Responsive Time markers - Show fewer on mobile */}
         <div className="flex justify-between text-xs text-gray-300 mb-2">
-          {/* Mobile: Show only key times */}
+          {/* Mobile: Show only key times - REVERSED ORDER */}
           <div className="sm:hidden flex justify-between w-full">
             <div className="text-center">
               <div className="font-medium text-xs">06:00</div>
               <div className="w-px h-1 bg-gray-500 mx-auto mt-0.5"></div>
             </div>
             <div className="text-center">
-              <div className="font-medium text-xs">12:00</div>
+              <div className="font-medium text-xs">00:00</div>
               <div className="w-px h-1 bg-gray-500 mx-auto mt-0.5"></div>
             </div>
             <div className="text-center">
@@ -64,7 +64,7 @@ export default function CustomTimelineBar({
               <div className="w-px h-1 bg-gray-500 mx-auto mt-0.5"></div>
             </div>
             <div className="text-center">
-              <div className="font-medium text-xs">00:00</div>
+              <div className="font-medium text-xs">12:00</div>
               <div className="w-px h-1 bg-gray-500 mx-auto mt-0.5"></div>
             </div>
             <div className="text-center">
