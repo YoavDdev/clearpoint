@@ -318,52 +318,87 @@ async function sendNotifications(notification: any) {
   return results;
 }
 
-// Function to check for alerts older than 15 minutes and send delayed email notifications
+// Function to check for alerts older than 3 minutes and send delayed email notifications
 async function checkAndSendDelayedNotifications(supabase: any) {
   try {
-    // Get alerts older than 15 minutes that haven't had email notifications sent
-    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    // Get alerts older than 3 minutes that haven't had email notifications sent
+    const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+    
+    console.log(`🔍 Checking for alerts older than: ${threeMinutesAgo}`);
     
     const { data: alertsNeedingEmail, error } = await supabase
       .from("system_alerts")
-      .select(`
-        id,
-        type,
-        camera_id,
-        camera_name,
-        customer_name,
-        message,
-        severity,
-        created_at,
-        cameras!inner(user_id, users!inner(full_name, email))
-      `)
+      .select('*')
       .eq('resolved', false)
       .eq('notification_sent', false)
-      .lt('created_at', fifteenMinutesAgo)
+      .lt('created_at', threeMinutesAgo)
       .in('type', ['stream_error', 'camera_offline']); // Only delay these types
     
-    if (error || !alertsNeedingEmail?.length) {
+    if (error) {
+      console.error('Error fetching alerts for delayed notifications:', error);
+      return;
+    }
+    
+    console.log(`📧 Found ${alertsNeedingEmail?.length || 0} alerts needing delayed email notifications`);
+    
+    if (!alertsNeedingEmail?.length) {
       return;
     }
     
     // Send delayed email notifications
     for (const alert of alertsNeedingEmail) {
       try {
-        const user = alert.cameras?.users;
-        if (user?.email) {
-          // In a real implementation, send actual email here
-          console.log(`📧 Sending delayed email notification:`);
-          console.log(`   To: ${user.email} (${user.full_name})`);
-          console.log(`   Subject: Alert: ${alert.camera_name} - ${alert.type}`);
-          console.log(`   Message: ${alert.message}`);
-          console.log(`   Alert Age: ${Math.round((Date.now() - new Date(alert.created_at).getTime()) / (1000 * 60))} minutes`);
+        // Get user info for this camera
+        const { data: camera, error: cameraError } = await supabase
+          .from('cameras')
+          .select('user_id, users!inner(full_name, email)')
+          .eq('id', alert.camera_id)
+          .single();
+        
+        if (cameraError || !camera?.users?.email) {
+          console.log(`⚠️ No user email found for camera ${alert.camera_name}`);
+          continue;
+        }
+        
+        const user = camera.users;
+        const alertAgeMinutes = Math.round((Date.now() - new Date(alert.created_at).getTime()) / (1000 * 60));
+        
+        // Import and use real email service
+        const { sendAlertEmail } = await import('@/lib/email-service');
+        
+        console.log(`📧 Sending REAL email notification to: ${user.email}`);
+        
+        // Send actual email (override to verified email for testing)
+        const emailResult = await sendAlertEmail({
+          to: 'yoavd.dev@gmail.com', // Override for Resend testing
+          userName: user.full_name,
+          cameraName: alert.camera_name,
+          alertType: alert.type,
+          alertMessage: alert.message,
+          alertAge: alertAgeMinutes,
+          alertId: alert.id,
+          severity: alert.severity as 'low' | 'medium' | 'high' | 'critical'
+        });
+        
+        if (emailResult.success) {
+          console.log(`✅ Email sent successfully to ${user.email}`);
           
-          // Mark notification as sent
-          await supabase
+          // Mark notification as sent only if email was actually sent
+          const { error: updateError } = await supabase
             .from("system_alerts")
             .update({ notification_sent: true })
             .eq('id', alert.id);
+          
+          if (updateError) {
+            console.error(`Error marking notification as sent for alert ${alert.id}:`, updateError);
+          } else {
+            console.log(`✅ Marked alert ${alert.id} as notification sent`);
+          }
+        } else {
+          console.error(`❌ Failed to send email to ${user.email}:`, emailResult.error);
+          // Don't mark as sent if email failed
         }
+        
       } catch (emailError) {
         console.error(`Error sending delayed notification for alert ${alert.id}:`, emailError);
       }

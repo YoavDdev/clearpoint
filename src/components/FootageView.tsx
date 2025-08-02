@@ -775,7 +775,7 @@ export default function FootageView({ cameras }: FootageViewProps) {
           <div className="bg-gray-900 border border-gray-700 rounded-lg max-w-5xl w-full max-h-[90vh] overflow-auto relative">
             {/* Accessibility headers */}
             <div className="sr-only">
-              <h2>עריכת קליפ מקצועית</h2>
+              <h2>עריכת קליפ</h2>
               <p>ממשק עריכת קליפים מקצועי לחיתוך והורדת קטעי וידאו</p>
             </div>
             

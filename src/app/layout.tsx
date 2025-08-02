@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import ConditionalNavbar from "@/components/ConditionalNavbar";
+import AutoMonitoringInit from "@/components/AutoMonitoringInit";
 
 export const metadata = {
   title: "ClearPoint Security",
@@ -16,6 +17,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <Providers>
+          <AutoMonitoringInit />
           <ConditionalNavbar />
           {children}
         </Providers>
