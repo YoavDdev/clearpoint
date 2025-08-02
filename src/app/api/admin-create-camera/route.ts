@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { createClient } from '@supabase/supabase-js';
-import { generateCameraScript } from '../../../../scripts/utils/generateCameraScript';
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -40,13 +39,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 
-  // ✅ Create .sh script for new camera
-  try {
-    const scriptPath = generateCameraScript(userId, data.id, streamPath);
-    console.log(`✅ Camera script created at: ${scriptPath}`);
-  } catch (err: any) {
-    console.error('❌ Failed to generate script:', err.message || err);
-  }
+  // ✅ Camera created successfully - script can be downloaded from admin cameras page
+  console.log(`✅ Camera ${data.name} created successfully for user ${userId}`);
 
   return NextResponse.json({ success: true, camera: data });
 }
