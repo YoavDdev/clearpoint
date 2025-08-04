@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import SurveillanceCameraView from "@/components/SurveillanceCameraView";
 import FootageView from "@/components/FootageView";
-import { Eye, Calendar, Settings, AlertTriangle, Video, Monitor } from "lucide-react";
+import { Eye, Calendar, Settings, AlertTriangle, Video, Monitor, Maximize, Minimize } from "lucide-react";
 
 export default function DashboardPage() {
   const [cameras, setCameras] = useState<any[]>([]);
@@ -11,6 +11,7 @@ export default function DashboardPage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isMounted, setIsMounted] = useState(false);
   const [viewMode, setViewMode] = useState<'live' | 'recordings'>('live');
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     async function loadCameras() {
@@ -57,6 +58,20 @@ export default function DashboardPage() {
     return () => clearInterval(timer);
   }, []);
 
+  // Listen for fullscreen changes (ESC key, browser controls)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        setIsFullscreen(false);
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
   const formatTime = (date: Date) => {
     return date.toLocaleString('he-IL', {
       weekday: 'long',
@@ -86,6 +101,38 @@ export default function DashboardPage() {
   // Get responsive container padding
   const getContainerPadding = () => {
     return "p-3 sm:p-4 lg:p-6";
+  };
+
+  // Toggle fullscreen mode using browser Fullscreen API
+  const toggleFullscreen = async () => {
+    if (!isFullscreen) {
+      // Enter fullscreen
+      try {
+        await document.documentElement.requestFullscreen();
+        setIsFullscreen(true);
+      } catch (error) {
+        console.error('Error entering fullscreen:', error);
+        // Fallback to overlay mode if fullscreen API fails
+        setIsFullscreen(true);
+      }
+    } else {
+      // Exit fullscreen
+      try {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen();
+        }
+        setIsFullscreen(false);
+      } catch (error) {
+        console.error('Error exiting fullscreen:', error);
+        setIsFullscreen(false);
+      }
+    }
+  };
+
+  // Fullscreen grid layout - always 2x2 for up to 4 cameras
+  const getFullscreenGridLayout = (cameraCount: number) => {
+    if (cameraCount === 1) return "grid-cols-1";
+    return "grid-cols-2"; // Always 2x2 for 2-4 cameras in fullscreen
   };
 
   return (
@@ -143,6 +190,20 @@ export default function DashboardPage() {
             <div className="text-sm text-gray-300">
               <span className="font-medium">{cameras.length}</span> מצלמות פעילות
             </div>
+            {viewMode === 'live' && cameras.length > 0 && (
+              <button 
+                onClick={toggleFullscreen}
+                className="hidden sm:flex items-center space-x-2 rtl:space-x-reverse px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-sm font-medium"
+                title={isFullscreen ? 'יציאה ממסך מלא' : 'מסך מלא'}
+              >
+                {isFullscreen ? (
+                  <Minimize className="w-4 h-4" />
+                ) : (
+                  <Maximize className="w-4 h-4" />
+                )}
+                <span>{isFullscreen ? 'יציאה' : 'מסך מלא'}</span>
+              </button>
+            )}
             <button className="p-2 hover:bg-gray-700 rounded-lg transition-colors">
               <Settings className="w-5 h-5 text-gray-400" />
             </button>
@@ -150,33 +211,61 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Responsive Main Content */}
-      <div className={getContainerPadding()}>
-        {viewMode === 'live' ? (
-          // Live View Mode
-          cameras.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 sm:h-80 lg:h-96">
-              <AlertTriangle className="w-12 h-12 sm:w-16 sm:h-16 text-yellow-500 mb-4" />
-              <p className="text-lg sm:text-xl text-gray-400 mb-2 text-center">לא נמצאו מצלמות</p>
-              <p className="text-sm sm:text-base text-gray-500 text-center">לא קיימות מצלמות פעילות בחשבון זה</p>
-            </div>
-          ) : (
-            <div className={`grid ${getGridLayout(cameras.length)} ${getResponsiveSpacing()}`}>
-              {cameras.slice(0, 4).map((camera, index) => (
+      {/* Fullscreen Mode */}
+      {isFullscreen && viewMode === 'live' && cameras.length > 0 ? (
+        <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
+          {/* Fullscreen Grid - Perfect 2x2 for up to 4 cameras */}
+          <div className={`grid ${getFullscreenGridLayout(cameras.length)} gap-2 w-full h-full p-2`}>
+            {cameras.slice(0, 4).map((camera, index) => (
+              <div key={camera.id} className="w-full h-full">
                 <SurveillanceCameraView 
-                  key={camera.id} 
                   camera={camera} 
                   tunnelName={tunnelName!}
                   cameraNumber={index + 1}
+                  isFullscreen={true}
                 />
-              ))}
-            </div>
-          )
-        ) : (
-          // Recordings View Mode
-          <FootageView cameras={cameras} />
-        )}
-      </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Fullscreen Exit Button */}
+          <button
+            onClick={toggleFullscreen}
+            className="absolute top-4 right-4 z-60 flex items-center space-x-2 rtl:space-x-reverse px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors text-white font-medium"
+          >
+            <Minimize className="w-4 h-4" />
+            <span>יציאה ממסך מלא</span>
+          </button>
+        </div>
+      ) : (
+        /* Normal Dashboard Mode */
+        <div className={getContainerPadding()}>
+          {viewMode === 'live' ? (
+            // Live View Mode
+            cameras.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 sm:h-80 lg:h-96">
+                <AlertTriangle className="w-12 h-12 sm:w-16 sm:h-16 text-yellow-500 mb-4" />
+                <p className="text-lg sm:text-xl text-gray-400 mb-2 text-center">לא נמצאו מצלמות</p>
+                <p className="text-sm sm:text-base text-gray-500 text-center">לא קיימות מצלמות פעילות בחשבון זה</p>
+              </div>
+            ) : (
+              <div className={`grid ${getGridLayout(cameras.length)} ${getResponsiveSpacing()}`}>
+                {cameras.slice(0, 4).map((camera, index) => (
+                  <SurveillanceCameraView 
+                    key={camera.id} 
+                    camera={camera} 
+                    tunnelName={tunnelName!}
+                    cameraNumber={index + 1}
+                  />
+                ))}
+              </div>
+            )
+          ) : (
+            // Recordings View Mode
+            <FootageView cameras={cameras} />
+          )}
+        </div>
+      )}
     </div>
   );
 }

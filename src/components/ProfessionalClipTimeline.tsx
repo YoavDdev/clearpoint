@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Pause, RotateCcw, Save, Trash2, Download, Maximize, Minimize, X } from 'lucide-react';
+import { Play, Pause, RotateCcw, Save, Trash2, Download, Maximize, Minimize, X, SkipBack, SkipForward, Rewind, FastForward, Volume2, VolumeX, Square, ChevronDown } from 'lucide-react';
 import CustomTimelineBar from './CustomTimelineBar';
 
 type Clip = {
@@ -27,6 +27,9 @@ export default function ProfessionalClipTimeline({ clips, onTrimComplete, onClos
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [isSpeedControlOpen, setIsSpeedControlOpen] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -99,15 +102,51 @@ export default function ProfessionalClipTimeline({ clips, onTrimComplete, onClos
   }, [currentClip]);
 
   const togglePlayPause = () => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (isPlaying) {
-      video.pause();
-    } else {
-      video.play();
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
     }
-    setIsPlaying(!isPlaying);
+  };
+
+  const stopVideo = () => {
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+      setIsPlaying(false);
+    }
+  };
+
+  const skipBackward = () => {
+    if (videoRef.current) {
+      const newTime = Math.max(0, videoRef.current.currentTime - 10);
+      videoRef.current.currentTime = newTime;
+      console.log('Skip backward to:', newTime); // Debug log
+    }
+  };
+
+  const skipForward = () => {
+    if (videoRef.current) {
+      const duration = videoRef.current.duration || 0;
+      videoRef.current.currentTime = Math.min(duration, videoRef.current.currentTime + 10);
+    }
+  };
+
+  const changePlaybackRate = (rate: number) => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = rate;
+      setPlaybackRate(rate);
+    }
+  };
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -201,6 +240,31 @@ export default function ProfessionalClipTimeline({ clips, onTrimComplete, onClos
     
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Auto-play next clip when current clip ends
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleVideoEnd = () => {
+      // Find next available clip
+      const nextClipIndex = currentClipIndex + 1;
+      if (nextClipIndex < clips.length && clips[nextClipIndex]?.url) {
+        console.log('Auto-playing next clip:', nextClipIndex);
+        setCurrentClipIndex(nextClipIndex);
+        // Video will auto-play when the new clip loads due to existing logic
+      } else {
+        console.log('No more clips available for auto-play');
+        setIsPlaying(false);
+      }
+    };
+
+    video.addEventListener('ended', handleVideoEnd);
+    
+    return () => {
+      video.removeEventListener('ended', handleVideoEnd);
+    };
+  }, [currentClipIndex, clips]);
 
   // No need for browser fullscreen listeners since we use custom overlay
 
@@ -322,22 +386,9 @@ export default function ProfessionalClipTimeline({ clips, onTrimComplete, onClos
     >
       {/* Responsive Header */}
       <div className="flex items-center justify-between mb-3 sm:mb-4 lg:mb-6">
-        <h2 className="text-lg sm:text-xl lg:text-2xl font-bold truncate">עריכת קליפ מקצועית</h2>
+        <h2 className="text-lg sm:text-xl lg:text-2xl font-bold truncate">עריכת קליפ </h2>
         <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
-          {/* Hide fullscreen button on mobile since it's always fullscreen */}
-          {!isMobile && (
-            <button
-              onClick={toggleFullscreen}
-              className="bg-gray-800 hover:bg-gray-700 rounded-lg p-1.5 sm:p-2 transition-colors"
-              title={isFullscreen ? 'יציאה ממסך מלא' : 'מסך מלא'}
-            >
-              {isFullscreen ? (
-                <Minimize className="w-4 h-4 sm:w-5 sm:h-5" />
-              ) : (
-                <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />
-              )}
-            </button>
-          )}
+
           {onClose && (
             <button
               onClick={onClose}
@@ -355,21 +406,20 @@ export default function ProfessionalClipTimeline({ clips, onTrimComplete, onClos
 
       {/* Unified Video & Timeline Control View */}
       <div className="bg-gray-900/40 border border-gray-600/50 rounded-lg p-4 mb-6">
-        <h3 className="text-lg font-semibold text-white mb-4 text-center">בקרת וידאו ובחירת קטע</h3>
         
-        {/* Main Layout: Video + Controls Side by Side */}
+        {/* Main Layout: Video Left, Controls Right */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
           
           {/* Left Side: Video Player */}
-          <div className="bg-transparent lg:bg-black rounded-lg lg:rounded-lg overflow-hidden relative flex items-center justify-center" style={{ minHeight: '250px', maxHeight: '70vh' }}>
+          <div className="bg-black rounded-lg overflow-hidden relative flex items-center justify-center" style={{ minHeight: '250px', maxHeight: '70vh' }}>
             <video
               ref={videoRef}
               src={currentClip?.url || ''}
-              className="w-full h-auto object-contain rounded-lg lg:rounded-none"
+              className="w-full h-auto object-contain"
               style={{ 
                 maxHeight: '70vh',
                 minHeight: '250px',
-                backgroundColor: 'transparent'
+                backgroundColor: 'black'
               }}
               muted
               onError={(e) => {
@@ -381,29 +431,14 @@ export default function ProfessionalClipTimeline({ clips, onTrimComplete, onClos
               }}
             />
             
-            {/* Video Controls Overlay */}
-            <div className="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition-opacity duration-300">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <button
-                  onClick={togglePlayPause}
-                  className="bg-white/20 backdrop-blur-sm rounded-full p-4 hover:bg-white/30 transition-colors shadow-lg"
-                >
-                  {isPlaying ? (
-                    <Pause className="w-8 h-8 text-white" />
-                  ) : (
-                    <Play className="w-8 h-8 text-white ml-0.5" />
-                  )}
-                </button>
-              </div>
-            </div>
+
             
 
           </div>
           
-          {/* Right Side: Timeline Controls */}
+          {/* Right Side: All Controls */}
           <div className="space-y-4">
-
-
+            
             {/* Step 1: Day Timeline - Choose Time of Day */}
             <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3">
               <div className="flex items-center gap-2 mb-2">
@@ -476,6 +511,172 @@ export default function ProfessionalClipTimeline({ clips, onTrimComplete, onClos
                 isCurrentDay={isCurrentDay}
                 availablePercentage={availablePercentage}
               />
+            </div>
+
+            {/* Enhanced Video Control Panel - Between Day Timeline and Clip Selection */}
+            <div className="bg-gradient-to-br from-gray-800/60 to-gray-900/80 border border-blue-500/20 rounded-xl p-4 shadow-lg backdrop-blur-sm">
+              
+              {/* Enhanced Main Video Controls with Sound Button */}
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-4">
+                {/* Skip Backward */}
+                <button
+                  onClick={skipBackward}
+                  className="group bg-gradient-to-b from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 rounded-xl p-2 sm:p-2.5 transition-all duration-200 shadow-md hover:shadow-lg border border-gray-600/50 hover:border-gray-500/70"
+                  title="חזור 10 שניות"
+                >
+                  <SkipBack className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-200 group-hover:text-white transition-colors" />
+                </button>
+                
+                {/* Rewind - Backward */}
+                <button
+                  onClick={skipBackward}
+                  className="group bg-gradient-to-b from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 rounded-xl p-2 sm:p-2.5 transition-all duration-200 shadow-md hover:shadow-lg border border-gray-600/50 hover:border-gray-500/70"
+                  title="חזור אחורה"
+                >
+                  <Rewind className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-200 group-hover:text-white transition-colors" />
+                </button>
+                
+                {/* Stop */}
+                <button
+                  onClick={stopVideo}
+                  className="group bg-gradient-to-b from-gray-600 to-gray-700 hover:from-gray-500 hover:to-gray-600 rounded-xl p-2 sm:p-2.5 transition-all duration-200 shadow-md hover:shadow-lg border border-gray-500/50 hover:border-gray-400/70"
+                  title="עצור"
+                >
+                  <Square className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-200 group-hover:text-white transition-colors" />
+                </button>
+                
+                {/* Play/Pause - Enhanced Primary Button */}
+                <button
+                  onClick={togglePlayPause}
+                  className="group relative bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 rounded-xl p-3 sm:p-3.5 transition-all duration-200 shadow-lg hover:shadow-xl border border-blue-500/50 hover:border-blue-400/70 ring-2 ring-blue-500/20 hover:ring-blue-400/30"
+                  title={isPlaying ? 'השהה' : 'נגן'}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  {isPlaying ? (
+                    <Pause className="w-4 h-4 sm:w-5 sm:h-5 text-white relative z-10" />
+                  ) : (
+                    <Play className="w-4 h-4 sm:w-5 sm:h-5 text-white ml-0.5 relative z-10" />
+                  )}
+                </button>
+                
+                {/* Fast Forward */}
+                <button
+                  onClick={() => changePlaybackRate(2)}
+                  className={`group rounded-xl p-2 sm:p-2.5 transition-all duration-200 shadow-md hover:shadow-lg border ${
+                    playbackRate === 2 
+                      ? 'bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 border-blue-500/50 hover:border-blue-400/70' 
+                      : 'bg-gradient-to-b from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 border-gray-600/50 hover:border-gray-500/70'
+                  }`}
+                  title="הזז קדימה"
+                >
+                  <FastForward className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${
+                    playbackRate === 2 ? 'text-white' : 'text-gray-200 group-hover:text-white'
+                  }`} />
+                </button>
+                
+                {/* Skip Forward */}
+                <button
+                  onClick={skipForward}
+                  className="group bg-gradient-to-b from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 rounded-xl p-2 sm:p-2.5 transition-all duration-200 shadow-md hover:shadow-lg border border-gray-600/50 hover:border-gray-500/70"
+                  title="קדימה 10 שניות"
+                >
+                  <SkipForward className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-200 group-hover:text-white transition-colors" />
+                </button>
+                
+                {/* Compact Sound Toggle Button */}
+                <button
+                  onClick={toggleMute}
+                  className={`group rounded-xl p-2 sm:p-2.5 transition-all duration-200 shadow-md hover:shadow-lg border ${
+                    isMuted 
+                      ? 'bg-gradient-to-b from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 border-red-500/50 hover:border-red-400/70' 
+                      : 'bg-gradient-to-b from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 border-green-500/50 hover:border-green-400/70'
+                  }`}
+                  title={isMuted ? 'הפעל קול' : 'השתק'}
+                >
+                  {isMuted ? (
+                    <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                  ) : (
+                    <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                  )}
+                </button>
+              </div>
+              
+              {/* Collapsible Speed Controls */}
+              <div className="bg-gray-900/40 rounded-lg border border-gray-600/30">
+                {/* Speed Control Header - Always Visible */}
+                <button
+                  onClick={() => setIsSpeedControlOpen(!isSpeedControlOpen)}
+                  className="w-full flex items-center justify-between p-1.5 sm:p-3 hover:bg-gray-800/30 transition-colors rounded-lg"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                    <span className="text-xs font-medium text-gray-300">מהירות</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="bg-gradient-to-r from-blue-600/20 to-blue-500/20 border border-blue-500/30 rounded-lg px-2 py-1">
+                      <span className="text-xs font-mono text-blue-300 font-semibold">
+                        {playbackRate}x
+                      </span>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                      isSpeedControlOpen ? 'rotate-180' : ''
+                    }`} />
+                  </div>
+                </button>
+                
+                {/* Collapsible Speed Control Content */}
+                {isSpeedControlOpen && (
+                  <div className="px-3 pb-3 space-y-3 border-t border-gray-600/20">
+                    {/* Speed Preset Buttons - Responsive Grid */}
+                    <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-4 xl:grid-cols-6 gap-1 pt-3">
+                      {[0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4, 8].map((rate) => (
+                        <button
+                          key={rate}
+                          onClick={() => changePlaybackRate(rate)}
+                          className={`group relative px-2 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                            playbackRate === rate
+                              ? 'bg-gradient-to-b from-blue-500 to-blue-600 text-white shadow-md border border-blue-400/50'
+                              : 'bg-gradient-to-b from-gray-700 to-gray-800 text-gray-300 hover:from-gray-600 hover:to-gray-700 hover:text-white border border-gray-600/50 hover:border-gray-500/70'
+                          }`}
+                          title={`מהירות ${rate}x`}
+                        >
+                          <div className={`absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity ${
+                            playbackRate === rate ? 'bg-white/10' : 'bg-white/5'
+                          }`}></div>
+                          <span className="relative z-10">{rate}x</span>
+                        </button>
+                      ))}
+                    </div>
+                    
+                    {/* Fine Speed Control Slider - Enhanced */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-400">בקרה מדויקת</span>
+                        <div className="flex gap-1 text-xs text-gray-500">
+                          <span>0.1x</span>
+                          <span>•</span>
+                          <span>8x</span>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="range"
+                          min="0.1"
+                          max="8"
+                          step="0.1"
+                          value={playbackRate}
+                          onChange={(e) => changePlaybackRate(parseFloat(e.target.value))}
+                          className="w-full h-2 bg-gradient-to-r from-gray-700 to-gray-600 rounded-lg appearance-none cursor-pointer slider-thumb"
+                          style={{
+                            background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((playbackRate - 0.1) / (8 - 0.1)) * 100}%, #374151 ${((playbackRate - 0.1) / (8 - 0.1)) * 100}%, #374151 100%)`
+                          }}
+                          title={`מהירות: ${playbackRate}x`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Step 2: Clip Selection */}

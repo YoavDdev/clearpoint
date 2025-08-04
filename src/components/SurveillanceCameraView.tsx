@@ -8,9 +8,10 @@ type Props = {
   camera: any;
   tunnelName: string;
   cameraNumber: number;
+  isFullscreen?: boolean;
 };
 
-export default function SurveillanceCameraView({ camera, tunnelName, cameraNumber }: Props) {
+export default function SurveillanceCameraView({ camera, tunnelName, cameraNumber, isFullscreen = false }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isBuffering, setIsBuffering] = useState(false);
@@ -142,7 +143,9 @@ export default function SurveillanceCameraView({ camera, tunnelName, cameraNumbe
   };
 
   return (
-    <div className="relative bg-gray-800 rounded-lg overflow-hidden shadow-lg group aspect-video">
+    <div className={`relative bg-gray-800 rounded-lg overflow-hidden shadow-lg group ${
+      isFullscreen ? 'h-full w-full' : 'aspect-video'
+    }`}>
       {/* Camera Name Overlay - Top Right */}
       <div className="absolute top-0 right-0 z-20 p-2 sm:p-3">
         <div className="flex items-center space-x-1 sm:space-x-2 rtl:space-x-reverse">
