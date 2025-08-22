@@ -62,18 +62,24 @@ export default function NewCameraPage() {
       return;
     }
 
-    const res = await fetch('/api/admin-fetch-cameras', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: option.value }),
-    });
+    try {
+      const res = await fetch('/api/admin-fetch-cameras', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: option.value }),
+      });
 
-    const result = await res.json();
+      const result = await res.json();
 
-    if (!result.success) {
-      console.error('Error fetching cameras:', result.error);
-    } else {
-      setUserCameras(result.cameras);
+      if (!result.success) {
+        console.error('Error fetching cameras:', result.error);
+        setUserCameras([]);
+      } else {
+        setUserCameras(result.cameras || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch user cameras:', error);
+      setUserCameras([]);
     }
   }
 
@@ -92,37 +98,56 @@ export default function NewCameraPage() {
 
     setLoading(true);
 
-    const response = await fetch('/api/admin-create-camera', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name,
-        serialNumber,
-        userId: selectedUser.value,
-        userEmail: selectedUser.email,
-        streamPath,
-        isStreamActive,
-      }),
-    });
+    try {
+      const response = await fetch('/api/admin-create-camera', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          serialNumber,
+          userId: selectedUser.value,
+          userEmail: selectedUser.email,
+          streamPath,
+          isStreamActive,
+        }),
+      });
 
-    const result = await response.json();
+      const result = await response.json();
 
-    if (!result.success) {
-      console.error('Error creating camera:', result.error);
-      alert('יצירת המצלמה נכשלה: ' + result.error);
-    } else {
-      navigator.clipboard.writeText(result.camera.id);
-      alert(`✅ מצלמה נוצרה!\n\nה-ID הועתק ללוח:\n${result.camera.id}`);
-      setName('');
-      setSerialNumber('');
-      setUsername('admin');
-      setPassword('');
-      setIpAddress('');
-      setIsStreamActive(true);
-      handleUserSelect(selectedUser);
+      if (!result.success) {
+        console.error('Error creating camera:', result.error);
+        alert('יצירת המצלמה נכשלה: ' + result.error);
+      } else {
+        // Copy camera ID to clipboard
+        if (navigator.clipboard) {
+          try {
+            await navigator.clipboard.writeText(result.camera.id);
+          } catch (clipboardError) {
+            console.warn('Failed to copy to clipboard:', clipboardError);
+          }
+        }
+        
+        alert(`✅ מצלמה נוצרה בהצלחה!\n\nשם: ${result.camera.name}\nמספר סידורי: ${result.camera.serial_number}\nID: ${result.camera.id}`);
+        
+        // Reset form
+        setName('');
+        setSerialNumber('');
+        setUsername('admin');
+        setPassword('');
+        setIpAddress('');
+        setIsStreamActive(true);
+        
+        // Refresh user cameras list
+        if (selectedUser) {
+          handleUserSelect(selectedUser);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to create camera:', error);
+      alert('שגיאה ביצירת המצלמה. אנא נסה שוב.');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   const userOptions = users.map(user => ({
