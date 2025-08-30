@@ -8,6 +8,20 @@ export async function GET() {
   );
 
   try {
+    // Get latest Mini PC health data using same pattern as mini-pcs page
+    const { data: latestMiniPCHealth, error: healthError } = await supabase
+      .from('mini_pc_health')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+
+    // Get camera health data
+    const { data: cameraHealthData, error: cameraHealthError } = await supabase
+      .from('camera_health')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+
     // Get all cameras with user info and health data
     const { data: cameras, error } = await supabase
       .from("cameras")
@@ -28,20 +42,78 @@ export async function GET() {
       throw error;
     }
 
-    // Get real-time health data for all cameras (same approach as cameras page)
-    const healthPromises = cameras?.map(async (camera) => {
-      try {
-        // Use the same real-time health check as the cameras page
-        const healthResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/camera-health/${camera.id}`);
-        const healthData = await healthResponse.json();
-        
-        return { ...camera, realtimeHealth: healthData };
-      } catch {
-        return { ...camera, realtimeHealth: null };
-      }
-    }) || [];
+    // Create a map of latest Mini PC health by mini_pc_id
+    const miniPCHealthMap = new Map();
+    if (latestMiniPCHealth) {
+      latestMiniPCHealth.forEach(health => {
+        if (!miniPCHealthMap.has(health.mini_pc_id)) {
+          miniPCHealthMap.set(health.mini_pc_id, health);
+        }
+      });
+    }
 
-    const camerasWithHealth = await Promise.all(healthPromises);
+    // Create a map of camera health data by camera_id
+    const cameraHealthMap = new Map();
+    if (cameraHealthData) {
+      cameraHealthData.forEach(health => {
+        if (!cameraHealthMap.has(health.camera_id)) {
+          cameraHealthMap.set(health.camera_id, health);
+        }
+      });
+    }
+
+    // Get Mini PCs with user relationships
+    const { data: miniPCs, error: miniPCError } = await supabase
+      .from('mini_pcs')
+      .select(`
+        id,
+        user_id,
+        device_name,
+        hostname,
+        ip_address,
+        is_active
+      `);
+
+    // Create camera to Mini PC mapping
+    const cameraToMiniPCMap = new Map();
+    if (miniPCs) {
+      miniPCs.forEach(miniPC => {
+        const camerasForThisMiniPC = cameras?.filter(c => c.user_id === miniPC.user_id) || [];
+        camerasForThisMiniPC.forEach(camera => {
+          cameraToMiniPCMap.set(camera.id, miniPC.id);
+        });
+      });
+    }
+
+    // Combine camera health with Mini PC health
+    const camerasWithHealth = cameras?.map(camera => {
+      const miniPCId = cameraToMiniPCMap.get(camera.id);
+      const cameraHealth = cameraHealthMap.get(camera.id);
+      const miniPCHealth = miniPCId ? miniPCHealthMap.get(miniPCId) : null;
+      const miniPCInfo = miniPCs?.find(pc => pc.id === miniPCId);
+
+      return {
+        ...camera,
+        realtimeHealth: {
+          success: !!cameraHealth,
+          health: cameraHealth ? {
+            ...cameraHealth,
+            mini_pc_health: miniPCHealth ? {
+              cpu_temp: miniPCHealth.cpu_temp_celsius,
+              disk_usage_pct: miniPCHealth.disk_root_pct,
+              ram_usage_pct: miniPCHealth.ram_usage_pct,
+              last_check_time: miniPCHealth.last_checked
+            } : null,
+            mini_pc_info: miniPCInfo ? {
+              device_name: miniPCInfo.device_name,
+              hostname: miniPCInfo.hostname,
+              ip_address: miniPCInfo.ip_address,
+              is_active: miniPCInfo.is_active
+            } : null
+          } : null
+        }
+      };
+    }) || [];
 
     // Process cameras and add diagnostic information
     const processedCameras = camerasWithHealth.map((camera) => {

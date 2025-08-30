@@ -25,6 +25,18 @@ export async function POST() {
 
     if (error) throw error;
 
+    // Get all Mini PCs with health data
+    const { data: miniPcs, error: miniPcError } = await supabase
+      .from("mini_pcs")
+      .select(`
+        id,
+        hostname,
+        user_id,
+        user:users!mini_pcs_user_id_fkey(full_name, email, phone)
+      `);
+
+    if (miniPcError) throw miniPcError;
+
     const alertsToCreate = [];
     const notificationsToSend = [];
 
@@ -90,15 +102,7 @@ export async function POST() {
             severity: diffMinutes > 60 || !healthData ? "critical" : "high"
           });
 
-          // Add to notifications queue
-          if (user) {
-            notificationsToSend.push({
-              type: "camera_offline",
-              camera,
-              user,
-              message: `🔴 ${offlineMessage}`
-            });
-          }
+          // Camera notifications disabled - no longer sending emails
         }
       }
 
@@ -122,14 +126,7 @@ export async function POST() {
             severity: "high"
           });
 
-          if (user) {
-            notificationsToSend.push({
-              type: "stream_error",
-              camera,
-              user,
-              message: `⚠️ זרם לא פעיל במצלמה ${camera.name}`
-            });
-          }
+          // Camera notifications disabled - no longer sending emails
         }
       }
 
@@ -155,14 +152,7 @@ export async function POST() {
               severity: "critical"
             });
 
-            if (user) {
-              notificationsToSend.push({
-                type: "disk_full",
-                camera,
-                user,
-                message: `🚨 דיסק מלא במצלמה ${camera.name} (${healthData.disk_root_pct}%)`
-              });
-            }
+            // Camera notifications disabled - no longer sending emails
           }
         }
 
@@ -190,8 +180,7 @@ export async function POST() {
                 severity: isStale ? "high" : "critical"
               });
 
-              // Note: Email notifications will be handled separately with 15-minute delay
-              // This creates immediate UI alert but delays email notification
+              // Camera email notifications disabled - alerts only for admin UI
             }
           }
         }
@@ -225,6 +214,161 @@ export async function POST() {
       }
     }
 
+    // Monitor Mini PC health
+    for (const miniPc of miniPcs || []) {
+      const user = Array.isArray(miniPc.user) ? miniPc.user[0] : miniPc.user;
+      
+      // Get real-time Mini PC health data
+      let miniPcHealthData = null;
+      try {
+        const healthResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/mini-pc-health/${miniPc.id}`);
+        const healthResult = await healthResponse.json();
+        if (healthResult.success) {
+          miniPcHealthData = healthResult.health;
+        }
+      } catch (error) {
+        console.error(`Failed to get Mini PC health data for ${miniPc.id}:`, error);
+      }
+      
+      // Check Mini PC status
+      if (!miniPcHealthData) {
+        // No health data available - Mini PC is offline
+        const { data: existingAlert } = await supabase
+          .from("system_alerts")
+          .select("id")
+          .eq("mini_pc_id", miniPc.id)
+          .eq("type", "minipc_offline")
+          .eq("resolved", false)
+          .single();
+
+        if (!existingAlert) {
+          alertsToCreate.push({
+            type: "minipc_offline",
+            mini_pc_id: miniPc.id,
+            mini_pc_hostname: miniPc.hostname,
+            customer_name: user?.full_name || "לא ידוע",
+            message: `מיני PC ${miniPc.hostname} אין נתוני בריאות זמינים`,
+            severity: "critical"
+          });
+        }
+      } else {
+        // Check if health data is recent (within 15 minutes)
+        if (miniPcHealthData.last_checked) {
+          const lastCheck = new Date(miniPcHealthData.last_checked);
+          const diffMinutes = (Date.now() - lastCheck.getTime()) / (1000 * 60);
+          
+          if (diffMinutes > 15) {
+            const { data: existingAlert } = await supabase
+              .from("system_alerts")
+              .select("id")
+              .eq("mini_pc_id", miniPc.id)
+              .eq("type", "minipc_offline")
+              .eq("resolved", false)
+              .single();
+
+            if (!existingAlert) {
+              alertsToCreate.push({
+                type: "minipc_offline",
+                mini_pc_id: miniPc.id,
+                mini_pc_hostname: miniPc.hostname,
+                customer_name: user?.full_name || "לא ידוע",
+                message: `מיני PC ${miniPc.hostname} לא דיווח מזה ${Math.round(diffMinutes)} דקות`,
+                severity: "high"
+              });
+            }
+          }
+        }
+
+        // Check CPU temperature
+        if (miniPcHealthData.cpu_temp_celsius && miniPcHealthData.cpu_temp_celsius > 80) {
+          const { data: existingAlert } = await supabase
+            .from("system_alerts")
+            .select("id")
+            .eq("mini_pc_id", miniPc.id)
+            .eq("type", "minipc_overheating")
+            .eq("resolved", false)
+            .single();
+
+          if (!existingAlert) {
+            alertsToCreate.push({
+              type: "minipc_overheating",
+              mini_pc_id: miniPc.id,
+              mini_pc_hostname: miniPc.hostname,
+              customer_name: user?.full_name || "לא ידוע",
+              message: `מיני PC ${miniPc.hostname} התחמם יתר על המידה (${miniPcHealthData.cpu_temp_celsius}°C)`,
+              severity: "critical"
+            });
+          }
+        }
+
+        // Check disk usage
+        if (miniPcHealthData.disk_root_pct > 90) {
+          const { data: existingAlert } = await supabase
+            .from("system_alerts")
+            .select("id")
+            .eq("mini_pc_id", miniPc.id)
+            .eq("type", "minipc_disk_full")
+            .eq("resolved", false)
+            .single();
+
+          if (!existingAlert) {
+            alertsToCreate.push({
+              type: "minipc_disk_full",
+              mini_pc_id: miniPc.id,
+              mini_pc_hostname: miniPc.hostname,
+              customer_name: user?.full_name || "לא ידוע",
+              message: `דיסק מלא במיני PC ${miniPc.hostname} (${miniPcHealthData.disk_root_pct}%)`,
+              severity: "critical"
+            });
+          }
+        }
+
+        // Check RAM usage
+        if (miniPcHealthData.ram_usage_pct > 90) {
+          const { data: existingAlert } = await supabase
+            .from("system_alerts")
+            .select("id")
+            .eq("mini_pc_id", miniPc.id)
+            .eq("type", "minipc_memory_full")
+            .eq("resolved", false)
+            .single();
+
+          if (!existingAlert) {
+            alertsToCreate.push({
+              type: "minipc_memory_full",
+              mini_pc_id: miniPc.id,
+              mini_pc_hostname: miniPc.hostname,
+              customer_name: user?.full_name || "לא ידוע",
+              message: `זיכרון מלא במיני PC ${miniPc.hostname} (${miniPcHealthData.ram_usage_pct}%)`,
+              severity: "high"
+            });
+          }
+        }
+
+        // Check internet connectivity
+        if (!miniPcHealthData.internet_connected) {
+          const { data: existingAlert } = await supabase
+            .from("system_alerts")
+            .select("id")
+            .eq("mini_pc_id", miniPc.id)
+            .eq("type", "minipc_no_internet")
+            .eq("resolved", false)
+            .single();
+
+          if (!existingAlert) {
+            alertsToCreate.push({
+              type: "minipc_no_internet",
+              mini_pc_id: miniPc.id,
+              mini_pc_hostname: miniPc.hostname,
+              customer_name: user?.full_name || "לא ידוע",
+              message: `מיני PC ${miniPc.hostname} אין חיבור לאינטרנט`,
+              severity: "high"
+            });
+          }
+        }
+      }
+    }
+
     // Create alerts in database
     if (alertsToCreate.length > 0) {
       const { error: alertError } = await supabase
@@ -236,25 +380,12 @@ export async function POST() {
       }
     }
 
-    // Check for alerts older than 15 minutes that need email notifications
-    await checkAndSendDelayedNotifications(supabase);
-
-    // Send immediate notifications (for critical alerts only)
-    const notificationResults = [];
-    for (const notification of notificationsToSend) {
-      try {
-        // Simulate sending notifications
-        const results = await sendNotifications(notification);
-        notificationResults.push(results);
-      } catch (error) {
-        console.error("Error sending notification:", error);
-      }
-    }
+    // Camera email notifications disabled - no longer sending emails for cameras
 
     return NextResponse.json({
       success: true,
       alertsCreated: alertsToCreate.length,
-      notificationsSent: notificationResults.length,
+      notificationsSent: 0, // Disabled camera notifications
       timestamp: new Date().toISOString()
     });
 
@@ -267,146 +398,6 @@ export async function POST() {
   }
 }
 
-async function sendNotifications(notification: any) {
-  const results = [];
-  
-  try {
-    // Create notification data object
-    const notificationData: NotificationData = {
-      type: notification.type,
-      severity: notification.type === 'disk_full' ? 'critical' : 
-               notification.type === 'camera_offline' ? 'high' : 'medium',
-      cameraName: notification.camera.name,
-      customerName: notification.user?.full_name || 'Unknown Customer',
-      message: notification.message,
-      timestamp: new Date().toISOString()
-    };
+// Camera email notifications disabled - function removed
 
-    // 1. Always send to admin email (yoavddev@gmail.com)
-    const emailResult = await sendEmailNotification(notificationData);
-    results.push({
-      type: "admin-email",
-      to: "yoavddev@gmail.com",
-      message: notification.message,
-      sent: emailResult
-    });
-
-    // 2. Always send to admin WhatsApp (0548132603)
-    const whatsappResult = await sendWhatsAppNotification(notificationData);
-    results.push({
-      type: "admin-whatsapp",
-      to: "+972548132603",
-      message: notification.message,
-      sent: whatsappResult
-    });
-
-    // 3. Also send to customer email if available
-    if (notification.user?.email && notification.user.email !== "yoavddev@gmail.com") {
-      // In a production system, you would customize this for the customer
-      // For now, we're focusing on admin notifications
-      results.push({
-        type: "customer-email",
-        to: notification.user.email,
-        message: `שלום ${notification.user.full_name},\n\n${notification.message}\n\nאנא בדוק את המצלמה בהקדם.\n\nצוות Clearpoint Security`,
-        sent: true // Simulated for now
-      });
-    }
-  } catch (error) {
-    console.error("Error sending notifications:", error);
-  }
-
-  return results;
-}
-
-// Function to check for alerts older than 3 minutes and send delayed email notifications
-async function checkAndSendDelayedNotifications(supabase: any) {
-  try {
-    // Get alerts older than 3 minutes that haven't had email notifications sent
-    const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
-    
-    console.log(`🔍 Checking for alerts older than: ${threeMinutesAgo}`);
-    
-    const { data: alertsNeedingEmail, error } = await supabase
-      .from("system_alerts")
-      .select('*')
-      .eq('resolved', false)
-      .eq('notification_sent', false)
-      .lt('created_at', threeMinutesAgo)
-      .in('type', ['stream_error', 'camera_offline']); // Only delay these types
-    
-    if (error) {
-      console.error('Error fetching alerts for delayed notifications:', error);
-      return;
-    }
-    
-    console.log(`📧 Found ${alertsNeedingEmail?.length || 0} alerts needing delayed email notifications`);
-    
-    if (!alertsNeedingEmail?.length) {
-      return;
-    }
-    
-    // Send delayed email notifications
-    for (const alert of alertsNeedingEmail) {
-      try {
-        // Get user info for this camera
-        const { data: camera, error: cameraError } = await supabase
-          .from('cameras')
-          .select('user_id, users!inner(full_name, email)')
-          .eq('id', alert.camera_id)
-          .single();
-        
-        if (cameraError || !camera?.users?.email) {
-          console.log(`⚠️ No user email found for camera ${alert.camera_name}`);
-          continue;
-        }
-        
-        const user = camera.users;
-        const alertAgeMinutes = Math.round((Date.now() - new Date(alert.created_at).getTime()) / (1000 * 60));
-        
-        // Import and use real email service
-        const { sendAlertEmail } = await import('@/lib/email-service');
-        
-        console.log(`📧 Sending REAL email notification to: ${user.email}`);
-        
-        // Send actual email (override to verified email for testing)
-        const emailResult = await sendAlertEmail({
-          to: 'yoavd.dev@gmail.com', // Override for Resend testing
-          userName: user.full_name,
-          cameraName: alert.camera_name,
-          alertType: alert.type,
-          alertMessage: alert.message,
-          alertAge: alertAgeMinutes,
-          alertId: alert.id,
-          severity: alert.severity as 'low' | 'medium' | 'high' | 'critical'
-        });
-        
-        if (emailResult.success) {
-          console.log(`✅ Email sent successfully to ${user.email}`);
-          
-          // Mark notification as sent only if email was actually sent
-          const { error: updateError } = await supabase
-            .from("system_alerts")
-            .update({ notification_sent: true })
-            .eq('id', alert.id);
-          
-          if (updateError) {
-            console.error(`Error marking notification as sent for alert ${alert.id}:`, updateError);
-          } else {
-            console.log(`✅ Marked alert ${alert.id} as notification sent`);
-          }
-        } else {
-          console.error(`❌ Failed to send email to ${user.email}:`, emailResult.error);
-          // Don't mark as sent if email failed
-        }
-        
-      } catch (emailError) {
-        console.error(`Error sending delayed notification for alert ${alert.id}:`, emailError);
-      }
-    }
-    
-    console.log(`📧 Processed ${alertsNeedingEmail.length} delayed email notifications`);
-    
-  } catch (error) {
-    console.error('Error in checkAndSendDelayedNotifications:', error);
-  }
-}
+// Camera email notifications disabled - function removed

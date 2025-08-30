@@ -11,9 +11,6 @@ import {
   Activity,
   AlertCircle,
   CheckCircle,
-  HardDrive,
-  Cpu,
-  Clock,
   User,
   Camera,
   Trash2,
@@ -33,10 +30,6 @@ interface Camera {
 
 interface DeviceHealth {
   stream_status: string;
-  disk_root_pct: number;
-  disk_ram_pct: number;
-  last_checked: string;
-  log_message: string;
 }
 
 export function CamerasTable({ cameras }: { cameras: Camera[] }) {
@@ -44,111 +37,32 @@ export function CamerasTable({ cameras }: { cameras: Camera[] }) {
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [healthData, setHealthData] = useState<Record<string, DeviceHealth | null>>({});
 
-  useEffect(() => {
-    async function fetchHealth() {
-      const entries = await Promise.all(
-        cameras.map(async (cam) => {
-          try {
-            const res = await fetch(`/api/camera-health/${cam.id}`);
-            const json = await res.json();
-            return [cam.id, json.success ? json.health : null];
-          } catch (err) {
-            return [cam.id, null];
-          }
-        })
-      );
-      setHealthData(Object.fromEntries(entries));
-    }
-    fetchHealth();
-    const interval = setInterval(fetchHealth, 60000);
-    return () => clearInterval(interval);
-  }, [cameras]);
+  // Removed health monitoring - no longer needed for cameras
 
   const filtered = cameras.filter((cam) => {
     const matchesName = cam.user?.full_name?.toLowerCase().includes(search.toLowerCase());
-    const status = healthData[cam.id]?.stream_status?.toLowerCase();
-    const matchesStatus = filterStatus ? status === filterStatus : true;
-    return matchesName && matchesStatus;
+    return matchesName;
   });
 
   const sorted = [...filtered].sort((a, b) => {
-    const aHealth = healthData[a.id];
-    const bHealth = healthData[b.id];
-
-    const aStatus = aHealth?.stream_status?.toLowerCase() ?? "unknown";
-    const bStatus = bHealth?.stream_status?.toLowerCase() ?? "unknown";
-
-    if (aStatus !== "ok" && bStatus === "ok") return -1;
-    if (aStatus === "ok" && bStatus !== "ok") return 1;
-
-    const aTime = new Date(aHealth?.last_checked || 0).getTime();
-    const bTime = new Date(bHealth?.last_checked || 0).getTime();
-
-    return aTime - bTime;
+    return a.name.localeCompare(b.name);
   });
 
   const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
     const camera = sorted[index];
-    const health = healthData[camera.id];
-    const isOk = health?.stream_status?.toLowerCase() === "ok";
-    const isError = health?.stream_status?.toLowerCase() === "error";
-    const isWarning = health?.stream_status?.toLowerCase() === "warning";
-    const lastCheckedAgoSec = health?.last_checked
-      ? Math.floor((Date.now() - new Date(health.last_checked).getTime()) / 1000)
-      : null;
 
     return (
-      <div dir="rtl" style={style} className="grid grid-cols-[1fr_1fr_1fr_1fr_0.7fr_0.7fr_1.2fr_1.5fr_0.8fr_0.8fr] border-b border-slate-200 px-6 py-4 text-sm items-center hover:bg-slate-50 transition-colors">
+      <div dir="rtl" style={style} className="grid grid-cols-[2fr_1.5fr_2fr_1fr_1fr_1fr] border-b border-slate-200 px-6 py-4 text-sm items-center hover:bg-slate-50 transition-colors">
         <div className="font-medium text-slate-800">{camera.name}</div>
         <div className="text-slate-600">{camera.serial_number}</div>
         <div className="text-slate-700">{camera.user?.full_name || "ללא לקוח"}</div>
         <div>
           <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium ${
-            isOk ? "bg-green-100 text-green-700" : 
-            isError ? "bg-red-100 text-red-700" :
-            isWarning ? "bg-orange-100 text-orange-700" :
-            "bg-slate-100 text-slate-600"
+            camera.is_stream_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
           }`}>
-            {isOk ? <CheckCircle size={12} /> : 
-             isError ? <AlertCircle size={12} /> :
-             isWarning ? <Activity size={12} /> :
-             <Clock size={12} />}
-            {health?.stream_status || "לא ידוע"}
+            {camera.is_stream_active ? <CheckCircle size={12} /> : <AlertCircle size={12} />}
+            {camera.is_stream_active ? "פעיל" : "לא פעיל"}
           </span>
-        </div>
-        <div className="text-slate-600">
-          <span className={`font-medium ${
-            (health?.disk_root_pct ?? 0) > 90 ? "text-red-600" :
-            (health?.disk_root_pct ?? 0) > 75 ? "text-orange-600" :
-            "text-slate-700"
-          }`}>
-            {health?.disk_root_pct ?? "—"}%
-          </span>
-        </div>
-        <div className="text-slate-600">
-          <span className={`font-medium ${
-            (health?.disk_ram_pct ?? 0) > 90 ? "text-red-600" :
-            (health?.disk_ram_pct ?? 0) > 75 ? "text-orange-600" :
-            "text-slate-700"
-          }`}>
-            {health?.disk_ram_pct ?? "—"}%
-          </span>
-        </div>
-        <div className={`text-xs ${
-          lastCheckedAgoSec != null
-            ? lastCheckedAgoSec < 120
-              ? "text-green-600"
-              : lastCheckedAgoSec < 300
-              ? "text-orange-600"
-              : "text-red-600"
-            : "text-slate-400"
-        }`}>
-          {health?.last_checked
-            ? new Date(health.last_checked).toLocaleTimeString("he-IL")
-            : "ללא בדיקה"}
-        </div>
-        <div className="text-xs text-slate-500 truncate max-w-[150px]" title={health?.log_message || ""}>
-          {health?.log_message || "ללא לוג"}
         </div>
         <div>
           <button
@@ -246,7 +160,7 @@ echo "✅ All processes running in background."`;
             <div className="text-right">
               <p className="text-slate-600 text-sm font-medium">פעילות</p>
               <p className="text-3xl font-bold text-green-600">
-                {Object.values(healthData).filter(h => h?.stream_status?.toLowerCase() === 'ok').length}
+                {cameras.filter(c => c.is_stream_active).length}
               </p>
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
@@ -258,9 +172,9 @@ echo "✅ All processes running in background."`;
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
           <div className="flex items-center justify-between">
             <div className="text-right">
-              <p className="text-slate-600 text-sm font-medium">שגיאות</p>
+              <p className="text-slate-600 text-sm font-medium">לא פעילות</p>
               <p className="text-3xl font-bold text-red-600">
-                {Object.values(healthData).filter(h => h?.stream_status?.toLowerCase() === 'error').length}
+                {cameras.filter(c => !c.is_stream_active).length}
               </p>
             </div>
             <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
@@ -272,13 +186,13 @@ echo "✅ All processes running in background."`;
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
           <div className="flex items-center justify-between">
             <div className="text-right">
-              <p className="text-slate-600 text-sm font-medium">אזהרות</p>
-              <p className="text-3xl font-bold text-orange-600">
-                {Object.values(healthData).filter(h => h?.stream_status?.toLowerCase() === 'warning').length}
+              <p className="text-slate-600 text-sm font-medium">עם לקוחות</p>
+              <p className="text-3xl font-bold text-blue-600">
+                {cameras.filter(c => c.user?.full_name).length}
               </p>
             </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-              <Activity size={24} className="text-orange-600" />
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <User size={24} className="text-blue-600" />
             </div>
           </div>
         </div>
@@ -299,19 +213,6 @@ echo "✅ All processes running in background."`;
               />
             </div>
             
-            <div className="relative">
-              <Filter size={20} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
-              <select
-                className="pr-10 pl-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-right appearance-none"
-                value={filterStatus || ""}
-                onChange={(e) => setFilterStatus(e.target.value || null)}
-              >
-                <option value="">כל הסטטוסים</option>
-                <option value="ok">פעיל</option>
-                <option value="error">שגיאה</option>
-                <option value="warning">אזהרה</option>
-              </select>
-            </div>
           </div>
         </div>
       </div>
@@ -319,7 +220,7 @@ echo "✅ All processes running in background."`;
       {/* Cameras Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <div dir="rtl" className="grid grid-cols-[1fr_1fr_1fr_1fr_0.7fr_0.7fr_1.2fr_1.5fr_0.8fr_0.8fr] bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold text-sm px-6 py-4">
+          <div dir="rtl" className="grid grid-cols-[2fr_1.5fr_2fr_1fr_1fr_1fr] bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold text-sm px-6 py-4">
             <div className="flex items-center gap-2">
               <Camera size={16} />
               <span>שם מצלמה</span>
@@ -333,19 +234,6 @@ echo "✅ All processes running in background."`;
               <Activity size={16} />
               <span>סטטוס</span>
             </div>
-            <div className="flex items-center gap-2">
-              <HardDrive size={16} />
-              <span>דיסק</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Cpu size={16} />
-              <span>RAM</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock size={16} />
-              <span>בדיקה אחרונה</span>
-            </div>
-            <div>לוג</div>
             <div className="flex items-center gap-2">
               <Download size={16} />
               <span>סקריפט</span>
