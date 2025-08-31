@@ -146,6 +146,7 @@ export default function AdminDiagnosticsPage() {
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("overview");
+  const [storageUsage, setStorageUsage] = useState<any>(null);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -173,10 +174,39 @@ export default function AdminDiagnosticsPage() {
       const alertsResponse = await fetch("/api/admin/diagnostics/alerts");
       const alertsData = await alertsResponse.json();
       
+      // Fetch storage usage
+      const storageResponse = await fetch("/api/admin/storage-usage");
+      const storageData = await storageResponse.json();
+      
       if (camerasData.success) {
         setCameras(camerasData.cameras);
-        setMiniPCGroups(camerasData.miniPCGroups || []);
-        setSystemOverview(camerasData.systemOverview);
+        
+        // Calculate system overview
+        const totalCameras = camerasData.cameras.length;
+        const activeCameras = camerasData.cameras.filter((c: any) => 
+          c.realtimeHealth?.health?.status === 'ok'
+        ).length;
+        const errorCameras = camerasData.cameras.filter((c: any) => 
+          c.realtimeHealth?.health?.status === 'error'
+        ).length;
+        const warningCameras = camerasData.cameras.filter((c: any) => 
+          c.realtimeHealth?.health?.status === 'warning'
+        ).length;
+        
+        // Use storage data from API instead of disk usage
+        const avgStorageUsage = storageData.success ? storageData.storage.usagePercentage : 0;
+        
+        setSystemOverview({
+          totalCameras,
+          activeCameras,
+          errorCameras,
+          warningCameras,
+          avgDiskUsage: avgStorageUsage
+        });
+      }
+      
+      if (storageData.success) {
+        setStorageUsage(storageData.storage);
       }
       
       if (alertsData.success) {
@@ -492,7 +522,15 @@ export default function AdminDiagnosticsPage() {
                   </div>
                 </div>
                 <div className="text-sm text-slate-600">
-                  RAM: {systemOverview.avgRamUsage}%
+                  {storageUsage ? (
+                    <>
+                      {storageUsage.totalUsedGB.toFixed(1)} GB / {storageUsage.totalQuotaGB} GB
+                      <br />
+                      <span className="text-xs text-slate-500">Backblaze B2 Storage</span>
+                    </>
+                  ) : (
+                    'טוען נתוני אחסון...'
+                  )}
                 </div>
               </div>
               
