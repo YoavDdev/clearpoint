@@ -9,7 +9,7 @@ const WHATSAPP_API_URL = process.env.WHATSAPP_API_URL;
 const WHATSAPP_API_TOKEN = process.env.WHATSAPP_API_TOKEN;
 
 export interface NotificationData {
-  type: 'camera_offline' | 'disk_full' | 'stream_error' | 'device_error' | 'high_usage';
+  type: 'camera_offline' | 'camera_online' | 'disk_full' | 'stream_error' | 'device_error' | 'high_usage';
   severity: 'low' | 'medium' | 'high' | 'critical';
   cameraName: string;
   customerName: string;
@@ -19,16 +19,20 @@ export interface NotificationData {
 
 export async function sendEmailNotification(data: NotificationData): Promise<boolean> {
   try {
-    const subject = `🚨 Clearpoint Security Alert - ${data.severity.toUpperCase()}`;
+    const isRecovery = data.type === 'camera_online';
+    const subject = isRecovery 
+      ? `✅ Clearpoint Security - Camera Recovered` 
+      : `🚨 Clearpoint Security Alert - ${data.severity.toUpperCase()}`;
+    
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0;">
-          <h1 style="margin: 0; font-size: 24px;">🛡️ Clearpoint Security Alert</h1>
+        <div style="background: linear-gradient(135deg, ${isRecovery ? '#059669' : '#1e40af'} 0%, ${isRecovery ? '#10b981' : '#3b82f6'} 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+          <h1 style="margin: 0; font-size: 24px;">${isRecovery ? '✅' : '🛡️'} Clearpoint Security ${isRecovery ? 'Recovery' : 'Alert'}</h1>
         </div>
         
         <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0;">
-          <div style="background: ${getSeverityColor(data.severity)}; color: white; padding: 10px; border-radius: 6px; margin-bottom: 20px;">
-            <h2 style="margin: 0; font-size: 18px;">⚠️ ${data.severity.toUpperCase()} SEVERITY ALERT</h2>
+          <div style="background: ${isRecovery ? '#10b981' : getSeverityColor(data.severity)}; color: white; padding: 10px; border-radius: 6px; margin-bottom: 20px;">
+            <h2 style="margin: 0; font-size: 18px;">${isRecovery ? '✅ CAMERA RECOVERED' : `⚠️ ${data.severity.toUpperCase()} SEVERITY ALERT`}</h2>
           </div>
           
           <div style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid ${getSeverityColor(data.severity)};">
@@ -169,6 +173,7 @@ function getSeverityColor(severity: string): string {
 function getAlertTypeText(type: string): string {
   switch (type) {
     case 'camera_offline': return '📵 Camera Offline';
+    case 'camera_online': return '✅ Camera Recovered';
     case 'disk_full': return '💾 Disk Space Critical';
     case 'stream_error': return '📺 Stream Error';
     case 'device_error': return '⚙️ Device Error';

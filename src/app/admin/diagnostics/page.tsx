@@ -560,6 +560,7 @@ export default function AdminDiagnosticsPage() {
               { id: "mini-pcs", label: "מיני מחשבים", icon: HardDrive },
               { id: "system", label: "בריאות מערכת", icon: Activity },
               { id: "alerts", label: "התראות", icon: AlertTriangle },
+              { id: "settings", label: "הגדרות התראות", icon: Settings },
               { id: "activity", label: "פעילות", icon: Clock },
             ].map((tab) => (
               <button
@@ -1118,10 +1119,11 @@ export default function AdminDiagnosticsPage() {
           </div>
         )}
 
-        {/* Notification Settings Sidebar */}
-        <div className="fixed left-6 top-1/2 transform -translate-y-1/2 z-10">
-          <NotificationSettings />
-        </div>
+        {activeTab === 'settings' && (
+          <div className="max-w-3xl mx-auto">
+            <NotificationSettings />
+          </div>
+        )}
       </div>
     </main>
   );

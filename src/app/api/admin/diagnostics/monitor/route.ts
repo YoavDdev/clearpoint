@@ -92,6 +92,8 @@ export async function POST() {
         if (!existingAlert) {
           const diffMinutes = healthData?.last_checked ? 
             (Date.now() - new Date(healthData.last_checked).getTime()) / (1000 * 60) : 0;
+          
+          const severity = diffMinutes > 60 || !healthData ? "critical" : "high";
             
           alertsToCreate.push({
             type: "camera_offline",
@@ -99,10 +101,56 @@ export async function POST() {
             camera_name: camera.name,
             customer_name: user?.full_name || "לא ידוע",
             message: offlineMessage,
-            severity: diffMinutes > 60 || !healthData ? "critical" : "high"
+            severity
           });
 
-          // Camera notifications disabled - no longer sending emails
+          // Send email notification for camera offline
+          if (user?.email) {
+            notificationsToSend.push({
+              type: "camera_offline",
+              severity,
+              cameraName: camera.name,
+              customerName: user.full_name || "לא ידוע",
+              message: offlineMessage,
+              timestamp: new Date().toISOString(),
+              email: user.email
+            });
+          }
+        }
+      } else {
+        // Camera is ONLINE - check if there's an unresolved offline alert (recovery!)
+        const { data: existingOfflineAlert } = await supabase
+          .from("system_alerts")
+          .select("id, created_at")
+          .eq("camera_id", camera.id)
+          .eq("type", "camera_offline")
+          .eq("resolved", false)
+          .single();
+
+        if (existingOfflineAlert) {
+          // Camera recovered! Auto-resolve the alert and send recovery notification
+          await supabase
+            .from("system_alerts")
+            .update({ resolved: true, resolved_at: new Date().toISOString() })
+            .eq("id", existingOfflineAlert.id);
+
+          // Calculate downtime
+          const downtime = Math.round((Date.now() - new Date(existingOfflineAlert.created_at).getTime()) / (1000 * 60));
+          
+          // Send recovery email
+          if (user?.email) {
+            notificationsToSend.push({
+              type: "camera_online" as any,
+              severity: "low" as any,
+              cameraName: camera.name,
+              customerName: user.full_name || "לא ידוע",
+              message: `✅ מצלמה ${camera.name} חזרה לפעילות! זמן השבתה: ${downtime} דקות`,
+              timestamp: new Date().toISOString(),
+              email: user.email
+            });
+          }
+          
+          console.log(`✅ Camera ${camera.name} recovered after ${downtime} minutes offline`);
         }
       }
 
@@ -169,18 +217,32 @@ export async function POST() {
 
             if (!existingAlert) {
               const isStale = healthData.stream_status.toLowerCase() === "stale";
+              const severity = isStale ? "high" : "critical";
+              const message = isStale ? 
+                `זרם לא מעודכן במצלמה ${camera.name} - ${healthData.log_message || 'Stream stale'}` :
+                `שגיאה בזרם במצלמה ${camera.name}`;
+              
               alertsToCreate.push({
                 type: "stream_error",
                 camera_id: camera.id,
                 camera_name: camera.name,
                 customer_name: user?.full_name || "לא ידוע",
-                message: isStale ? 
-                  `זרם לא מעודכן במצלמה ${camera.name} - ${healthData.log_message || 'Stream stale'}` :
-                  `שגיאה בזרם במצלמה ${camera.name}`,
-                severity: isStale ? "high" : "critical"
+                message,
+                severity
               });
 
-              // Camera email notifications disabled - alerts only for admin UI
+              // Send email notification for stream errors
+              if (user?.email) {
+                notificationsToSend.push({
+                  type: "stream_error",
+                  severity,
+                  cameraName: camera.name,
+                  customerName: user.full_name || "לא ידוע",
+                  message,
+                  timestamp: new Date().toISOString(),
+                  email: user.email
+                });
+              }
             }
           }
         }
@@ -380,12 +442,36 @@ export async function POST() {
       }
     }
 
-    // Camera email notifications disabled - no longer sending emails for cameras
+    // Send email notifications
+    let notificationsSent = 0;
+    if (notificationsToSend.length > 0) {
+      console.log(`📧 Sending ${notificationsToSend.length} email notifications...`);
+      
+      for (const notification of notificationsToSend) {
+        try {
+          const emailSent = await sendEmailNotification({
+            type: notification.type as any,
+            severity: notification.severity as any,
+            cameraName: notification.cameraName,
+            customerName: notification.customerName,
+            message: notification.message,
+            timestamp: notification.timestamp
+          });
+          
+          if (emailSent) {
+            notificationsSent++;
+            console.log(`✅ Email sent to ${notification.email} for ${notification.cameraName}`);
+          }
+        } catch (error) {
+          console.error(`❌ Failed to send email to ${notification.email}:`, error);
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,
       alertsCreated: alertsToCreate.length,
-      notificationsSent: 0, // Disabled camera notifications
+      notificationsSent,
       timestamp: new Date().toISOString()
     });
 
@@ -397,7 +483,3 @@ export async function POST() {
     );
   }
 }
-
-// Camera email notifications disabled - function removed
-
-// Camera email notifications disabled - function removed

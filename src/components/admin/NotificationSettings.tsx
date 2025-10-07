@@ -225,16 +225,29 @@ export default function NotificationSettings({ className = '' }: NotificationSet
       {/* Test Notification Button */}
       <div className="mt-6 pt-6 border-t border-gray-200">
         <button
-          onClick={() => {
-            fetch('/api/admin/diagnostics/test-alert', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                type: 'test_notification',
-                message: 'זוהי התראת בדיקה מדף הגדרות ההתראות',
-                severity: 'medium'
-              })
-            });
+          onClick={async () => {
+            try {
+              const response = await fetch('/api/admin/diagnostics/test-alert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                  type: 'test_notification',
+                  message: 'זוהי התראת בדיקה מדף הגדרות ההתראות',
+                  severity: 'medium'
+                })
+              });
+              
+              const result = await response.json();
+              
+              if (result.success) {
+                alert('✅ התראת בדיקה נשלחה בהצלחה!');
+              } else {
+                alert('❌ שגיאה בשליחת התראה: ' + result.error);
+              }
+            } catch (error) {
+              console.error('Error sending test alert:', error);
+              alert('❌ שגיאה בשליחת התראת בדיקה');
+            }
           }}
           className="w-full py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md flex items-center justify-center"
         >
