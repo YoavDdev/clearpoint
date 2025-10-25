@@ -51,7 +51,7 @@ export async function sendEmailNotification(data: NotificationData): Promise<boo
           </div>
           
           <div style="margin-top: 20px; text-align: center;">
-            <a href="http://localhost:3000/admin/diagnostics" 
+            <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/admin/diagnostics" 
                style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
               🔍 View Diagnostics Dashboard
             </a>
@@ -67,9 +67,12 @@ export async function sendEmailNotification(data: NotificationData): Promise<boo
       </div>
     `;
 
+    // Send to support team (customer service agents) - NOT to end customers
+    const supportEmails = process.env.SUPPORT_TEAM_EMAILS?.split(',').map(e => e.trim()) || ['yoavddev@gmail.com'];
+    
     const { data: emailData, error } = await resend.emails.send({
-      from: 'onboarding@resend.dev', // Using Resend's default verified sender for testing
-      to: ['yoavddev@gmail.com'],
+      from: process.env.RESEND_FROM_EMAIL || 'alerts@clearpoint.co.il',
+      to: supportEmails,
       subject,
       html: htmlContent,
     });
@@ -101,11 +104,12 @@ ${getAlertTypeText(data.type)}
 
 ⚠️ *Issue:* ${data.message}
 
-🔗 Check diagnostics: http://localhost:3000/admin/diagnostics`;
+🔗 Check diagnostics: ${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/admin/diagnostics`;
 
     // For production, you would use a service like Twilio or MessageBird
     // This is a placeholder for the actual implementation
-    console.log(`Would send WhatsApp message to +972548132603: ${message}`);
+    const supportPhone = process.env.SUPPORT_TEAM_PHONE || '+972548132603';
+    console.log(`Would send WhatsApp message to ${supportPhone}: ${message}`);
     
     // Simulate API call for now - in production, replace with actual API call
     // Example with Twilio:
@@ -121,7 +125,7 @@ ${getAlertTypeText(data.type)}
     
     // For now, we'll log the message and return success
     // In production, you would check the API response
-    console.log('WhatsApp notification prepared for:', '+972548132603');
+    console.log('WhatsApp notification prepared for:', supportPhone);
     
     // Store the notification in the database for tracking
     const supabase = createClient(
@@ -131,7 +135,7 @@ ${getAlertTypeText(data.type)}
     
     await supabase.from('notification_logs').insert({
       type: 'whatsapp',
-      recipient: '+972548132603',
+      recipient: supportPhone,
       message: message,
       alert_type: data.type,
       severity: data.severity,

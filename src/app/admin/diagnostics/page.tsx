@@ -147,6 +147,7 @@ export default function AdminDiagnosticsPage() {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [storageUsage, setStorageUsage] = useState<any>(null);
+  const [isMonitoring, setIsMonitoring] = useState(false);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -264,6 +265,34 @@ export default function AdminDiagnosticsPage() {
     } catch (error) {
       console.error('Error resolving alert:', error);
       alert('שגיאה בפתרון ההתראה');
+    }
+  };
+
+  const runMonitoring = async () => {
+    try {
+      setIsMonitoring(true);
+      
+      const response = await fetch('/api/admin/diagnostics/monitor', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        alert(`✅ ניטור הושלם בהצלחה!\n\nהתראות שנוצרו: ${result.alertsCreated}\nהודעות שנשלחו: ${result.notificationsSent}`);
+        // Refresh diagnostics to show new alerts
+        fetchDiagnostics();
+      } else {
+        alert('❌ שגיאה בהרצת הניטור: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error running monitoring:', error);
+      alert('❌ שגיאה בהרצת הניטור');
+    } finally {
+      setIsMonitoring(false);
     }
   };
 
@@ -467,6 +496,16 @@ export default function AdminDiagnosticsPage() {
             >
               <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
               רענן עכשיו
+            </button>
+            
+            <button
+              onClick={runMonitoring}
+              disabled={isMonitoring}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+              title="הרץ ניטור מצלמות וצור התראות"
+            >
+              <Zap size={16} className={isMonitoring ? "animate-pulse" : ""} />
+              {isMonitoring ? 'מריץ ניטור...' : 'הרץ ניטור'}
             </button>
           </div>
         </div>

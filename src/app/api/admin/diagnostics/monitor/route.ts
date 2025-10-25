@@ -206,7 +206,9 @@ export async function POST() {
 
         // Check stream status for real-time issues
         if (healthData.stream_status) {
-          if (healthData.stream_status.toLowerCase() === "stale" || healthData.stream_status.toLowerCase() === "error") {
+          const status = healthData.stream_status.toLowerCase();
+          // Check for stale, error, OR missing streams
+          if (status === "stale" || status === "error" || status === "missing") {
             const { data: existingAlert } = await supabase
               .from("system_alerts")
               .select("id")
@@ -216,11 +218,20 @@ export async function POST() {
               .single();
 
             if (!existingAlert) {
-              const isStale = healthData.stream_status.toLowerCase() === "stale";
-              const severity = isStale ? "high" : "critical";
-              const message = isStale ? 
-                `זרם לא מעודכן במצלמה ${camera.name} - ${healthData.log_message || 'Stream stale'}` :
-                `שגיאה בזרם במצלמה ${camera.name}`;
+              // Determine severity and message based on status
+              let severity: "high" | "critical" = "critical";
+              let message = "";
+              
+              if (status === "stale") {
+                severity = "high";
+                message = `זרם לא מעודכן במצלמה ${camera.name} - ${healthData.log_message || 'Stream stale'}`;
+              } else if (status === "missing") {
+                severity = "critical";
+                message = `זרם חסר במצלמה ${camera.name} - Stream file not found`;
+              } else {
+                severity = "critical";
+                message = `שגיאה בזרם במצלמה ${camera.name}`;
+              }
               
               alertsToCreate.push({
                 type: "stream_error",

@@ -17,11 +17,12 @@ interface NotificationConfig {
 }
 
 export default function NotificationSettings({ className = '' }: NotificationSettingsProps) {
+  // Default to environment variables for support team contact info
   const [config, setConfig] = useState<NotificationConfig>({
-    email: 'yoavddev@gmail.com',
-    phone: '0548132603',
+    email: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@clearpoint.co.il',
+    phone: process.env.NEXT_PUBLIC_SUPPORT_PHONE || '0548132603',
     emailEnabled: true,
-    whatsappEnabled: true,
+    whatsappEnabled: false, // Disabled by default until implemented
     notifyOnCritical: true,
     notifyOnHigh: true,
     notifyOnMedium: true,

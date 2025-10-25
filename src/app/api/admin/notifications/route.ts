@@ -66,8 +66,11 @@ export async function POST(request: NextRequest) {
 
     console.log(`🚨 CRITICAL ALERT: Camera "${cameraName}" (Customer: ${customerName}) has failed permanently after 3 restart attempts.`);
     
-    // Send email notification to admin
+    // Send email notification to support team for proactive customer service
     try {
+      // Send to support team - NOT to end customers
+      const supportEmails = process.env.SUPPORT_TEAM_EMAILS?.split(',').map(e => e.trim()) || ['yoavddev@gmail.com'];
+      
       const emailResponse = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -75,8 +78,8 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'alerts@clearpoint.co.il',
-          to: ['yoavddev@gmail.com'],
+          from: process.env.RESEND_FROM_EMAIL || 'alerts@clearpoint.co.il',
+          to: supportEmails,
           subject: `🚨 Camera Permanently Offline - ${cameraName}`,
           html: `
             <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

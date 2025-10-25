@@ -84,8 +84,8 @@ export async function POST(req: Request) {
   // 4. Send email via Resend
   try {
     await resend.emails.send({
-      from: "Clearpoint <onboarding@resend.dev>",
-      to: ["yoavddev@gmail.com"],
+      from: process.env.RESEND_FROM_EMAIL || "Clearpoint <alerts@clearpoint.co.il>",
+      to: [email], // Send to the actual new user
       subject: "הצטרפות למערכת Clearpoint",
       html: `
         <div style="font-family: sans-serif; line-height: 1.5;">
