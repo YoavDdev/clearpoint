@@ -1,17 +1,28 @@
 'use client';
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import SurveillanceCameraView from "@/components/SurveillanceCameraView";
 import FootageView from "@/components/FootageView";
-import { Eye, Calendar, Settings, AlertTriangle, Video, Monitor, Maximize, Minimize } from "lucide-react";
+import { AlertTriangle, Video, Monitor, Maximize, Clock, Camera, Minimize, Eye, Calendar, Settings } from "lucide-react";
 
 export default function DashboardPage() {
+  const searchParams = useSearchParams();
+  const modeParam = searchParams.get('mode');
+  
   const [cameras, setCameras] = useState<any[]>([]);
   const [tunnelName, setTunnelName] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isMounted, setIsMounted] = useState(false);
-  const [viewMode, setViewMode] = useState<'live' | 'recordings'>('live');
+  const [viewMode, setViewMode] = useState<'live' | 'recordings'>(
+    modeParam === 'recordings' ? 'recordings' : 'live'
+  );
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Update view mode when URL parameter changes
+  useEffect(() => {
+    setViewMode(modeParam === 'recordings' ? 'recordings' : 'live');
+  }, [modeParam]);
 
   useEffect(() => {
     async function loadCameras() {
@@ -136,77 +147,99 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      {/* Responsive Header Bar */}
-      <div className="bg-gray-800 border-b border-gray-700 px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
-        <div className="flex items-center justify-between flex-wrap gap-2 sm:gap-0">
-          <div className="flex items-center space-x-2 sm:space-x-4 rtl:space-x-reverse">
-            <div className="flex items-center space-x-2 rtl:space-x-reverse">
-              <Eye className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
-              <h1 className="text-lg sm:text-xl font-bold text-white">Clearpoint Security</h1>
-            </div>
-            
-            {/* Responsive Mode Switcher */}
-            <div className="flex items-center bg-gray-700 rounded-lg p-1">
-              <button
-                onClick={() => setViewMode('live')}
-                className={`flex items-center space-x-1 sm:space-x-2 rtl:space-x-reverse px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors ${
-                  viewMode === 'live'
-                    ? 'bg-red-600 text-white'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-600'
-                }`}
-              >
-                <Monitor className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">צפייה חיה</span>
-                <span className="sm:hidden">חי</span>
-              </button>
-              <button
-                onClick={() => setViewMode('recordings')}
-                className={`flex items-center space-x-1 sm:space-x-2 rtl:space-x-reverse px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors ${
-                  viewMode === 'recordings'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-600'
-                }`}
-              >
-                <Video className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">הקלטות</span>
-                <span className="sm:hidden">הקלטות</span>
-              </button>
-            </div>
-            
-            <div className="hidden md:flex items-center space-x-4 rtl:space-x-reverse text-sm text-gray-300">
-              <div className="flex items-center space-x-1 rtl:space-x-reverse">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span>מחובר</span>
+    <div dir="rtl" className="min-h-screen bg-slate-50">
+      {/* Simple, Clean Header */}
+      <div className="bg-white border-b border-slate-200 px-6 py-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Welcome Section */}
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">שלום! 👋</h1>
+            <p className="text-lg text-slate-600">ברוכים הבאים למערכת האבטחה שלכם</p>
+          </div>
+
+          {/* Status Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Active Cameras */}
+            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-100">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <Camera className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600">מצלמות פעילות</p>
+                  <p className="text-2xl font-bold text-slate-900">{cameras.length}</p>
+                </div>
               </div>
-              <div className="flex items-center space-x-1 rtl:space-x-reverse">
-                <Calendar className="w-4 h-4" />
-                <span>{isMounted ? formatTime(currentTime) : '--:--:--'}</span>
+            </div>
+
+            {/* Current Time */}
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-100">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600">השעה כעת</p>
+                  <p className="text-xl font-bold text-slate-900">
+                    {isMounted ? new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Status */}
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+                  <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600">סטטוס</p>
+                  <p className="text-xl font-bold text-green-600">מחובר ופעיל</p>
+                </div>
               </div>
             </div>
           </div>
-          
-          <div className="flex items-center space-x-3 rtl:space-x-reverse">
-            <div className="text-sm text-gray-300">
-              <span className="font-medium">{cameras.length}</span> מצלמות פעילות
-            </div>
+        </div>
+      </div>
+
+      {/* Large, Clear Mode Switcher */}
+      <div className="bg-white border-b border-slate-200 px-6 py-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex gap-4">
+            <button
+              onClick={() => setViewMode('live')}
+              className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-bold text-lg transition-all ${
+                viewMode === 'live'
+                  ? 'bg-gradient-to-l from-red-600 to-pink-600 text-white shadow-lg scale-105'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              <Monitor className="w-6 h-6" />
+              <span>צפייה חיה</span>
+              <span className="text-sm opacity-75">ראה מה קורה עכשיו</span>
+            </button>
+            <button
+              onClick={() => setViewMode('recordings')}
+              className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-bold text-lg transition-all ${
+                viewMode === 'recordings'
+                  ? 'bg-gradient-to-l from-blue-600 to-cyan-600 text-white shadow-lg scale-105'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              <Video className="w-6 h-6" />
+              <span>הקלטות</span>
+              <span className="text-sm opacity-75">צפה בהקלטות קודמות</span>
+            </button>
             {viewMode === 'live' && cameras.length > 0 && (
               <button 
                 onClick={toggleFullscreen}
-                className="hidden sm:flex items-center space-x-2 rtl:space-x-reverse px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-sm font-medium"
-                title={isFullscreen ? 'יציאה ממסך מלא' : 'מסך מלא'}
+                className="px-6 py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-all flex items-center gap-2"
               >
-                {isFullscreen ? (
-                  <Minimize className="w-4 h-4" />
-                ) : (
-                  <Maximize className="w-4 h-4" />
-                )}
-                <span>{isFullscreen ? 'יציאה' : 'מסך מלא'}</span>
+                <Maximize className="w-5 h-5" />
+                <span className="hidden lg:inline">מסך מלא</span>
               </button>
             )}
-            <button className="p-2 hover:bg-gray-700 rounded-lg transition-colors">
-              <Settings className="w-5 h-5 text-gray-400" />
-            </button>
           </div>
         </div>
       </div>
@@ -239,31 +272,44 @@ export default function DashboardPage() {
         </div>
       ) : (
         /* Normal Dashboard Mode */
-        <div className={getContainerPadding()}>
-          {viewMode === 'live' ? (
-            // Live View Mode
-            cameras.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 sm:h-80 lg:h-96">
-                <AlertTriangle className="w-12 h-12 sm:w-16 sm:h-16 text-yellow-500 mb-4" />
-                <p className="text-lg sm:text-xl text-gray-400 mb-2 text-center">לא נמצאו מצלמות</p>
-                <p className="text-sm sm:text-base text-gray-500 text-center">לא קיימות מצלמות פעילות בחשבון זה</p>
-              </div>
+        <div className="p-6">
+          <div className="max-w-7xl mx-auto">
+            {viewMode === 'live' ? (
+              // Live View Mode
+              cameras.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-6">
+                    <AlertTriangle className="w-12 h-12 text-yellow-600" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-slate-900 mb-2">אין מצלמות פעילות</h2>
+                  <p className="text-lg text-slate-600 text-center max-w-md">
+                    לא מצאנו מצלמות פעילות בחשבון שלך. אנא צור קשר עם התמיכה לעזרה.
+                  </p>
+                  <a 
+                    href="/dashboard/support"
+                    className="mt-6 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors"
+                  >
+                    פנה לתמיכה
+                  </a>
+                </div>
+              ) : (
+                <div className={`grid ${getGridLayout(cameras.length)} gap-6`}>
+                  {cameras.slice(0, 4).map((camera, index) => (
+                    <div key={camera.id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200 hover:shadow-xl transition-shadow">
+                      <SurveillanceCameraView 
+                        camera={camera} 
+                        tunnelName={tunnelName!}
+                        cameraNumber={index + 1}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )
             ) : (
-              <div className={`grid ${getGridLayout(cameras.length)} ${getResponsiveSpacing()}`}>
-                {cameras.slice(0, 4).map((camera, index) => (
-                  <SurveillanceCameraView 
-                    key={camera.id} 
-                    camera={camera} 
-                    tunnelName={tunnelName!}
-                    cameraNumber={index + 1}
-                  />
-                ))}
-              </div>
-            )
-          ) : (
-            // Recordings View Mode
-            <FootageView cameras={cameras} />
-          )}
+              // Recordings View Mode
+              <FootageView cameras={cameras} />
+            )}
+          </div>
         </div>
       )}
     </div>
