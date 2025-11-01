@@ -91,18 +91,18 @@ export default function FootageView({ cameras }: FootageViewProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6" dir="rtl">
-      {/* Super Clean Header */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-3 sm:p-4 lg:p-6" dir="rtl">
+      {/* Super Clean Header - Mobile Responsive */}
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
-          <h1 className="text-4xl font-bold text-slate-800 mb-2">📹 הקלטות</h1>
-          <p className="text-xl text-slate-600">בחר תאריך ומצלמה לצפייה</p>
+        <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 lg:p-8 mb-4 sm:mb-6">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 mb-1 sm:mb-2">📹 הקלטות</h1>
+          <p className="text-base sm:text-lg lg:text-xl text-slate-600">בחר תאריך ומצלמה לצפייה</p>
         </div>
 
-        <div className="max-w-7xl mx-auto space-y-6">
-          {/* Date Selection */}
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h2 className="text-2xl font-bold text-slate-800 mb-4">1️⃣ בחר תאריך</h2>
+        <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+          {/* Date Selection - Mobile Responsive */}
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-3 sm:mb-4">1️⃣ בחר תאריך</h2>
             <SimpleDateTabs
               selectedDate={selectedDate}
               onDateChange={setSelectedDate}
@@ -110,23 +110,23 @@ export default function FootageView({ cameras }: FootageViewProps) {
             />
           </div>
 
-          {/* Camera Selection */}
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h2 className="text-2xl font-bold text-slate-800 mb-4">2️⃣ בחר מצלמה</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Camera Selection - Mobile Responsive */}
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-3 sm:mb-4">2️⃣ בחר מצלמה</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {cameras.map((camera) => (
                   <button
                     key={camera.id}
                     onClick={() => setSelectedCameraId(camera.id)}
                     className={`
-                      p-6 rounded-xl font-bold text-xl transition-all transform
+                      p-4 sm:p-6 rounded-lg sm:rounded-xl font-bold text-lg sm:text-xl transition-all transform
                       ${selectedCameraId === camera.id
                         ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-2xl scale-105'
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:scale-105'
                       }
                     `}
                   >
-                    <Camera className="w-8 h-8 mx-auto mb-3" />
+                    <Camera className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 sm:mb-3" />
                     <div>{camera.name}</div>
                   </button>
               ))}
@@ -134,18 +134,25 @@ export default function FootageView({ cameras }: FootageViewProps) {
           </div>
 
 
-      {/* Loading State */}
+      {/* Loading State - Mobile Responsive */}
       {loading && (
-        <div className="flex flex-col items-center justify-center py-12 bg-slate-800 rounded-lg border border-slate-700">
-          <Loader2 className="w-8 h-8 text-blue-400 animate-spin mb-3" />
-          <p className="text-slate-300">טוען הקלטות...</p>
+        <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-8 sm:p-12 text-center border-2 border-blue-200">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+            <Loader2 className="w-8 h-8 sm:w-10 sm:h-10 text-blue-600 animate-spin" />
+          </div>
+          <h3 className="text-xl sm:text-2xl font-bold text-slate-800 mb-2">
+            טוען הקלטות...
+          </h3>
+          <p className="text-sm sm:text-base text-slate-600">
+            מחפש הקלטות עבור התאריך שנבחר
+          </p>
         </div>
       )}
 
-          {/* Video Player */}
-          {!loading && selectedCamera && currentClips.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-2xl font-bold text-slate-800 mb-4">3️⃣ צפייה</h2>
+          {/* Video Player - Mobile Responsive */}
+          {!loading && selectedCamera && (
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-3 sm:mb-4">3️⃣ צפייה</h2>
               <SimpleCameraPlayer
                 cameraName={selectedCamera.name}
                 clips={currentClips}

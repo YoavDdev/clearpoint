@@ -31,12 +31,13 @@ export default function DashboardSidebar() {
 
   return (
     <>
-      {/* Mobile Menu Button */}
+      {/* Mobile Menu Button - Fixed Position for Mobile */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-4 right-4 z-50 p-3 bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-700 transition-colors"
+        className="lg:hidden fixed top-3 left-3 z-50 p-2.5 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
+        aria-label="תפריט"
       >
-        {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
 
       {/* Sidebar */}

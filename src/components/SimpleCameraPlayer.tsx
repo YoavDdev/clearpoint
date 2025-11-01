@@ -225,10 +225,19 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
 
   if (clips.length === 0) {
     return (
-      <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-12 text-center border-2 border-slate-200">
-        <VideoOff className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-        <p className="text-slate-700 text-xl font-medium">אין הקלטות זמינות עבור {cameraName}</p>
-        <p className="text-slate-500 text-base mt-2">נסה לבחור תאריך אחר</p>
+      <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-8 sm:p-12 text-center border-2 border-slate-200">
+        <div className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+          <VideoOff className="w-10 h-10 sm:w-12 sm:h-12 text-slate-500" />
+        </div>
+        <h3 className="text-xl sm:text-2xl font-bold text-slate-800 mb-2 sm:mb-3">
+          אין הקלטות זמינות
+        </h3>
+        <p className="text-base sm:text-lg text-slate-700 mb-2">
+          למצלמה <span className="font-bold">{cameraName}</span>
+        </p>
+        <p className="text-sm sm:text-base text-slate-500 mt-3 sm:mt-4">
+          💡 נסה לבחור תאריך אחר או בדוק שהמצלמה הייתה פעילה באותו יום
+        </p>
       </div>
     );
   }
@@ -250,11 +259,11 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
         />
       </div>
 
-      {/* Controls */}
-      <div className="p-6 space-y-4 bg-gradient-to-b from-white to-slate-50">
+      {/* Controls - Mobile Responsive */}
+      <div className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 bg-gradient-to-b from-white to-slate-50">
         {/* Day Timeline - Shows progress through entire day - LTR Layout */}
         <div className="space-y-2">
-          <div className="flex justify-between text-sm text-slate-700 font-medium mb-2">
+          <div className="flex justify-between text-xs sm:text-sm text-slate-700 font-medium mb-1 sm:mb-2">
             <span className={`font-bold ${isRecording ? 'text-red-600' : 'text-blue-600'}`}>
               {Math.round((getDayPosition() / totalDayDuration) * 100)}% הושלם
             </span>
@@ -305,17 +314,17 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
                 : '[&::-webkit-slider-thumb]:bg-blue-600 [&::-moz-range-thumb]:bg-blue-600'
               }`}
           />
-          <div className="flex justify-between text-sm text-slate-600 font-medium">
+          <div className="flex justify-between text-xs sm:text-sm text-slate-600 font-medium">
             <span>{formatTime(totalDayDuration)}</span>
             <span>{formatTime(getDayPosition())}</span>
           </div>
         </div>
 
-        {/* Playback Controls with Integrated REC Button */}
-        <div className="flex items-center justify-center pt-2 border-t-2 border-slate-200">
-          <div className="flex items-center gap-2">
-            {/* Slower Speed Buttons */}
-            <div className="flex items-center gap-1">
+        {/* Playback Controls with Integrated REC Button - Mobile Responsive */}
+        <div className="flex flex-col sm:flex-row items-center justify-center pt-2 border-t-2 border-slate-200 gap-2 sm:gap-0">
+          <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-center">
+            {/* Slower Speed Buttons - Mobile: Hide on very small screens */}
+            <div className="hidden md:flex items-center gap-1">
               <button
                 onClick={() => setPlaybackSpeed(0.25)}
                 className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all hover:scale-110"
@@ -332,39 +341,39 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
               </button>
             </div>
 
-            {/* Main Controls */}
+            {/* Main Controls - Mobile Responsive */}
             <button
               onClick={previousClip}
               disabled={currentClipIndex === 0}
-              className="p-3 rounded-xl bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:scale-110"
+              className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:scale-110"
               title="קליפ קודם"
             >
-              <SkipBack className="w-5 h-5 text-slate-700" />
+              <SkipBack className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700" />
             </button>
 
             <button
               onClick={togglePlay}
-              className="p-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:scale-110"
+              className="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:scale-110"
               title={isPlaying ? 'עצור' : 'נגן'}
             >
               {isPlaying ? (
-                <Pause className="w-7 h-7 text-white" />
+                <Pause className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               ) : (
-                <Play className="w-7 h-7 text-white" />
+                <Play className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               )}
             </button>
 
             <button
               onClick={nextClip}
               disabled={currentClipIndex === clips.length - 1}
-              className="p-3 rounded-xl bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:scale-110"
+              className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:scale-110"
               title="קליפ הבא"
             >
-              <SkipForward className="w-5 h-5 text-slate-700" />
+              <SkipForward className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700" />
             </button>
 
-            {/* Faster Speed Buttons */}
-            <div className="flex items-center gap-1">
+            {/* Faster Speed Buttons - Mobile: Hide on very small screens */}
+            <div className="hidden md:flex items-center gap-1">
               <button
                 onClick={() => setPlaybackSpeed(1)}
                 className="px-2 py-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold transition-all hover:scale-110"
@@ -428,12 +437,12 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
               </>
             )}
 
-            {/* Audio Controls */}
-            <div className="flex items-center gap-2 ml-3 pl-3 border-l-2 border-slate-200">
-              {/* Mute Button */}
+            {/* Audio Controls - Mobile Responsive */}
+            <div className="flex items-center gap-2 sm:ml-3 sm:pl-3 sm:border-l-2 border-slate-200">
+              {/* Mute Button - Mobile Responsive */}
               <button
                 onClick={toggleMute}
-                className={`p-3 rounded-xl transition-all hover:scale-110 ${
+                className={`p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all hover:scale-110 ${
                   isMuted 
                     ? 'bg-red-100 hover:bg-red-200 text-red-700' 
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -441,14 +450,14 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
                 title={isMuted ? 'הפעל קול' : 'השתק'}
               >
                 {isMuted ? (
-                  <VolumeX className="w-5 h-5" />
+                  <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />
                 ) : (
-                  <Volume2 className="w-5 h-5" />
+                  <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
                 )}
               </button>
 
-              {/* Volume Slider */}
-              <div className="flex items-center gap-2">
+              {/* Volume Slider - Hidden on small screens, shown on tablet+ */}
+              <div className="hidden sm:flex items-center gap-2">
                 <input
                   type="range"
                   min="0"
@@ -456,7 +465,7 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
                   step="0.1"
                   value={volume}
                   onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                  className="w-20 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer
+                  className="w-16 sm:w-20 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer
                     [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3
                     [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-slate-600
                     [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3

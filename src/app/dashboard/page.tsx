@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import SurveillanceCameraView from "@/components/SurveillanceCameraView";
 import FootageView from "@/components/FootageView";
-import { AlertTriangle, Video, Monitor, Maximize, Clock, Camera, Minimize, Eye, Calendar, Settings } from "lucide-react";
+import { AlertTriangle, Video, Monitor, Maximize, Clock, Minimize, Eye, Calendar, Settings } from "lucide-react";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -149,54 +149,41 @@ export default function DashboardPage() {
 
   return (
     <div dir="rtl" className="min-h-screen bg-slate-50">
-      {/* Simple, Clean Header */}
-      <div className="bg-white border-b border-slate-200 px-6 py-6">
+      {/* Simple, Clean Header - Mobile Responsive */}
+      <div className="bg-white border-b border-slate-200 px-3 sm:px-6 py-4 sm:py-6">
         <div className="max-w-7xl mx-auto">
           {/* Welcome Section */}
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">שלום! 👋</h1>
-            <p className="text-lg text-slate-600">ברוכים הבאים למערכת האבטחה שלכם</p>
+          <div className="mb-4 sm:mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1 sm:mb-2">שלום! 👋</h1>
+            <p className="text-base sm:text-lg text-slate-600">ברוכים הבאים למערכת האבטחה שלכם</p>
           </div>
 
-          {/* Status Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Installed Cameras */}
-            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-100">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <Camera className="w-6 h-6 text-white" />
+          {/* Status Cards - Stack on Mobile */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            {/* Current Time - Mobile Responsive */}
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-3 sm:p-4 border border-purple-100">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-slate-600">מצלמות מותקנות</p>
-                  <p className="text-2xl font-bold text-slate-900">{cameras.length}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Current Time */}
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-100">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm text-slate-600">השעה כעת</p>
-                  <p className="text-xl font-bold text-slate-900">
+                  <p className="text-xs sm:text-sm text-slate-600">השעה כעת</p>
+                  <p className="text-lg sm:text-xl font-bold text-slate-900">
                     {isMounted ? new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Status */}
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+            {/* Status - Mobile Responsive */}
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-3 sm:p-4 border border-green-100">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
                   <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-600">סטטוס</p>
-                  <p className="text-xl font-bold text-green-600">מחובר ופעיל</p>
+                  <p className="text-xs sm:text-sm text-slate-600">סטטוס</p>
+                  <p className="text-lg sm:text-xl font-bold text-green-600">מחובר ופעיל</p>
                 </div>
               </div>
             </div>
@@ -204,41 +191,46 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Large, Clear Mode Switcher */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4">
+      {/* Large, Clear Mode Switcher - Mobile Responsive */}
+      <div className="bg-white border-b border-slate-200 px-3 sm:px-6 py-3 sm:py-4">
         <div className="max-w-7xl mx-auto">
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
             <button
               onClick={() => router.push('/dashboard')}
-              className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-bold text-lg transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all ${
                 viewMode === 'live'
-                  ? 'bg-gradient-to-l from-red-600 to-pink-600 text-white shadow-lg scale-105'
+                  ? 'bg-gradient-to-l from-red-600 to-pink-600 text-white shadow-lg sm:scale-105'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              <Monitor className="w-6 h-6" />
-              <span>צפייה חיה</span>
-              <span className="text-sm opacity-75">ראה מה קורה עכשיו</span>
+              <Monitor className="w-5 h-5 sm:w-6 sm:h-6" />
+              <div className="flex flex-col sm:flex-row items-center gap-0 sm:gap-2">
+                <span>צפייה חיה</span>
+                <span className="text-xs sm:text-sm opacity-75 hidden sm:inline">ראה מה קורה עכשיו</span>
+              </div>
             </button>
             <button
               onClick={() => router.push('/dashboard?mode=recordings')}
-              className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-bold text-lg transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all ${
                 viewMode === 'recordings'
-                  ? 'bg-gradient-to-l from-blue-600 to-cyan-600 text-white shadow-lg scale-105'
+                  ? 'bg-gradient-to-l from-blue-600 to-cyan-600 text-white shadow-lg sm:scale-105'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              <Video className="w-6 h-6" />
-              <span>הקלטות</span>
-              <span className="text-sm opacity-75">צפה בהקלטות קודמות</span>
+              <Video className="w-5 h-5 sm:w-6 sm:h-6" />
+              <div className="flex flex-col sm:flex-row items-center gap-0 sm:gap-2">
+                <span>הקלטות</span>
+                <span className="text-xs sm:text-sm opacity-75 hidden sm:inline">צפה בהקלטות קודמות</span>
+              </div>
             </button>
             {viewMode === 'live' && cameras.length > 0 && (
               <button 
                 onClick={toggleFullscreen}
-                className="px-6 py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-all flex items-center gap-2"
+                className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-all flex items-center justify-center gap-2 sm:w-auto w-full"
               >
                 <Maximize className="w-5 h-5" />
-                <span className="hidden lg:inline">מסך מלא</span>
+                <span className="sm:hidden">מסך מלא</span>
+                <span className="hidden sm:inline">מסך מלא</span>
               </button>
             )}
           </div>
@@ -273,7 +265,7 @@ export default function DashboardPage() {
         </div>
       ) : (
         /* Normal Dashboard Mode */
-        <div className="p-6">
+        <div className="p-3 sm:p-4 lg:p-6">
           <div className="max-w-7xl mx-auto">
             {viewMode === 'live' ? (
               // Live View Mode
@@ -294,7 +286,7 @@ export default function DashboardPage() {
                   </a>
                 </div>
               ) : (
-                <div className={`grid ${getGridLayout(cameras.length)} gap-6`}>
+                <div className={`grid ${getGridLayout(cameras.length)} gap-3 sm:gap-4 lg:gap-6`}>
                   {cameras.slice(0, 4).map((camera, index) => (
                     <div key={camera.id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200 hover:shadow-xl transition-shadow">
                       <SurveillanceCameraView 
