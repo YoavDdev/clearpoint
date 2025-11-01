@@ -160,14 +160,14 @@ export default function DashboardPage() {
 
           {/* Status Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Active Cameras */}
+            {/* Installed Cameras */}
             <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-100">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
                   <Camera className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-slate-600">מצלמות פעילות</p>
+                  <p className="text-sm text-slate-600">מצלמות מותקנות</p>
                   <p className="text-2xl font-bold text-slate-900">{cameras.length}</p>
                 </div>
               </div>
