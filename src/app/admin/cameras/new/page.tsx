@@ -157,7 +157,7 @@ export default function NewCameraPage() {
   }));
 
   return (
-    <main dir="rtl" className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pt-20 px-6">
+    <main dir="rtl" className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 px-6">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-8">

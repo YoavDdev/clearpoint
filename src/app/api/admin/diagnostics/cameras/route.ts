@@ -136,7 +136,13 @@ export async function GET() {
             const lastCheck = new Date(health.last_checked);
             const diffMinutes = (Date.now() - lastCheck.getTime()) / (1000 * 60);
             
-            if (diffMinutes > 15) {
+            if (diffMinutes > 60) {
+              // More than 1 hour - camera is OFFLINE
+              issues.push(`מצלמה לא מדווחת (${Math.round(diffMinutes)} דקות)`);
+              status = "offline";
+              severity = "critical";
+            } else if (diffMinutes > 15) {
+              // 15-60 minutes - WARNING
               issues.push(`בדיקת בריאות לא מעודכנת (${Math.round(diffMinutes)} דקות)`);
               status = "warning";
               severity = "medium";
@@ -149,15 +155,21 @@ export async function GET() {
           
           // Check stream status from real-time health data
           if (health.stream_status) {
-            if (health.stream_status.toLowerCase() === "error") {
+            const streamStatus = health.stream_status.toLowerCase();
+            
+            if (streamStatus === "error") {
               issues.push("שגיאה בזרם");
               status = status === "offline" ? "offline" : "error";
               severity = "high";
-            } else if (health.stream_status.toLowerCase() === "stale") {
+            } else if (streamStatus === "stale") {
               issues.push(`זרם לא מעודכן - ${health.log_message || 'Stream stale'}`);
               status = status === "offline" ? "offline" : "error";
               severity = "high";
-            } else if (health.stream_status.toLowerCase() === "warning") {
+            } else if (streamStatus === "missing") {
+              issues.push(`זרם חסר - ${health.log_message || 'No stream file'}`);
+              status = status === "offline" ? "offline" : "error";
+              severity = "critical";
+            } else if (streamStatus === "warning") {
               issues.push("אזהרה בזרם");
               if (status === "healthy") status = "warning";
               if (severity === "low") severity = "medium";
@@ -190,14 +202,14 @@ export async function GET() {
             }
           }
         } else {
-          // Camera exists but no health data yet - this is normal for new cameras
-          issues.push("מצלמה חדשה - ממתינה לנתוני בריאות ראשונים");
-          status = "warning";
-          severity = "medium";
+          // Camera exists but has no health data - this means it's not reporting!
+          issues.push("מצלמה לא דיווחה מעולם על בריאותה");
+          status = "offline";
+          severity = "critical";
         }
         
       } else {
-        // No real-time health data available
+        // No real-time health data available (API returned success: false)
         issues.push("אין נתוני בריאות זמינים");
         status = "offline";
         severity = "critical";

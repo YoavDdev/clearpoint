@@ -26,9 +26,19 @@ export async function GET(
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
+    // If no health data exists, return success: false
+    // This tells admin panel the camera has never reported
+    if (!health) {
+      return NextResponse.json({ 
+        success: false, 
+        health: null,
+        error: 'No health data found for this camera'
+      });
+    }
+
     return NextResponse.json({ 
       success: true, 
-      health: health || null 
+      health: health 
     });
   } catch (err) {
     console.error('Unexpected error:', err);

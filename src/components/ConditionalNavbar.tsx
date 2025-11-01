@@ -6,8 +6,8 @@ import ModernNavbar from './ModernNavbar';
 export default function ConditionalNavbar() {
   const pathname = usePathname();
   
-  // Hide navbar on dashboard pages for clean surveillance interface
-  const hiddenRoutes = ['/dashboard'];
+  // Hide navbar on dashboard and admin pages for clean surveillance interface
+  const hiddenRoutes = ['/dashboard', '/admin'];
   const shouldHideNavbar = hiddenRoutes.some(route => pathname.startsWith(route));
   
   if (shouldHideNavbar) {

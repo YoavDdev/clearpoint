@@ -102,7 +102,7 @@ export default function AdminRequestsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pt-20 px-6">
+      <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="bg-white p-12 rounded-2xl shadow-sm border border-slate-200 text-center">
             <div className="animate-spin w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full mx-auto mb-4"></div>
@@ -114,7 +114,7 @@ export default function AdminRequestsPage() {
   }
 
   return (
-    <main dir="rtl" className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pt-20 px-6">
+    <main dir="rtl" className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 px-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">

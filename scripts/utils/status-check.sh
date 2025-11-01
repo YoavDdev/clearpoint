@@ -301,18 +301,34 @@ for CAMERA_DIR in $CAMERA_DIRS; do
   echo "   Status: $STREAM_STATUS"
   echo "   Message: $CAMERA_MESSAGE"
   
+  # Build JSON payload - only update last_checked if stream is healthy
+  if [[ "$STREAM_STATUS" == "ok" ]]; then
+    # Stream is healthy - update last_checked to indicate camera is alive
+    JSON_PAYLOAD="{
+      \"mini_pc_id\": \"$MINI_PC_ID\",
+      \"stream_status\": \"$STREAM_STATUS\",
+      \"last_checked\": \"$(date -Is)\",
+      \"log_message\": \"$CAMERA_MESSAGE\"
+    }"
+    echo "✅ Stream healthy - updating last_checked"
+  else
+    # Stream is NOT healthy (missing/stale/error) - DO NOT update last_checked
+    # This prevents false "camera is online" detections
+    JSON_PAYLOAD="{
+      \"mini_pc_id\": \"$MINI_PC_ID\",
+      \"stream_status\": \"$STREAM_STATUS\",
+      \"log_message\": \"$CAMERA_MESSAGE\"
+    }"
+    echo "⚠️  Stream unhealthy ($STREAM_STATUS) - NOT updating last_checked"
+  fi
+  
   # Try to update existing record (PATCH always works for existing records)
   RESPONSE=$(curl -s -X PATCH "$SUPABASE_URL/rest/v1/camera_health?camera_id=eq.$CAMERA_UUID" \
     -H "apikey: $SUPABASE_API_KEY" \
     -H "Authorization: Bearer $SUPABASE_API_KEY" \
     -H "Content-Type: application/json" \
     -H "Prefer: return=minimal" \
-    -d "{
-      \"mini_pc_id\": \"$MINI_PC_ID\",
-      \"stream_status\": \"$STREAM_STATUS\",
-      \"last_checked\": \"$(date -Is)\",
-      \"log_message\": \"$CAMERA_MESSAGE\"
-    }")
+    -d "$JSON_PAYLOAD")
   
   echo "📥 Supabase response: $RESPONSE"
 

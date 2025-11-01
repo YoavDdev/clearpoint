@@ -10,6 +10,7 @@ type Camera = {
   name: string;
   stream_path: string;
   user_id: string;
+  mini_pc_id: string | null;
   image_url: string;
   serial_number: string;
   last_seen_at: string | null;
@@ -30,6 +31,7 @@ export default async function CamerasPage() {
     name,
     stream_path,
     user_id,
+    mini_pc_id,
     image_url,
     serial_number,
     last_seen_at,
@@ -47,7 +49,7 @@ export default async function CamerasPage() {
   })) as Camera[];
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pt-20 px-6">
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 px-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">

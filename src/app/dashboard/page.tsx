@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import SurveillanceCameraView from "@/components/SurveillanceCameraView";
 import FootageView from "@/components/FootageView";
 import { AlertTriangle, Video, Monitor, Maximize, Clock, Camera, Minimize, Eye, Calendar, Settings } from "lucide-react";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const modeParam = searchParams.get('mode');
   
@@ -208,7 +209,7 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex gap-4">
             <button
-              onClick={() => setViewMode('live')}
+              onClick={() => router.push('/dashboard')}
               className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-bold text-lg transition-all ${
                 viewMode === 'live'
                   ? 'bg-gradient-to-l from-red-600 to-pink-600 text-white shadow-lg scale-105'
@@ -220,7 +221,7 @@ export default function DashboardPage() {
               <span className="text-sm opacity-75">ראה מה קורה עכשיו</span>
             </button>
             <button
-              onClick={() => setViewMode('recordings')}
+              onClick={() => router.push('/dashboard?mode=recordings')}
               className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-bold text-lg transition-all ${
                 viewMode === 'recordings'
                   ? 'bg-gradient-to-l from-blue-600 to-cyan-600 text-white shadow-lg scale-105'

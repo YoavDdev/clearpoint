@@ -10,6 +10,47 @@ export async function POST() {
   );
 
   try {
+    // Load system settings
+    const { data: settingsData, error: settingsError } = await supabase
+      .from("system_settings")
+      .select("setting_key, setting_value, setting_type");
+    
+    if (settingsError) {
+      console.error('❌ Failed to load settings from database:', settingsError);
+      console.log('⚠️ Using hardcoded defaults');
+    }
+    
+    const settings: Record<string, any> = {};
+    settingsData?.forEach((setting) => {
+      let value = setting.setting_value;
+      if (setting.setting_type === 'boolean') {
+        value = value === 'true';
+      } else if (setting.setting_type === 'number') {
+        value = parseInt(value, 10);
+      }
+      settings[setting.setting_key] = value;
+    });
+    
+    console.log('📋 Loaded settings:', {
+      email_enabled: settings.email_notifications_enabled,
+      email: settings.alert_email_address,
+      health_timeout: settings.health_check_timeout_seconds,
+      stream_timeout: settings.stream_check_timeout_seconds,
+      monitoring_interval: settings.monitoring_interval_minutes
+    });
+
+    // Get configuration values from settings (with defaults)
+    const emailNotificationsEnabled = settings.email_notifications_enabled ?? true;
+    const adminEmail = settings.alert_email_address || 'yoavddev@gmail.com';
+    const healthCheckTimeoutMinutes = (settings.health_check_timeout_seconds || 180) / 60;
+    const streamCheckTimeoutSeconds = settings.stream_check_timeout_seconds || 240;
+    const criticalThresholdMinutes = settings.critical_alert_threshold_minutes || 10;
+    
+    console.log(`📧 Email notifications: ${emailNotificationsEnabled ? 'enabled' : 'disabled'}`);
+    console.log(`📧 Admin email: ${adminEmail}`);
+    console.log(`⏰ Health timeout: ${healthCheckTimeoutMinutes} minutes`);
+    console.log(`📺 Stream timeout: ${streamCheckTimeoutSeconds} seconds`);
+    console.log(`🔴 Critical threshold: ${criticalThresholdMinutes} minutes`);
     // Get all cameras with health data
     const { data: cameras, error } = await supabase
       .from("cameras")
@@ -68,11 +109,11 @@ export async function POST() {
         isOffline = true;
         offlineMessage = `מצלמה ${camera.name} לא דיווחה מעולם על בריאותה`;
       } else {
-        // Check if health data is recent (within 15 minutes)
+        // Check if health data is recent (use setting)
         const lastCheck = new Date(healthData.last_checked);
         const diffMinutes = (Date.now() - lastCheck.getTime()) / (1000 * 60);
         
-        if (diffMinutes > 15) {
+        if (diffMinutes > healthCheckTimeoutMinutes) {
           isOffline = true;
           offlineMessage = `מצלמה ${camera.name} לא דיווחה על בריאותה כבר ${Math.round(diffMinutes)} דקות`;
         }
@@ -93,7 +134,7 @@ export async function POST() {
           const diffMinutes = healthData?.last_checked ? 
             (Date.now() - new Date(healthData.last_checked).getTime()) / (1000 * 60) : 0;
           
-          const severity = diffMinutes > 60 || !healthData ? "critical" : "high";
+          const severity = diffMinutes > criticalThresholdMinutes || !healthData ? "critical" : "high";
             
           alertsToCreate.push({
             type: "camera_offline",
@@ -104,21 +145,23 @@ export async function POST() {
             severity
           });
 
-          // Send email notification for camera offline
-          if (user?.email) {
+          // Send email notification for camera offline to ADMIN only
+          if (emailNotificationsEnabled && adminEmail) {
             notificationsToSend.push({
               type: "camera_offline",
               severity,
               cameraName: camera.name,
-              customerName: user.full_name || "לא ידוע",
+              customerName: user?.full_name || "לא ידוע",
               message: offlineMessage,
               timestamp: new Date().toISOString(),
-              email: user.email
+              email: adminEmail
             });
           }
         }
       } else {
         // Camera is ONLINE - check if there's an unresolved offline alert (recovery!)
+        // IMPORTANT: Only consider it a recovery if health data is VERY recent (< 2 minutes)
+        // This prevents false positives from stale data
         const { data: existingOfflineAlert } = await supabase
           .from("system_alerts")
           .select("id, created_at")
@@ -127,30 +170,51 @@ export async function POST() {
           .eq("resolved", false)
           .single();
 
-        if (existingOfflineAlert) {
-          // Camera recovered! Auto-resolve the alert and send recovery notification
-          await supabase
-            .from("system_alerts")
-            .update({ resolved: true, resolved_at: new Date().toISOString() })
-            .eq("id", existingOfflineAlert.id);
+        if (existingOfflineAlert && healthData && healthData.last_checked) {
+          // Double-check: health data must be VERY recent (within last 2 minutes) for recovery
+          const lastCheck = new Date(healthData.last_checked);
+          const minutesSinceCheck = (Date.now() - lastCheck.getTime()) / (1000 * 60);
+          
+          // Only send recovery if:
+          // 1. Health data is fresh (< 2 min)
+          // 2. Stream is actually working (not "missing" or "error")
+          const streamIsHealthy = healthData.stream_status && 
+                                   healthData.stream_status !== 'missing' && 
+                                   healthData.stream_status !== 'error' &&
+                                   healthData.stream_status !== 'stale';
+          
+          const isGenuineRecovery = minutesSinceCheck < 2 && streamIsHealthy;
+          
+          if (isGenuineRecovery) {
+            // Camera recovered! Auto-resolve the alert and send recovery notification
+            await supabase
+              .from("system_alerts")
+              .update({ resolved: true, resolved_at: new Date().toISOString() })
+              .eq("id", existingOfflineAlert.id);
 
-          // Calculate downtime
-          const downtime = Math.round((Date.now() - new Date(existingOfflineAlert.created_at).getTime()) / (1000 * 60));
-          
-          // Send recovery email
-          if (user?.email) {
-            notificationsToSend.push({
-              type: "camera_online" as any,
-              severity: "low" as any,
-              cameraName: camera.name,
-              customerName: user.full_name || "לא ידוע",
-              message: `✅ מצלמה ${camera.name} חזרה לפעילות! זמן השבתה: ${downtime} דקות`,
-              timestamp: new Date().toISOString(),
-              email: user.email
-            });
+            // Calculate downtime
+            const downtime = Math.round((Date.now() - new Date(existingOfflineAlert.created_at).getTime()) / (1000 * 60));
+            
+            // Send recovery email to ADMIN only
+            if (emailNotificationsEnabled && adminEmail) {
+              notificationsToSend.push({
+                type: "camera_online" as any,
+                severity: "low" as any,
+                cameraName: camera.name,
+                customerName: user?.full_name || "לא ידוע",
+                message: `✅ מצלמה ${camera.name} חזרה לפעילות! זמן השבתה: ${downtime} דקות`,
+                timestamp: new Date().toISOString(),
+                email: adminEmail
+              });
+            }
+            
+            console.log(`✅ Camera ${camera.name} recovered after ${downtime} minutes offline`);
+          } else {
+            const reason = !streamIsHealthy 
+              ? `stream status is "${healthData.stream_status}" (not healthy)` 
+              : `health data is ${minutesSinceCheck.toFixed(1)} min old (need < 2 min)`;
+            console.log(`⚠️ Camera ${camera.name} appears online but ${reason} - not sending recovery notification yet`);
           }
-          
-          console.log(`✅ Camera ${camera.name} recovered after ${downtime} minutes offline`);
         }
       }
 
@@ -242,16 +306,16 @@ export async function POST() {
                 severity
               });
 
-              // Send email notification for stream errors
-              if (user?.email) {
+              // Send email notification for stream errors to ADMIN only
+              if (emailNotificationsEnabled && adminEmail) {
                 notificationsToSend.push({
                   type: "stream_error",
                   severity,
                   cameraName: camera.name,
-                  customerName: user.full_name || "לא ידוע",
+                  customerName: user?.full_name || "לא ידוע",
                   message,
                   timestamp: new Date().toISOString(),
-                  email: user.email
+                  email: adminEmail
                 });
               }
             }

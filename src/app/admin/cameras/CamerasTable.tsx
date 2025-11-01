@@ -22,6 +22,7 @@ interface Camera {
   serial_number: string;
   stream_path: string;
   user_id: string;
+  mini_pc_id: string | null;
   is_stream_active: boolean | null;
   user: {
     full_name: string;
@@ -35,9 +36,37 @@ interface DeviceHealth {
 export function CamerasTable({ cameras }: { cameras: Camera[] }) {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
-  const [healthData, setHealthData] = useState<Record<string, DeviceHealth | null>>({});
+  const [healthData, setHealthData] = useState<Record<string, any>>({});
+  const [loading, setLoading] = useState(true);
 
-  // Removed health monitoring - no longer needed for cameras
+  // Fetch real-time health data for all cameras
+  useEffect(() => {
+    const fetchHealthData = async () => {
+      const healthPromises = cameras.map(async (camera) => {
+        try {
+          const res = await fetch(`/api/camera-health/${camera.id}`);
+          const data = await res.json();
+          return { id: camera.id, health: data };
+        } catch (error) {
+          console.error(`Failed to fetch health for ${camera.id}:`, error);
+          return { id: camera.id, health: { success: false } };
+        }
+      });
+
+      const results = await Promise.all(healthPromises);
+      const healthMap: Record<string, any> = {};
+      results.forEach(({ id, health }) => {
+        healthMap[id] = health;
+      });
+      setHealthData(healthMap);
+      setLoading(false);
+    };
+
+    fetchHealthData();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchHealthData, 30000);
+    return () => clearInterval(interval);
+  }, [cameras])
 
   const filtered = cameras.filter((cam) => {
     const matchesName = cam.user?.full_name?.toLowerCase().includes(search.toLowerCase());
@@ -57,12 +86,72 @@ export function CamerasTable({ cameras }: { cameras: Camera[] }) {
         <div className="text-slate-600">{camera.serial_number}</div>
         <div className="text-slate-700">{camera.user?.full_name || "ללא לקוח"}</div>
         <div>
-          <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium ${
-            camera.is_stream_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-          }`}>
-            {camera.is_stream_active ? <CheckCircle size={12} /> : <AlertCircle size={12} />}
-            {camera.is_stream_active ? "פעיל" : "לא פעיל"}
-          </span>
+          {(() => {
+            const health = healthData[camera.id];
+            
+            // No health data
+            if (!health || !health.success) {
+              return (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700">
+                  <AlertCircle size={12} />
+                  לא מקוון
+                </span>
+              );
+            }
+            
+            const streamStatus = health.health?.stream_status?.toLowerCase();
+            
+            // Check stream status
+            if (streamStatus === "missing") {
+              return (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium bg-red-100 text-red-700">
+                  <AlertCircle size={12} />
+                  שגיאה - זרם חסר
+                </span>
+              );
+            }
+            
+            if (streamStatus === "stale") {
+              return (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium bg-orange-100 text-orange-700">
+                  <AlertCircle size={12} />
+                  שגיאה - זרם ישן
+                </span>
+              );
+            }
+            
+            if (streamStatus === "error") {
+              return (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium bg-red-100 text-red-700">
+                  <AlertCircle size={12} />
+                  שגיאה
+                </span>
+              );
+            }
+            
+            // Check if data is stale (>15 min old)
+            if (health.health?.last_checked) {
+              const lastCheck = new Date(health.health.last_checked);
+              const diffMinutes = (Date.now() - lastCheck.getTime()) / (1000 * 60);
+              
+              if (diffMinutes > 60) {
+                return (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700">
+                    <AlertCircle size={12} />
+                    לא מקוון
+                  </span>
+                );
+              }
+            }
+            
+            // All good
+            return (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-700">
+                <CheckCircle size={12} />
+                תקין
+              </span>
+            );
+          })()}
         </div>
         <div>
           <button
