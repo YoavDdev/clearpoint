@@ -29,11 +29,19 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1);
   
+  // Playback speed control
+  const [currentSpeed, setCurrentSpeed] = useState(1);
+  
   // Clip cutting state - Cassette Recorder Style
   const [isCuttingMode, setIsCuttingMode] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [trimStart, setTrimStart] = useState<number | null>(null);
   const [trimEnd, setTrimEnd] = useState<number | null>(null);
+  
+  // Mouse idle detection for overlay
+  const [showOverlay, setShowOverlay] = useState(true);
+  const [isMouseOverVideo, setIsMouseOverVideo] = useState(false);
+  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const currentClip = clips[currentClipIndex];
   
@@ -120,9 +128,73 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
     }
   };
 
+  // Handle mouse entering video area
+  const handleMouseEnter = () => {
+    setIsMouseOverVideo(true);
+    setShowOverlay(true);
+  };
+
+  // Handle mouse leaving video area
+  const handleMouseLeave = () => {
+    setIsMouseOverVideo(false);
+    if (isPlaying) {
+      setShowOverlay(false);
+    }
+    // Clear timer when mouse leaves
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current);
+    }
+  };
+
+  // Handle mouse movement - show overlay and start idle timer
+  const handleMouseMove = () => {
+    // Only show overlay if we're actually over the video
+    if (isMouseOverVideo) {
+      setShowOverlay(true);
+      
+      // Clear existing timer
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+      }
+      
+      // Set new timer to hide overlay after 1 second of no movement (only when playing)
+      if (isPlaying) {
+        idleTimerRef.current = setTimeout(() => {
+          setShowOverlay(false);
+        }, 1000);
+      }
+    }
+  };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Show overlay when video is paused, hide when playing (unless mouse is active)
+  useEffect(() => {
+    if (!isPlaying) {
+      // Always show when paused
+      setShowOverlay(true);
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+      }
+    } else {
+      // When playing, only hide if mouse is not over video
+      if (!isMouseOverVideo) {
+        setShowOverlay(false);
+      }
+    }
+  }, [isPlaying, isMouseOverVideo]);
+
   const setPlaybackSpeed = (speed: number) => {
     if (videoRef.current) {
       videoRef.current.playbackRate = speed;
+      setCurrentSpeed(speed);
     }
   };
 
@@ -177,30 +249,25 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
     return clipDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Cassette Recorder Style Functions
-  const startCutting = () => {
-    if (onCutClip) {
-      setIsCuttingMode(true);
-      setIsRecording(false);
-      setTrimStart(null);
-      setTrimEnd(null);
-      // Don't pause - let video keep playing
-    }
-  };
-
+  // Simplified Recording Functions
   const startRecording = () => {
+    // Ensure video is playing when starting recording
+    if (videoRef.current && !isPlaying) {
+      videoRef.current.play();
+      setIsPlaying(true);
+    }
+    
     const currentPos = getDayPosition();
+    setIsCuttingMode(true);
     setTrimStart(currentPos);
     setIsRecording(true);
     setTrimEnd(null);
-    // Video keeps playing while recording
   };
 
   const stopRecording = () => {
     const currentPos = getDayPosition();
     setTrimEnd(currentPos);
     setIsRecording(false);
-    // Clip is now captured!
   };
 
   const cancelCutting = () => {
@@ -245,7 +312,7 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
   return (
     <div className="bg-white rounded-xl overflow-hidden border border-slate-200 shadow-lg">
       {/* Video Player */}
-      <div className="relative bg-black aspect-video">
+      <div className="relative bg-black aspect-video group">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
             <Loader2 className="w-8 h-8 text-white animate-spin" />
@@ -257,6 +324,37 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
           className="w-full h-full object-contain"
           poster={currentClip?.thumbnail_url}
         />
+        
+        {/* Clickable Play/Pause Overlay */}
+        <div 
+          onClick={togglePlay}
+          onMouseMove={handleMouseMove}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`absolute inset-0 flex items-center justify-center z-20 transition-all duration-300 ${
+            showOverlay ? 'cursor-pointer' : 'cursor-none'
+          }`}
+        >
+          {/* Play/Pause Button - Shows when paused or when mouse moves while playing */}
+          <div className={`
+            transition-all duration-300 pointer-events-none
+            ${showOverlay ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}
+          `}>
+            <button
+              className="p-6 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 transition-all transform hover:scale-110 shadow-2xl border-2 border-white/30 pointer-events-auto"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent double-trigger
+                togglePlay();
+              }}
+            >
+              {isPlaying ? (
+                <Pause className="w-12 h-12 sm:w-16 sm:h-16 text-white drop-shadow-lg" />
+              ) : (
+                <Play className="w-12 h-12 sm:w-16 sm:h-16 text-white drop-shadow-lg" />
+              )}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Controls - Mobile Responsive */}
@@ -327,14 +425,22 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
             <div className="hidden md:flex items-center gap-1">
               <button
                 onClick={() => setPlaybackSpeed(0.25)}
-                className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all hover:scale-110"
+                className={`px-2 py-1 rounded-lg text-xs font-bold transition-all hover:scale-110 ${
+                  currentSpeed === 0.25 
+                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
                 title="מהירות איטית מאוד"
               >
                 0.25x
               </button>
               <button
                 onClick={() => setPlaybackSpeed(0.5)}
-                className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all hover:scale-110"
+                className={`px-2 py-1 rounded-lg text-xs font-bold transition-all hover:scale-110 ${
+                  currentSpeed === 0.5 
+                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
                 title="מהירות איטית"
               >
                 0.5x
@@ -376,47 +482,54 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
             <div className="hidden md:flex items-center gap-1">
               <button
                 onClick={() => setPlaybackSpeed(1)}
-                className="px-2 py-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold transition-all hover:scale-110"
+                className={`px-2 py-1 rounded-lg text-xs font-bold transition-all hover:scale-110 ${
+                  currentSpeed === 1 
+                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
                 title="מהירות רגילה"
               >
                 1x
               </button>
               <button
                 onClick={() => setPlaybackSpeed(2)}
-                className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all hover:scale-110"
+                className={`px-2 py-1 rounded-lg text-xs font-bold transition-all hover:scale-110 ${
+                  currentSpeed === 2 
+                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
                 title="מהירות כפולה"
               >
                 2x
               </button>
               <button
                 onClick={() => setPlaybackSpeed(5)}
-                className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all hover:scale-110"
+                className={`px-2 py-1 rounded-lg text-xs font-bold transition-all hover:scale-110 ${
+                  currentSpeed === 5 
+                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
                 title="מהירות X5"
               >
                 5x
               </button>
               <button
                 onClick={() => setPlaybackSpeed(10)}
-                className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all hover:scale-110"
+                className={`px-2 py-1 rounded-lg text-xs font-bold transition-all hover:scale-110 ${
+                  currentSpeed === 10 
+                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
                 title="מהירות X10"
               >
                 10x
               </button>
             </div>
 
-            {/* REC Button - Cassette Style */}
+            {/* REC Button - Simplified Single Click */}
             {onCutClip && (
               <>
-                {!isCuttingMode && (
-                  <button
-                    onClick={startCutting}
-                    className="p-4 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 transition-all shadow-lg hover:scale-110 ml-2"
-                    title="הקלט קליפ"
-                  >
-                    <div className="w-6 h-6 bg-white rounded-full"></div>
-                  </button>
-                )}
-                {isCuttingMode && !isRecording && !trimEnd && (
+                {!isRecording ? (
                   <button
                     onClick={startRecording}
                     className="p-4 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 transition-all shadow-lg hover:scale-110 ml-2"
@@ -424,11 +537,10 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
                   >
                     <div className="w-6 h-6 bg-white rounded-full"></div>
                   </button>
-                )}
-                {isRecording && (
+                ) : (
                   <button
                     onClick={stopRecording}
-                    className="p-4 rounded-xl bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-800 hover:to-slate-900 transition-all shadow-lg hover:scale-110 ml-2"
+                    className="p-4 rounded-xl bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-800 hover:to-slate-900 transition-all shadow-lg hover:scale-110 ml-2 animate-pulse"
                     title="STOP - עצור הקלטה"
                   >
                     <div className="w-6 h-6 bg-white"></div>
