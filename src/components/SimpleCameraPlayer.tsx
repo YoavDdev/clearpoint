@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Scissors, Loader2, VideoOff } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Scissors, Loader2, VideoOff, Volume2, VolumeX } from 'lucide-react';
 
 interface VodClip {
   id: string;
@@ -24,6 +24,10 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Audio controls
+  const [isMuted, setIsMuted] = useState(false);
+  const [volume, setVolume] = useState(1);
   
   // Clip cutting state - Cassette Recorder Style
   const [isCuttingMode, setIsCuttingMode] = useState(false);
@@ -53,11 +57,24 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
       videoRef.current.src = currentClip.url;
       videoRef.current.load();
       
-      if (isPlaying) {
-        videoRef.current.play().catch(e => console.log('Play error:', e));
-      }
+      // Apply audio settings
+      videoRef.current.muted = isMuted;
+      videoRef.current.volume = volume;
+      
+      const handleLoadedData = () => {
+        setIsLoading(false);
+        if (isPlaying && videoRef.current) {
+          videoRef.current.play();
+        }
+      };
+      
+      videoRef.current.addEventListener('loadeddata', handleLoadedData);
+      
+      return () => {
+        videoRef.current?.removeEventListener('loadeddata', handleLoadedData);
+      };
     }
-  }, [currentClipIndex, currentClip]);
+  }, [currentClipIndex, clips.length, isMuted, volume]);
 
   // Handle video events
   useEffect(() => {
@@ -68,7 +85,6 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
     const handleDurationChange = () => setDuration(video.duration);
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
-    const handleLoadedData = () => setIsLoading(false);
     const handleEnded = () => {
       // Auto-play next clip
       if (currentClipIndex < clips.length - 1) {
@@ -82,7 +98,6 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
     video.addEventListener('durationchange', handleDurationChange);
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
-    video.addEventListener('loadeddata', handleLoadedData);
     video.addEventListener('ended', handleEnded);
 
     return () => {
@@ -90,7 +105,6 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
       video.removeEventListener('durationchange', handleDurationChange);
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
-      video.removeEventListener('loadeddata', handleLoadedData);
       video.removeEventListener('ended', handleEnded);
     };
   }, [currentClipIndex, clips.length]);
@@ -109,6 +123,27 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
   const setPlaybackSpeed = (speed: number) => {
     if (videoRef.current) {
       videoRef.current.playbackRate = speed;
+    }
+  };
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
+
+  const handleVolumeChange = (newVolume: number) => {
+    if (videoRef.current) {
+      videoRef.current.volume = newVolume;
+      setVolume(newVolume);
+      if (newVolume === 0) {
+        setIsMuted(true);
+        videoRef.current.muted = true;
+      } else if (isMuted) {
+        setIsMuted(false);
+        videoRef.current.muted = false;
+      }
     }
   };
 
@@ -213,11 +248,6 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
           className="w-full h-full object-contain"
           poster={currentClip?.thumbnail_url}
         />
-
-        {/* Clip Time Overlay - Right Side */}
-        <div className="absolute top-3 right-3 bg-black/70 px-3 py-1 rounded text-white text-sm">
-          {getClipTime()}
-        </div>
       </div>
 
       {/* Controls */}
@@ -397,6 +427,46 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
                 )}
               </>
             )}
+
+            {/* Audio Controls */}
+            <div className="flex items-center gap-2 ml-3 pl-3 border-l-2 border-slate-200">
+              {/* Mute Button */}
+              <button
+                onClick={toggleMute}
+                className={`p-3 rounded-xl transition-all hover:scale-110 ${
+                  isMuted 
+                    ? 'bg-red-100 hover:bg-red-200 text-red-700' 
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                }`}
+                title={isMuted ? 'הפעל קול' : 'השתק'}
+              >
+                {isMuted ? (
+                  <VolumeX className="w-5 h-5" />
+                ) : (
+                  <Volume2 className="w-5 h-5" />
+                )}
+              </button>
+
+              {/* Volume Slider */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={volume}
+                  onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                  className="w-20 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer
+                    [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3
+                    [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-slate-600
+                    [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3
+                    [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-slate-600 [&::-moz-range-thumb]:border-0"
+                />
+                <span className="text-xs text-slate-600 font-medium w-8">
+                  {Math.round(volume * 100)}%
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
