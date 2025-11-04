@@ -54,9 +54,37 @@ export function NotificationsContent({ alerts, customers }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editMessage, setEditMessage] = useState("");
   const [deletingAll, setDeletingAll] = useState(false);
+  const [cleaningDuplicates, setCleaningDuplicates] = useState(false);
 
   const unresolvedAlerts = alerts.filter(a => !a.resolved);
   const resolvedAlerts = alerts.filter(a => a.resolved);
+
+  const handleCleanupDuplicates = async () => {
+    if (!confirm("🧹 האם למחוק התראות כפולות? הפעולה תשמור רק את ההתראה האחרונה של כל מצלמה.")) {
+      return;
+    }
+
+    setCleaningDuplicates(true);
+    try {
+      const response = await fetch("/api/admin/cleanup-duplicate-alerts", {
+        method: "POST"
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        alert(`✅ נוקו ${result.deleted} התראות כפולות! נשארו ${result.remaining} התראות.`);
+        window.location.reload();
+      } else {
+        alert("❌ שגיאה בניקוי התראות כפולות");
+      }
+    } catch (error) {
+      console.error("Error cleaning duplicates:", error);
+      alert("❌ שגיאה בניקוי התראות כפולות");
+    } finally {
+      setCleaningDuplicates(false);
+    }
+  };
 
   const handleDeleteAll = async () => {
     if (!confirm("⚠️ האם אתה בטוח שברצונך למחוק את כל ההתראות? פעולה זו לא ניתנת לביטול!")) {
@@ -249,23 +277,42 @@ export function NotificationsContent({ alerts, customers }: Props) {
                 התראות שלא טופלו ({unresolvedAlerts.length})
               </h3>
               {alerts.length > 0 && (
-                <button
-                  onClick={handleDeleteAll}
-                  disabled={deletingAll}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {deletingAll ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      <span>מוחק...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 size={16} />
-                      <span>מחק את כל ההתראות</span>
-                    </>
-                  )}
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleCleanupDuplicates}
+                    disabled={cleaningDuplicates}
+                    className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {cleaningDuplicates ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>מנקה...</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle size={16} />
+                        <span>נקה כפולות</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleDeleteAll}
+                    disabled={deletingAll}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {deletingAll ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>מוחק...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 size={16} />
+                        <span>מחק הכל</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               )}
             </div>
             

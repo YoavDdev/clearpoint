@@ -81,6 +81,43 @@ export async function POST() {
     const alertsToCreate = [];
     const notificationsToSend = [];
 
+    // SMART ALERT LOGIC: Check Mini PC status first
+    // If Mini PC is offline, don't spam about individual cameras
+    const offlineMiniPcs = new Set<string>();
+    
+    for (const miniPc of miniPcs || []) {
+      const user = Array.isArray(miniPc.user) ? miniPc.user[0] : miniPc.user;
+      
+      // Get real-time Mini PC health data
+      let miniPcHealthData = null;
+      try {
+        const healthResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/mini-pc-health/${miniPc.id}`);
+        const healthResult = await healthResponse.json();
+        if (healthResult.success) {
+          miniPcHealthData = healthResult.health;
+        }
+      } catch (error) {
+        console.error(`Failed to get Mini PC health data for ${miniPc.id}:`, error);
+      }
+      
+      // Check if Mini PC is offline (use same logic as below)
+      let isMiniPcOffline = false;
+      if (!miniPcHealthData || !miniPcHealthData.last_checked) {
+        isMiniPcOffline = true;
+      } else {
+        const lastCheck = new Date(miniPcHealthData.last_checked);
+        const diffMinutes = (Date.now() - lastCheck.getTime()) / (1000 * 60);
+        if (diffMinutes > 15) {
+          isMiniPcOffline = true;
+        }
+      }
+      
+      if (isMiniPcOffline) {
+        offlineMiniPcs.add(miniPc.user_id);
+        console.log(`🔴 Mini PC ${miniPc.hostname} is OFFLINE for user ${user?.full_name} - will suppress individual camera alerts`);
+      }
+    }
+
     for (const camera of cameras || []) {
       const user = Array.isArray(camera.user) ? camera.user[0] : camera.user;
       
@@ -121,14 +158,23 @@ export async function POST() {
       
       // Create offline alert if camera is offline
       if (isOffline) {
+        // SMART SUPPRESSION: Don't create camera alerts if Mini PC is offline (root cause)
+        if (offlineMiniPcs.has(camera.user_id)) {
+          console.log(`🔇 Suppressing camera alert for ${camera.name} - Mini PC is offline (root cause)`);
+          continue; // Skip to next camera
+        }
+        
         // Check if we already have an unresolved alert for this camera
+        // Use maybeSingle() to handle case where multiple duplicates might exist
         const { data: existingAlert } = await supabase
           .from("system_alerts")
-          .select("id")
+          .select("id, created_at")
           .eq("camera_id", camera.id)
           .eq("type", "camera_offline")
           .eq("resolved", false)
-          .single();
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
         if (!existingAlert) {
           const diffMinutes = healthData?.last_checked ? 
@@ -146,17 +192,34 @@ export async function POST() {
           });
 
           // Send email notification for camera offline to ADMIN only
+          // Only send if no alert was created in the last hour (rate limiting)
           if (emailNotificationsEnabled && adminEmail) {
-            notificationsToSend.push({
-              type: "camera_offline",
-              severity,
-              cameraName: camera.name,
-              customerName: user?.full_name || "לא ידוע",
-              message: offlineMessage,
-              timestamp: new Date().toISOString(),
-              email: adminEmail
-            });
+            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+            const { data: recentAlert } = await supabase
+              .from("system_alerts")
+              .select("created_at")
+              .eq("camera_id", camera.id)
+              .eq("type", "camera_offline")
+              .gte("created_at", oneHourAgo)
+              .limit(1)
+              .maybeSingle();
+            
+            if (!recentAlert) {
+              notificationsToSend.push({
+                type: "camera_offline",
+                severity,
+                cameraName: camera.name,
+                customerName: user?.full_name || "לא ידוע",
+                message: offlineMessage,
+                timestamp: new Date().toISOString(),
+                email: adminEmail
+              });
+            } else {
+              console.log(`⏭️ Skipping email for ${camera.name} - alert sent within last hour`);
+            }
           }
+        } else {
+          console.log(`⏭️ Skipping duplicate alert for ${camera.name} - unresolved alert already exists (ID: ${existingAlert.id})`);
         }
       } else {
         // Camera is ONLINE - check if there's an unresolved offline alert (recovery!)
@@ -226,7 +289,8 @@ export async function POST() {
           .eq("camera_id", camera.id)
           .eq("type", "stream_error")
           .eq("resolved", false)
-          .single();
+          .limit(1)
+          .maybeSingle();
 
         if (!existingAlert) {
           alertsToCreate.push({
@@ -252,7 +316,8 @@ export async function POST() {
             .eq("camera_id", camera.id)
             .eq("type", "disk_full")
             .eq("resolved", false)
-            .single();
+            .limit(1)
+            .maybeSingle();
 
           if (!existingAlert) {
             alertsToCreate.push({
@@ -279,7 +344,8 @@ export async function POST() {
               .eq("camera_id", camera.id)
               .eq("type", "stream_error")
               .eq("resolved", false)
-              .single();
+              .limit(1)
+              .maybeSingle();
 
             if (!existingAlert) {
               // Determine severity and message based on status
@@ -307,16 +373,31 @@ export async function POST() {
               });
 
               // Send email notification for stream errors to ADMIN only
+              // Only send if no alert was created in the last hour (rate limiting)
               if (emailNotificationsEnabled && adminEmail) {
-                notificationsToSend.push({
-                  type: "stream_error",
-                  severity,
-                  cameraName: camera.name,
-                  customerName: user?.full_name || "לא ידוע",
-                  message,
-                  timestamp: new Date().toISOString(),
-                  email: adminEmail
-                });
+                const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+                const { data: recentAlert } = await supabase
+                  .from("system_alerts")
+                  .select("created_at")
+                  .eq("camera_id", camera.id)
+                  .eq("type", "stream_error")
+                  .gte("created_at", oneHourAgo)
+                  .limit(1)
+                  .maybeSingle();
+                
+                if (!recentAlert) {
+                  notificationsToSend.push({
+                    type: "stream_error",
+                    severity,
+                    cameraName: camera.name,
+                    customerName: user?.full_name || "לא ידוע",
+                    message,
+                    timestamp: new Date().toISOString(),
+                    email: adminEmail
+                  });
+                } else {
+                  console.log(`⏭️ Skipping email for ${camera.name} stream error - alert sent within last hour`);
+                }
               }
             }
           }
@@ -334,7 +415,8 @@ export async function POST() {
               .eq("camera_id", camera.id)
               .eq("type", "device_error")
               .eq("resolved", false)
-              .single();
+              .limit(1)
+              .maybeSingle();
 
             if (!existingAlert) {
               alertsToCreate.push({
@@ -376,17 +458,54 @@ export async function POST() {
           .eq("mini_pc_id", miniPc.id)
           .eq("type", "minipc_offline")
           .eq("resolved", false)
-          .single();
+          .limit(1)
+          .maybeSingle();
 
         if (!existingAlert) {
+          // Count cameras affected by this Mini PC
+          const affectedCameras = cameras?.filter(cam => cam.user_id === miniPc.user_id) || [];
+          const cameraCount = affectedCameras.length;
+          const cameraNames = affectedCameras.map(c => c.name).join(', ');
+          
+          const message = cameraCount > 0 
+            ? `🚨 מיני PC ${miniPc.hostname} לא מחובר - ${cameraCount} מצלמות מושפעות (${cameraNames})`
+            : `מיני PC ${miniPc.hostname} אין נתוני בריאות זמינים`;
+          
           alertsToCreate.push({
             type: "minipc_offline",
             mini_pc_id: miniPc.id,
             mini_pc_hostname: miniPc.hostname,
             customer_name: user?.full_name || "לא ידוע",
-            message: `מיני PC ${miniPc.hostname} אין נתוני בריאות זמינים`,
+            message,
             severity: "critical"
           });
+          
+          // Send email for Mini PC offline (high priority - affects all cameras)
+          if (emailNotificationsEnabled && adminEmail) {
+            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+            const { data: recentAlert } = await supabase
+              .from("system_alerts")
+              .select("created_at")
+              .eq("mini_pc_id", miniPc.id)
+              .eq("type", "minipc_offline")
+              .gte("created_at", oneHourAgo)
+              .limit(1)
+              .maybeSingle();
+            
+            if (!recentAlert) {
+              notificationsToSend.push({
+                type: "camera_offline" as any, // Use camera_offline type for email template
+                severity: "critical" as any,
+                cameraName: `Mini PC ${miniPc.hostname}`,
+                customerName: user?.full_name || "לא ידוע",
+                message,
+                timestamp: new Date().toISOString(),
+                email: adminEmail
+              });
+            } else {
+              console.log(`⏭️ Skipping email for Mini PC ${miniPc.hostname} - alert sent within last hour`);
+            }
+          }
         }
       } else {
         // Check if health data is recent (within 15 minutes)
@@ -401,17 +520,54 @@ export async function POST() {
               .eq("mini_pc_id", miniPc.id)
               .eq("type", "minipc_offline")
               .eq("resolved", false)
-              .single();
+              .limit(1)
+              .maybeSingle();
 
             if (!existingAlert) {
+              // Count cameras affected by this Mini PC
+              const affectedCameras = cameras?.filter(cam => cam.user_id === miniPc.user_id) || [];
+              const cameraCount = affectedCameras.length;
+              const cameraNames = affectedCameras.map(c => c.name).join(', ');
+              
+              const message = cameraCount > 0 
+                ? `🚨 מיני PC ${miniPc.hostname} לא דיווח מזה ${Math.round(diffMinutes)} דקות - ${cameraCount} מצלמות מושפעות (${cameraNames})`
+                : `מיני PC ${miniPc.hostname} לא דיווח מזה ${Math.round(diffMinutes)} דקות`;
+              
               alertsToCreate.push({
                 type: "minipc_offline",
                 mini_pc_id: miniPc.id,
                 mini_pc_hostname: miniPc.hostname,
                 customer_name: user?.full_name || "לא ידוע",
-                message: `מיני PC ${miniPc.hostname} לא דיווח מזה ${Math.round(diffMinutes)} דקות`,
+                message,
                 severity: "high"
               });
+              
+              // Send email for Mini PC offline (high priority)
+              if (emailNotificationsEnabled && adminEmail) {
+                const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+                const { data: recentAlert } = await supabase
+                  .from("system_alerts")
+                  .select("created_at")
+                  .eq("mini_pc_id", miniPc.id)
+                  .eq("type", "minipc_offline")
+                  .gte("created_at", oneHourAgo)
+                  .limit(1)
+                  .maybeSingle();
+                
+                if (!recentAlert) {
+                  notificationsToSend.push({
+                    type: "camera_offline" as any,
+                    severity: "high" as any,
+                    cameraName: `Mini PC ${miniPc.hostname}`,
+                    customerName: user?.full_name || "לא ידוע",
+                    message,
+                    timestamp: new Date().toISOString(),
+                    email: adminEmail
+                  });
+                } else {
+                  console.log(`⏭️ Skipping email for Mini PC ${miniPc.hostname} - alert sent within last hour`);
+                }
+              }
             }
           }
         }
@@ -424,7 +580,8 @@ export async function POST() {
             .eq("mini_pc_id", miniPc.id)
             .eq("type", "minipc_overheating")
             .eq("resolved", false)
-            .single();
+            .limit(1)
+            .maybeSingle();
 
           if (!existingAlert) {
             alertsToCreate.push({
@@ -446,7 +603,8 @@ export async function POST() {
             .eq("mini_pc_id", miniPc.id)
             .eq("type", "minipc_disk_full")
             .eq("resolved", false)
-            .single();
+            .limit(1)
+            .maybeSingle();
 
           if (!existingAlert) {
             alertsToCreate.push({
@@ -468,7 +626,8 @@ export async function POST() {
             .eq("mini_pc_id", miniPc.id)
             .eq("type", "minipc_memory_full")
             .eq("resolved", false)
-            .single();
+            .limit(1)
+            .maybeSingle();
 
           if (!existingAlert) {
             alertsToCreate.push({
@@ -490,7 +649,8 @@ export async function POST() {
             .eq("mini_pc_id", miniPc.id)
             .eq("type", "minipc_no_internet")
             .eq("resolved", false)
-            .single();
+            .limit(1)
+            .maybeSingle();
 
           if (!existingAlert) {
             alertsToCreate.push({
