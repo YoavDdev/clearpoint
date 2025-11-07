@@ -25,10 +25,10 @@ export async function POST(req: Request) {
     phone,
     address,
     notes,
-    plan_type,             // → becomes plan_id in table
+    plan_id,
     plan_duration_days,
     custom_price,
-    tunnel_name            // ✅ ADDED HERE
+    tunnel_name
   } = body;
 
   // 1. Create user in Supabase Auth (no password yet)
@@ -51,10 +51,10 @@ export async function POST(req: Request) {
     phone,
     address,
     notes,
-    plan_id: plan_type,
+    plan_id,
     plan_duration_days,
     custom_price: custom_price ?? null,
-    tunnel_name: tunnel_name || null,  // ✅ ADDED HERE
+    tunnel_name: tunnel_name || null,
     subscription_status: "active",
   });
 

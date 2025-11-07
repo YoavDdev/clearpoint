@@ -5,17 +5,20 @@ import { NextResponse } from "next/server";
 
 type Plan = {
   name: string;
+  name_he: string;
   monthly_price: number;
+  setup_price: number;
   retention_days: number;
   connection_type: string;
-  cloud_enabled: boolean;
-  live_enabled: boolean;
+  data_allowance_gb: number | null;
+  camera_limit: number;
 };
 
 type UserWithPlan = {
   plan_id: string;
   custom_price: number | null;
   plan_duration_days: number | null;
+  setup_paid: boolean | null;
   plan: Plan;
 };
 
@@ -43,13 +46,16 @@ export async function GET() {
         plan_id,
         custom_price,
         plan_duration_days,
+        setup_paid,
         plan:plans (
           name,
+          name_he,
           monthly_price,
+          setup_price,
           retention_days,
           connection_type,
-          cloud_enabled,
-          live_enabled
+          data_allowance_gb,
+          camera_limit
         )
       `
       )
@@ -83,17 +89,20 @@ export async function GET() {
     const plan = {
       id: data.plan_id,
       name: data.plan.name,
-      price: data.plan.monthly_price,
+      name_he: data.plan.name_he,
+      monthly_price: data.plan.monthly_price,
+      setup_price: data.plan.setup_price,
       retention_days: data.plan_duration_days ?? data.plan.retention_days,
-      connection: data.plan.connection_type,
-      cloud: data.plan.cloud_enabled,
-      live: data.plan.live_enabled,
+      connection_type: data.plan.connection_type,
+      data_allowance_gb: data.plan.data_allowance_gb,
+      camera_limit: data.plan.camera_limit,
     };
 
     return NextResponse.json({
       success: true,
       plan,
       custom_price: data.custom_price ?? null,
+      setup_paid: data.setup_paid ?? false,
     });
   } catch (err) {
     console.error("❌ Unexpected error:", err);

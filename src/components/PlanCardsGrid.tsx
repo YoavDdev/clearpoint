@@ -4,8 +4,8 @@ import { Check, Star, Wifi, Smartphone, HardDrive, Zap, Shield, Cloud } from "lu
 export default function PlanCardsGrid() {
   return (
     <div dir="rtl" className="max-w-7xl mx-auto">
-      {/* Plans Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
+      {/* Plans Grid - 2 Plans Only */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 max-w-5xl mx-auto mb-16">
         {/* SIM Plan */}
         <div className="group relative">
           <div className="absolute -inset-0.5 bg-gradient-to-br from-orange-500 to-amber-500 rounded-3xl blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
@@ -15,12 +15,13 @@ export default function PlanCardsGrid() {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-500 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
                 <Smartphone className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-2">חבילת סים</h3>
+              <h3 className="text-2xl font-bold text-slate-900 mb-2">SIM Cloud</h3>
               <div className="flex items-baseline justify-center gap-1 mb-2">
-                <span className="text-5xl font-bold text-slate-900">₪69</span>
+                <span className="text-5xl font-bold text-slate-900">₪189</span>
                 <span className="text-slate-600">/חודש</span>
               </div>
-              <p className="text-sm text-slate-600">אידיאלי למקומות ללא אינטרנט</p>
+              <div className="text-sm text-slate-600 mb-1">התקנה חד-פעמית: <span className="font-bold text-orange-600">₪3,290</span></div>
+              <p className="text-xs text-slate-500">כולל ראוטר SIM + 500GB גלישה</p>
             </div>
 
             {/* Features */}
@@ -29,40 +30,46 @@ export default function PlanCardsGrid() {
                 <div className="shrink-0 w-5 h-5 bg-orange-100 rounded-full flex items-center justify-center">
                   <Check className="w-3 h-3 text-orange-600" />
                 </div>
-                <span className="text-slate-700">חיבור דרך ראוטר SIM</span>
+                <span className="text-slate-700 font-medium">4 מצלמות HD</span>
               </li>
               <li className="flex items-center gap-3">
                 <div className="shrink-0 w-5 h-5 bg-orange-100 rounded-full flex items-center justify-center">
                   <Check className="w-3 h-3 text-orange-600" />
                 </div>
-                <span className="text-slate-700">גיבוי חכם או לפי דרישה</span>
+                <span className="text-slate-700 font-medium">Mini PC + ראוטר SIM</span>
               </li>
               <li className="flex items-center gap-3">
                 <div className="shrink-0 w-5 h-5 bg-orange-100 rounded-full flex items-center justify-center">
                   <Check className="w-3 h-3 text-orange-600" />
                 </div>
-                <span className="text-slate-700">צפייה חיה מרחוק</span>
+                <span className="text-slate-700 font-medium">חבילת 500GB גלישה</span>
               </li>
               <li className="flex items-center gap-3">
                 <div className="shrink-0 w-5 h-5 bg-orange-100 rounded-full flex items-center justify-center">
                   <Check className="w-3 h-3 text-orange-600" />
                 </div>
-                <span className="text-slate-700">שמירה עד 7 ימים</span>
+                <span className="text-slate-700 font-medium">צפייה חיה + הקלטות</span>
               </li>
               <li className="flex items-center gap-3">
                 <div className="shrink-0 w-5 h-5 bg-orange-100 rounded-full flex items-center justify-center">
                   <Check className="w-3 h-3 text-orange-600" />
                 </div>
-                <span className="text-slate-700">הורדת קליפים ותמונות</span>
+                <span className="text-slate-700 font-medium">14 ימי שמירה בענן</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <div className="shrink-0 w-5 h-5 bg-orange-100 rounded-full flex items-center justify-center">
+                  <Check className="w-3 h-3 text-orange-600" />
+                </div>
+                <span className="text-slate-700 font-medium">התקנה מלאה + הדרכה</span>
               </li>
             </ul>
 
             {/* CTA Button */}
             <Link 
-              href="/subscribe?plan=sim" 
+              href="/subscribe?plan=sim-cloud" 
               className="block w-full text-center bg-gradient-to-l from-orange-600 to-amber-600 text-white rounded-xl py-4 px-6 font-bold hover:from-orange-700 hover:to-amber-700 transition-all duration-300 shadow-lg hover:shadow-xl group-hover:scale-105"
             >
-              התחל עם החבילה
+              בקש התקנה עכשיו
             </Link>
           </div>
         </div>
@@ -84,12 +91,13 @@ export default function PlanCardsGrid() {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
                 <Wifi className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-2">חבילת אינטרנט ביתי</h3>
+              <h3 className="text-2xl font-bold text-slate-900 mb-2">Wi-Fi Cloud</h3>
               <div className="flex items-baseline justify-center gap-1 mb-2">
-                <span className="text-5xl font-bold bg-gradient-to-l from-blue-600 to-cyan-600 bg-clip-text text-transparent">₪79</span>
+                <span className="text-5xl font-bold bg-gradient-to-l from-blue-600 to-cyan-600 bg-clip-text text-transparent">₪149</span>
                 <span className="text-slate-600">/חודש</span>
               </div>
-              <p className="text-sm text-slate-600">המומלץ ביותר - הכל בענן</p>
+              <div className="text-sm text-slate-600 mb-1">התקנה חד-פעמית: <span className="font-bold text-blue-600">₪2,990</span></div>
+              <p className="text-xs text-slate-500">חיבור לאינטרנט קיים של הלקוח</p>
             </div>
 
             {/* Features */}
@@ -98,101 +106,46 @@ export default function PlanCardsGrid() {
                 <div className="shrink-0 w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center">
                   <Check className="w-3 h-3 text-blue-600" />
                 </div>
-                <span className="text-slate-700 font-medium">חיבור Wi-Fi ביתי</span>
+                <span className="text-slate-700 font-medium">4 מצלמות HD</span>
               </li>
               <li className="flex items-center gap-3">
                 <div className="shrink-0 w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center">
                   <Check className="w-3 h-3 text-blue-600" />
                 </div>
-                <span className="text-slate-700 font-medium">העלאה אוטומטית לענן</span>
+                <span className="text-slate-700 font-medium">Mini PC חכם</span>
               </li>
               <li className="flex items-center gap-3">
                 <div className="shrink-0 w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center">
                   <Check className="w-3 h-3 text-blue-600" />
                 </div>
-                <span className="text-slate-700 font-medium">צפייה חיה מרחוק</span>
+                <span className="text-slate-700 font-medium">חיבור Wi-Fi קיים</span>
               </li>
               <li className="flex items-center gap-3">
                 <div className="shrink-0 w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center">
                   <Check className="w-3 h-3 text-blue-600" />
                 </div>
-                <span className="text-slate-700 font-medium">שמירה עד 14 ימים</span>
+                <span className="text-slate-700 font-medium">צפייה חיה + הקלטות</span>
               </li>
               <li className="flex items-center gap-3">
                 <div className="shrink-0 w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center">
                   <Check className="w-3 h-3 text-blue-600" />
                 </div>
-                <span className="text-slate-700 font-medium">הורדת קליפים ותמונות</span>
+                <span className="text-slate-700 font-medium">14 ימי שמירה בענן</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <div className="shrink-0 w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center">
+                  <Check className="w-3 h-3 text-blue-600" />
+                </div>
+                <span className="text-slate-700 font-medium">התקנה מלאה + הדרכה</span>
               </li>
             </ul>
 
             {/* CTA Button */}
             <Link 
-              href="/subscribe?plan=wifi" 
+              href="/subscribe?plan=wifi-cloud" 
               className="block w-full text-center bg-gradient-to-l from-blue-600 to-cyan-600 text-white rounded-xl py-4 px-6 font-bold hover:from-blue-700 hover:to-cyan-700 transition-all duration-300 shadow-xl hover:shadow-2xl group-hover:scale-105"
             >
-              התחל עם החבילה
-            </Link>
-          </div>
-        </div>
-
-        {/* Local Plan */}
-        <div className="group relative">
-          <div className="absolute -inset-0.5 bg-gradient-to-br from-slate-500 to-gray-600 rounded-3xl blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
-          <div className="relative bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-slate-100">
-            {/* Plan Header */}
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-slate-600 to-gray-700 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
-                <HardDrive className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-2">חבילת מקומית</h3>
-              <div className="flex items-baseline justify-center gap-1 mb-2">
-                <span className="text-5xl font-bold text-slate-900">₪59</span>
-                <span className="text-slate-600">/חודש</span>
-              </div>
-              <p className="text-sm text-slate-600">פרטיות מקסימלית - אחסון מקומי</p>
-            </div>
-
-            {/* Features */}
-            <ul className="space-y-3 mb-8 text-right">
-              <li className="flex items-center gap-3">
-                <div className="shrink-0 w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center">
-                  <Check className="w-3 h-3 text-slate-600" />
-                </div>
-                <span className="text-slate-700">אחסון מקומי בלבד</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="shrink-0 w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center">
-                  <Check className="w-3 h-3 text-slate-600" />
-                </div>
-                <span className="text-slate-700">שמירה עד 14 ימים (SSD)</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="shrink-0 w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center">
-                  <Check className="w-3 h-3 text-slate-600" />
-                </div>
-                <span className="text-slate-700">קליפים ותמונות מקומיים</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="shrink-0 w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center">
-                  <Check className="w-3 h-3 text-slate-600" />
-                </div>
-                <span className="text-slate-700">פרטיות מקסימלית</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="shrink-0 w-5 h-5 bg-red-100 rounded-full flex items-center justify-center">
-                  <span className="text-red-600 text-xs">✕</span>
-                </div>
-                <span className="text-slate-500">אין גישה מרחוק</span>
-              </li>
-            </ul>
-
-            {/* CTA Button */}
-            <Link 
-              href="/subscribe?plan=local" 
-              className="block w-full text-center bg-gradient-to-l from-slate-700 to-gray-800 text-white rounded-xl py-4 px-6 font-bold hover:from-slate-800 hover:to-gray-900 transition-all duration-300 shadow-lg hover:shadow-xl group-hover:scale-105"
-            >
-              התחל עם החבילה
+              בקש התקנה עכשיו
             </Link>
           </div>
         </div>
@@ -201,14 +154,14 @@ export default function PlanCardsGrid() {
       {/* Shared Features */}
       <div className="bg-white rounded-3xl p-8 shadow-lg border border-slate-100">
         <h3 className="text-2xl font-bold text-center text-slate-900 mb-8">כל החבילות כוללות</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="flex items-start gap-4">
             <div className="shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
               <Zap className="w-6 h-6 text-white" />
             </div>
             <div className="text-right">
-              <h4 className="font-bold text-slate-900 mb-1">התקנה מקצועית</h4>
-              <p className="text-sm text-slate-600">צוות מקצועי מגיע אליך לביצוע התקנה מלאה</p>
+              <h4 className="font-bold text-slate-900 mb-1">התקנה מלאה</h4>
+              <p className="text-sm text-slate-600">4 מצלמות + Mini PC + כבלים</p>
             </div>
           </div>
           <div className="flex items-start gap-4">
@@ -217,7 +170,7 @@ export default function PlanCardsGrid() {
             </div>
             <div className="text-right">
               <h4 className="font-bold text-slate-900 mb-1">אבטחה מתקדמת</h4>
-              <p className="text-sm text-slate-600">הצפנה מקצה לקצה ואבטחת מידע ברמה בנקאית</p>
+              <p className="text-sm text-slate-600">הצפנה מקצה לקצה וענן מאובטח</p>
             </div>
           </div>
           <div className="flex items-start gap-4">
@@ -225,8 +178,17 @@ export default function PlanCardsGrid() {
               <Cloud className="w-6 h-6 text-white" />
             </div>
             <div className="text-right">
-              <h4 className="font-bold text-slate-900 mb-1">דשבורד בעברית</h4>
-              <p className="text-sm text-slate-600">ממשק נוח וידידותי בעברית עם תמיכה טכנית מלאה</p>
+              <h4 className="font-bold text-slate-900 mb-1">14 ימי אחסון</h4>
+              <p className="text-sm text-slate-600">שמירה בענן עד שבועיים מלאים</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-4">
+            <div className="shrink-0 w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
+              <Check className="w-6 h-6 text-white" />
+            </div>
+            <div className="text-right">
+              <h4 className="font-bold text-slate-900 mb-1">תמיכה מלאה</h4>
+              <p className="text-sm text-slate-600">הדרכה + תמיכה טכנית בעברית</p>
             </div>
           </div>
         </div>

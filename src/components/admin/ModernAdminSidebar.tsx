@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { 
   LayoutDashboard, 
   Users, 
@@ -11,8 +11,10 @@ import {
   Settings,
   AlertCircle,
   CheckCircle,
-  Bell
+  Bell,
+  LogOut
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 
 const navigation = [
   {
@@ -67,6 +69,12 @@ const navigation = [
 
 export function ModernAdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push("/login");
+  };
 
   return (
     <div className="fixed right-0 top-0 h-screen w-72 bg-white border-l border-slate-200 shadow-lg overflow-y-auto" dir="rtl">
@@ -117,8 +125,15 @@ export function ModernAdminSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 bg-slate-50">
-        <div className="text-center">
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 bg-white space-y-2">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+        >
+          <LogOut className="w-5 h-5" />
+          <span className="font-medium">התנתקות</span>
+        </button>
+        <div className="text-center pt-2 border-t border-slate-200">
           <p className="text-xs text-slate-600">
             מערכת ניהול Clearpoint Security
           </p>

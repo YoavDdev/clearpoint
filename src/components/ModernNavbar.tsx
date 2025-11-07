@@ -2,11 +2,17 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { Shield, Menu, X, ChevronDown } from "lucide-react";
 
 export default function ModernNavbar() {
+  const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Pages with light background that need solid navbar from start
+  const lightBackgroundPages = ['/subscribe', '/about', '/services', '/contact'];
+  const needsSolidNavbar = lightBackgroundPages.some(page => pathname?.startsWith(page));
 
   useEffect(() => {
     const handleScroll = () => {
@@ -17,11 +23,14 @@ export default function ModernNavbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Show solid navbar if scrolled OR on light background pages
+  const showSolidNavbar = isScrolled || needsSolidNavbar;
+
   return (
     <nav 
       dir="rtl"
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled 
+        showSolidNavbar 
           ? 'bg-white/95 backdrop-blur-lg shadow-lg border-b border-slate-200' 
           : 'bg-transparent'
       }`}
@@ -34,10 +43,10 @@ export default function ModernNavbar() {
               <Shield className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className={`text-2xl font-bold transition-colors ${isScrolled ? 'text-slate-900' : 'text-white'}`}>
+              <h1 className={`text-2xl font-bold transition-colors ${showSolidNavbar ? 'text-slate-900' : 'text-white'}`}>
                 Clearpoint
               </h1>
-              <p className={`text-xs transition-colors ${isScrolled ? 'text-blue-600' : 'text-blue-300'}`}>
+              <p className={`text-xs transition-colors ${showSolidNavbar ? 'text-blue-600' : 'text-blue-300'}`}>
                 Security Solutions
               </p>
             </div>
@@ -48,7 +57,7 @@ export default function ModernNavbar() {
             <Link 
               href="/#features" 
               className={`font-medium transition-colors hover:text-blue-600 ${
-                isScrolled ? 'text-slate-700' : 'text-white'
+                showSolidNavbar ? 'text-slate-700' : 'text-white'
               }`}
             >
               למה Clearpoint?
@@ -56,7 +65,7 @@ export default function ModernNavbar() {
             <Link 
               href="/#plans" 
               className={`font-medium transition-colors hover:text-blue-600 ${
-                isScrolled ? 'text-slate-700' : 'text-white'
+                showSolidNavbar ? 'text-slate-700' : 'text-white'
               }`}
             >
               חבילות ומחירים
@@ -64,7 +73,7 @@ export default function ModernNavbar() {
             <Link 
               href="/about" 
               className={`font-medium transition-colors hover:text-blue-600 ${
-                isScrolled ? 'text-slate-700' : 'text-white'
+                showSolidNavbar ? 'text-slate-700' : 'text-white'
               }`}
             >
               אודות
@@ -72,7 +81,7 @@ export default function ModernNavbar() {
             <Link 
               href="/services" 
               className={`font-medium transition-colors hover:text-blue-600 ${
-                isScrolled ? 'text-slate-700' : 'text-white'
+                showSolidNavbar ? 'text-slate-700' : 'text-white'
               }`}
             >
               שירותים
@@ -84,7 +93,7 @@ export default function ModernNavbar() {
             <Link 
               href="/login"
               className={`px-5 py-2.5 rounded-lg font-medium transition-all ${
-                isScrolled 
+                showSolidNavbar 
                   ? 'text-slate-700 hover:bg-slate-100' 
                   : 'text-white hover:bg-white/10'
               }`}
@@ -103,7 +112,7 @@ export default function ModernNavbar() {
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className={`md:hidden p-2 rounded-lg transition-colors ${
-              isScrolled 
+              showSolidNavbar 
                 ? 'text-slate-900 hover:bg-slate-100' 
                 : 'text-white hover:bg-white/10'
             }`}

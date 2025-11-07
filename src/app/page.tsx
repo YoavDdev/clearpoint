@@ -1,8 +1,23 @@
 import PlanCardsGrid from "@/components/PlanCardsGrid";
 import Footer from "@/components/Footer";
 import { Shield, Eye, Lock, Zap, Camera, Cloud, Cpu, BadgeCheck } from "lucide-react";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { redirect } from "next/navigation";
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Check if user is already logged in
+  const session = await getServerSession(authOptions);
+  
+  if (session?.user) {
+    // Redirect based on role
+    if (session.user.role === "admin") {
+      redirect("/admin");
+    } else {
+      redirect("/dashboard");
+    }
+  }
+
   return (
     <main dir="rtl" className="min-h-screen">
       {/* Hero Section with Gradient Background */}

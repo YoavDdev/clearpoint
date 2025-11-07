@@ -6,16 +6,19 @@ import { Package, Calendar, Wifi, Cloud, Video, Check, X, CreditCard, TrendingUp
 interface Plan {
   id: string;
   name: string;
-  price: number;
+  name_he: string;
+  monthly_price: number;
+  setup_price: number;
   retention_days: number;
-  connection: string;
-  cloud: boolean;
-  live: boolean;
+  connection_type: string;
+  data_allowance_gb: number | null;
+  camera_limit: number;
 }
 
 export default function PlanPage() {
   const [plan, setPlan] = useState<Plan | null>(null);
   const [customPrice, setCustomPrice] = useState<number | null>(null);
+  const [setupPaid, setSetupPaid] = useState(false);
 
   useEffect(() => {
     fetch('/api/user-plan')
@@ -24,6 +27,7 @@ export default function PlanPage() {
         if (result.success) {
           setPlan(result.plan);
           setCustomPrice(result.custom_price);
+          setSetupPaid(result.setup_paid || false);
         } else {
           console.error(result.error);
         }
@@ -45,7 +49,7 @@ export default function PlanPage() {
     );
   }
 
-  const finalPrice = customPrice ?? plan.price;
+  const finalPrice = customPrice ?? plan.monthly_price;
 
   return (
     <div dir="rtl" className="min-h-screen bg-slate-50 p-6">
@@ -68,7 +72,7 @@ export default function PlanPage() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <p className="text-sm text-blue-600 font-medium mb-1">התוכנית הנוכחית שלך</p>
-              <h2 className="text-3xl font-bold text-slate-900">{plan.name}</h2>
+              <h2 className="text-3xl font-bold text-slate-900">{plan.name_he || plan.name}</h2>
             </div>
             <div className="text-left">
               <p className="text-sm text-slate-600 mb-1">מחיר חודשי</p>
@@ -99,7 +103,10 @@ export default function PlanPage() {
                 </div>
                 <div>
                   <p className="font-bold text-slate-900 mb-1">סוג חיבור</p>
-                  <p className="text-slate-600">{plan.connection}</p>
+                  <p className="text-slate-600">{plan.connection_type === 'wifi' ? 'Wi-Fi' : 'SIM 4G'}</p>
+                  {plan.data_allowance_gb && (
+                    <p className="text-xs text-slate-500 mt-1">{plan.data_allowance_gb}GB גלישה</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -107,12 +114,12 @@ export default function PlanPage() {
             {/* Feature 3 */}
             <div className="bg-white rounded-lg p-4 shadow-sm">
               <div className="flex items-start gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${plan.live ? 'bg-green-100' : 'bg-red-100'}`}>
-                  {plan.live ? <Check className="w-5 h-5 text-green-600" /> : <X className="w-5 h-5 text-red-600" />}
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
+                  <Video className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="font-bold text-slate-900 mb-1">צפייה חיה</p>
-                  <p className="text-slate-600">{plan.live ? 'זמין מכל מקום' : 'לא זמין'}</p>
+                  <p className="font-bold text-slate-900 mb-1">מצלמות</p>
+                  <p className="text-slate-600">עד {plan.camera_limit} מצלמות HD</p>
                 </div>
               </div>
             </div>
@@ -120,59 +127,82 @@ export default function PlanPage() {
             {/* Feature 4 */}
             <div className="bg-white rounded-lg p-4 shadow-sm">
               <div className="flex items-start gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${plan.cloud ? 'bg-green-100' : 'bg-red-100'}`}>
-                  {plan.cloud ? <Cloud className="w-5 h-5 text-green-600" /> : <X className="w-5 h-5 text-red-600" />}
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
+                  <Cloud className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="font-bold text-slate-900 mb-1">גיבוי בענן</p>
-                  <p className="text-slate-600">{plan.cloud ? 'פעיל ומאובטח' : 'אחסון מקומי בלבד'}</p>
+                  <p className="font-bold text-slate-900 mb-1">צפייה חיה + ענן</p>
+                  <p className="text-slate-600">גישה מרחוק וגיבוי מאובטח</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Subscription Info */}
+        {/* Payment Info */}
         <div className="bg-white rounded-xl p-8 shadow-lg border border-slate-200">
-          <h3 className="text-xl font-bold text-slate-900 mb-6">פרטי מנוי</h3>
+          <h3 className="text-xl font-bold text-slate-900 mb-6">פרטי תשלום</h3>
           <div className="space-y-4">
+            {/* Setup Fee */}
             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
               <div className="flex items-center gap-3">
-                <CreditCard className="w-5 h-5 text-slate-600" />
+                <Package className="w-5 h-5 text-slate-600" />
+                <span className="font-medium text-slate-900">התקנה חד-פעמית</span>
+              </div>
+              <div className="text-left">
+                <span className="text-2xl font-bold text-slate-900">₪{plan.setup_price.toLocaleString()}</span>
+                {setupPaid && (
+                  <p className="text-xs text-green-600 mt-1">✅ שולם</p>
+                )}
+              </div>
+            </div>
+            
+            {/* Monthly Price */}
+            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-3">
+                <CreditCard className="w-5 h-5 text-blue-600" />
                 <span className="font-medium text-slate-900">מחיר חודשי</span>
               </div>
               <span className="text-2xl font-bold text-blue-600">₪{finalPrice}</span>
             </div>
+            
+            {/* Next Payment */}
             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
               <div className="flex items-center gap-3">
                 <Calendar className="w-5 h-5 text-slate-600" />
-                <span className="font-medium text-slate-900">תוקף עד</span>
+                <span className="font-medium text-slate-900">החיוב הבא</span>
               </div>
-              <span className="text-lg font-bold text-slate-900">31.05.2025</span>
+              <span className="text-lg font-bold text-slate-900">01.12.2024</span>
             </div>
           </div>
         </div>
 
-        {/* Upgrade Option */}
-        {plan.id === 'local' && (
-          <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-8 shadow-lg border-2 border-orange-200">
-            <div className="flex items-start gap-4 mb-6">
-              <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center shrink-0">
-                <TrendingUp className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">רוצים לשדרג?</h3>
-                <p className="text-lg text-slate-600">שדרגו לתוכנית ענן וקבלו גיבוי אוטומטי וצפייה מרחוק!</p>
+        {/* Support Info */}
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center shrink-0">
+              <Check className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">תמיכה זמינה</h3>
+              <p className="text-slate-600 mb-3">צריכים עזרה? אנחנו פה בשבילכם!</p>
+              <div className="flex flex-wrap gap-3">
+                <a 
+                  href="tel:0548132603" 
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-all"
+                >
+                  📞 054-813-2603
+                </a>
+                <a 
+                  href="/dashboard/support" 
+                  className="px-4 py-2 bg-white text-green-700 rounded-lg font-medium hover:bg-green-50 transition-all border border-green-200"
+                >
+                  פתח פנייה
+                </a>
               </div>
             </div>
-            <a 
-              href="/subscribe" 
-              className="block w-full text-center px-6 py-4 bg-gradient-to-l from-orange-600 to-amber-600 text-white rounded-xl font-bold text-lg hover:from-orange-700 hover:to-amber-700 transition-all shadow-lg"
-            >
-              שדרג לתוכנית ענן
-            </a>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

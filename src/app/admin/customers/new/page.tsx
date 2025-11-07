@@ -94,7 +94,7 @@ export default function NewCustomerPage() {
         phone,
         address,
         notes,
-        plan_type: planId,
+        plan_id: planId,
         plan_duration_days: selectedPlan.retention_days,
         custom_price: customPrice,
         tunnel_name: tunnelName,
@@ -257,7 +257,7 @@ export default function NewCustomerPage() {
                     
                     {/* SIM Plans */}
                     <optgroup label="📡 תוכניות SIM/4G - מקומות ללא Wi-Fi">
-                      {plans.filter(p => p.connection_type === 'SIM').map((p) => (
+                      {plans.filter(p => p.connection_type === 'sim').map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name} - ₪{p.monthly_price}/חודש
                         </option>
@@ -266,7 +266,7 @@ export default function NewCustomerPage() {
                     
                     {/* Cloud Plans */}
                     <optgroup label="☁️ תוכניות Wi-Fi Cloud - גישה ללא הגבלה">
-                      {plans.filter(p => p.connection_type === 'Wi-Fi').map((p) => (
+                      {plans.filter(p => p.connection_type === 'wifi').map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name} - ₪{p.monthly_price}/חודש
                         </option>
@@ -284,7 +284,7 @@ export default function NewCustomerPage() {
                       <div className="space-y-2 text-sm text-blue-800 text-right">
                         <div className="flex items-center gap-2 justify-end">
                           <span><strong>שם המסלול:</strong> {plans.find(p => p.id === planId)?.name}</span>
-                          {plans.find(p => p.id === planId)?.connection_type === 'SIM' ? 
+                          {plans.find(p => p.id === planId)?.connection_type === 'sim' ? 
                             <Smartphone size={16} className="text-blue-600" /> : 
                             <Wifi size={16} className="text-blue-600" />
                           }

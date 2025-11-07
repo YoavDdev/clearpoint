@@ -17,6 +17,13 @@ import {
 } from "lucide-react";
 
 export default async function AdminPage() {
+  // Check if user is admin
+  const session = await getServerSession(authOptions);
+  
+  if (!session?.user || session.user.role !== "admin") {
+    redirect("/login");
+  }
+
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!

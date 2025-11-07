@@ -56,17 +56,9 @@ export const authOptions: NextAuthOptions = {
           .single();
 
         if (userError?.code === "PGRST116") {
-          console.warn("⚠️ User not found. Creating user row...");
-          const { error: insertError } = await supabase
-            .from("users")
-            .insert([{ email: credentials.email, role: "Customer" }]);
-
-          if (insertError) {
-            console.error("❌ Failed to insert user row:", insertError);
-            return null;
-          }
-
-          userData = { role: "Customer" };
+          console.warn("⚠️ User not found in users table.");
+          console.error("❌ User must be created by admin first via /admin/customers/new");
+          return null; // Don't auto-create, admin must create users
         } else if (userError) {
           console.error("❌ Failed to fetch user role:", userError);
           return null;

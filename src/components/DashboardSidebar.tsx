@@ -1,14 +1,21 @@
 'use client';
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { Home, Video, Calendar, HelpCircle, Settings, LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { signOut } from "next-auth/react";
 
 export default function DashboardSidebar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push("/login");
+  };
 
   const menuItems = [
     { href: "/dashboard", icon: Home, label: "דף הבית", description: "צפייה חיה במצלמות" },
@@ -114,7 +121,7 @@ export default function DashboardSidebar() {
             <span className="font-medium">הגדרות</span>
           </Link>
           <button
-            onClick={() => {/* Add logout logic */}}
+            onClick={handleLogout}
             className="w-full flex items-center gap-3 p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           >
             <LogOut className="w-5 h-5" />
