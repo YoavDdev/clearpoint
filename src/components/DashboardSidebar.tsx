@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
-import { Home, Video, Calendar, HelpCircle, Settings, LogOut, Menu, X } from "lucide-react";
+import { Home, Video, Calendar, HelpCircle, Settings, LogOut, Menu, X, CreditCard, Repeat } from "lucide-react";
 import { useState } from "react";
 import { signOut } from "next-auth/react";
 
@@ -20,7 +20,9 @@ export default function DashboardSidebar() {
   const menuItems = [
     { href: "/dashboard", icon: Home, label: "דף הבית", description: "צפייה חיה במצלמות" },
     { href: "/dashboard?mode=recordings", icon: Video, label: "הקלטות", description: "צפייה בהקלטות קודמות" },
-    { href: "/dashboard/plan", icon: Calendar, label: "התוכנית שלי", description: "פרטי מנוי ותשלום" },
+    { href: "/dashboard/subscription", icon: Repeat, label: "המנוי שלי", description: "ניהול מנוי ותשלומים" },
+    { href: "/dashboard/payments", icon: CreditCard, label: "תשלומים", description: "היסטוריית תשלומים" },
+    { href: "/dashboard/plan", icon: Calendar, label: "התוכנית שלי", description: "פרטי תוכנית ושדרוג" },
     { href: "/dashboard/support", icon: HelpCircle, label: "עזרה ותמיכה", description: "קבלו עזרה מהצוות" },
   ];
 

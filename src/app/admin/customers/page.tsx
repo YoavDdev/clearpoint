@@ -208,12 +208,15 @@ export default function CustomersPage() {
                   {filteredCustomers.map((customer) => (
                     <tr key={customer.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4">
-                        <div className="text-right">
-                          <div className="font-semibold text-slate-800">
+                        <Link 
+                          href={`/admin/customers/${customer.id}`}
+                          className="text-right block hover:bg-blue-50 rounded-lg px-2 py-1 -mx-2 transition-colors"
+                        >
+                          <div className="font-semibold text-blue-700 hover:text-blue-900 underline-offset-2 hover:underline">
                             {customer.full_name || "ללא שם"}
                           </div>
                           <div className="text-sm text-slate-600">{customer.email}</div>
-                        </div>
+                        </Link>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium">

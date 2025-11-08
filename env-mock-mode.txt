@@ -1,0 +1,34 @@
+# =====================================================
+# Mock Mode Configuration (.env.local)
+# העתק את זה ל-.env.local לפיתוח עם Mock Mode
+# =====================================================
+
+# 🧪 Mock Mode - סימולציה לפיתוח
+GROW_USE_MOCK=true
+
+# Application URL
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+
+# Supabase Configuration
+SUPABASE_SERVICE_ROLE_KEY=<your_service_role_key_from_supabase>
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<your_anon_key_from_supabase>
+
+# =====================================================
+# Grow API (לא נדרש ב-Mock Mode!)
+# כשתקבל API keys אמיתיים - הוסף אותם והחלף GROW_USE_MOCK=false
+# =====================================================
+
+# GROW_API_URL=https://secure.meshulam.co.il
+# GROW_PAGE_CODE=your_page_code
+# GROW_API_KEY=your_api_key  
+# GROW_USER_ID=your_user_id
+
+# =====================================================
+# הוראות:
+# 1. העתק קובץ זה ל-.env.local
+# 2. מלא את פרטי Supabase שלך
+# 3. הרץ: npm run dev
+# 4. גש ל: http://localhost:3000/test-payment
+# 5. תהנה מפיתוח ללא המתנה! 🚀
+# =====================================================

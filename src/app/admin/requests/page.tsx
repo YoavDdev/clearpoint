@@ -19,6 +19,10 @@ import {
   Edit,
   Eye,
   MessageSquare,
+  Send,
+  DollarSign,
+  Copy,
+  ExternalLink,
 } from "lucide-react";
 
 type SubscriptionRequest = {
@@ -32,6 +36,8 @@ type SubscriptionRequest = {
   created_at: string;
   admin_notes: string;
   status: string;
+  payment_link?: string | null;
+  user_id?: string | null;
   isCustomer?: boolean;
 };
 
@@ -44,6 +50,8 @@ export default function AdminRequestsPage() {
   const [requests, setRequests] = useState<SubscriptionRequest[]>([]);
   const [userEmails, setUserEmails] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [sendingPaymentLink, setSendingPaymentLink] = useState<string | null>(null);
+  const [showPaymentLink, setShowPaymentLink] = useState<{id: string, link: string} | null>(null);
 
   async function fetchData() {
     const { data: requestsData } = await supabase
@@ -94,6 +102,44 @@ export default function AdminRequestsPage() {
 
     await supabase.from("subscription_requests").delete().eq("id", id);
     fetchData();
+  }
+
+  async function sendPaymentLink(requestId: string, selectedPlan: string) {
+    setSendingPaymentLink(requestId);
+    try {
+      // המרת selected_plan לformat של plan_id
+      const planMap: Record<string, string> = {
+        "SIM Cloud - sim": "sim-cloud",
+        "Wi-Fi Cloud - wifi": "wifi-cloud",
+      };
+      const planId = planMap[selectedPlan] || "sim-cloud";
+
+      const response = await fetch("/api/admin/create-user-and-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId, planId }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert("✅ לינק תשלום נוצר בהצלחה!");
+        setShowPaymentLink({ id: requestId, link: data.payment.paymentUrl });
+        fetchData();
+      } else {
+        alert("❌ שגיאה: " + data.error);
+      }
+    } catch (error) {
+      console.error("Error sending payment link:", error);
+      alert("❌ שגיאה ביצירת לינק תשלום");
+    } finally {
+      setSendingPaymentLink(null);
+    }
+  }
+
+  function copyPaymentLink(link: string) {
+    navigator.clipboard.writeText(link);
+    alert("✅ הלינק הועתק ללוח!");
   }
 
   useEffect(() => {
@@ -225,28 +271,34 @@ export default function AdminRequestsPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2 justify-end">
                           {req.status === "new" && (
-                            <>
-                              <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium">
-                                <AlertCircle size={14} />
-                                חדש
-                              </span>
-                            </>
+                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium">
+                              <AlertCircle size={14} />
+                              חדש
+                            </span>
+                          )}
+                          {req.status === "payment_link_sent" && (
+                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium">
+                              <Send size={14} />
+                              לינק נשלח
+                            </span>
+                          )}
+                          {req.status === "paid" && (
+                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium">
+                              <DollarSign size={14} />
+                              שולם
+                            </span>
                           )}
                           {req.status === "handled" && (
-                            <>
-                              <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium">
-                                <CheckCircle size={14} />
-                                מטופל
-                              </span>
-                            </>
+                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-teal-100 text-teal-700 rounded-lg text-sm font-medium">
+                              <CheckCircle size={14} />
+                              מותקן
+                            </span>
                           )}
                           {req.status === "deleted" && (
-                            <>
-                              <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-medium">
-                                <Trash2 size={14} />
-                                נמחק
-                              </span>
-                            </>
+                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-medium">
+                              <Trash2 size={14} />
+                              נמחק
+                            </span>
                           )}
                           {req.isCustomer && (
                             <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-medium">
@@ -305,8 +357,9 @@ export default function AdminRequestsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 justify-end">
-                          {!req.isCustomer && (
+                        <div className="flex items-center gap-2 justify-end flex-wrap">
+                          {/* כפתור יצירת לקוח - הדרך היחידה להמשיך */}
+                          {!req.isCustomer && req.status === "new" && (
                             <Link
                               href={`/admin/customers/new?fullName=${encodeURIComponent(
                                 req.full_name
@@ -317,31 +370,46 @@ export default function AdminRequestsPage() {
                               )}&address=${encodeURIComponent(
                                 req.address
                               )}&plan=${encodeURIComponent(req.selected_plan)}`}
-                              className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors group"
+                              className="px-3 py-2 text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors group font-medium text-sm flex items-center gap-2"
                               title="צור לקוח חדש"
                             >
                               <UserPlus size={16} className="group-hover:scale-110 transition-transform" />
+                              צור לקוח
                             </Link>
                           )}
                           
-                          {req.status === "new" ? (
+                          {/* לינק ללקוח קיים */}
+                          {req.isCustomer && req.user_id && (
+                            <Link
+                              href={`/admin/customers/${req.user_id}`}
+                              className="px-3 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors group font-medium text-sm flex items-center gap-2"
+                              title="צפה בלקוח"
+                            >
+                              <Eye size={16} className="group-hover:scale-110 transition-transform" />
+                              צפה בלקוח
+                            </Link>
+                          )}
+                          
+                          {/* שינוי סטטוס */}
+                          {req.status === "payment_link_sent" || req.status === "paid" ? (
                             <button
                               onClick={() => updateStatus(req.id, "handled")}
-                              className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors group"
-                              title="סמן כמטופל"
+                              className="p-2 text-teal-600 hover:bg-teal-100 rounded-lg transition-colors group"
+                              title="סמן כמותקן"
                             >
                               <CheckCircle size={16} className="group-hover:scale-110 transition-transform" />
                             </button>
                           ) : req.status === "handled" ? (
                             <button
                               onClick={() => updateStatus(req.id, "new")}
-                              className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors group"
+                              className="p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors group"
                               title="סמן כחדש"
                             >
                               <AlertCircle size={16} className="group-hover:scale-110 transition-transform" />
                             </button>
                           ) : null}
                           
+                          {/* מחיקה */}
                           <button
                             onClick={() => deleteRequest(req.id)}
                             className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors group"

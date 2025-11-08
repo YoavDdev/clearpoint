@@ -1,6 +1,9 @@
 import { supabaseAdmin } from "@/libs/supabaseAdmin";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import InvoiceCreator from "@/components/InvoiceCreator";
+import SubscriptionManager from "@/components/SubscriptionManager";
+import EditMonthlyPrice from "@/components/EditMonthlyPrice";
 import {
   User,
   Mail,
@@ -18,12 +21,14 @@ import {
 export default async function CustomerViewPage({ params }: { params: { id: string } }) {
   const { id } = await params;
 
-  const { data: user, error } = await supabaseAdmin
+  const { data: user, error} = await supabaseAdmin
     .from("users")
     .select(`
       *,
       plan:plans (
+        id,
         name,
+        name_he,
         monthly_price,
         retention_days,
         connection_type
@@ -170,17 +175,35 @@ export default async function CustomerViewPage({ params }: { params: { id: strin
                 {/* Plan */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
-                    <span>מסלול מנוי</span>
+                    <span>תוכנית מנוי</span>
                     <CreditCard size={16} className="text-slate-400" />
                   </label>
-                  <div className="px-4 py-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg text-right">
-                    <div className="font-semibold text-purple-800">{user.plan?.name || "לא צוין"}</div>
-                    {user.plan?.connection_type && (
-                      <div className="text-sm text-purple-600 mt-1">
-                        סוג חיבור: {user.plan.connection_type === 'SIM' ? 'SIM/4G' : 'Wi-Fi Cloud'}
+                  {!user.plan_id || user.plan_id === "" ? (
+                    <div className="px-4 py-3 bg-red-50 border-2 border-red-300 rounded-lg text-right">
+                      <div className="flex items-center gap-2 justify-end mb-2">
+                        <span className="font-semibold text-red-800">❌ אין תוכנית</span>
                       </div>
-                    )}
-                  </div>
+                      <div className="text-sm text-red-700 mb-2">
+                        לא ניתן ליצור תשלום מושלם ללא תוכנית מנוי
+                      </div>
+                      <Link
+                        href={`/admin/customers/${id}/edit`}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors"
+                      >
+                        <Edit size={14} />
+                        <span>בחר תוכנית</span>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="px-4 py-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg text-right">
+                      <div className="font-semibold text-purple-800">{user.plan?.name || "לא צוין"}</div>
+                      {user.plan?.connection_type && (
+                        <div className="text-sm text-purple-600 mt-1">
+                          סוג חיבור: {user.plan.connection_type === 'SIM' ? 'SIM/4G' : 'Wi-Fi Cloud'}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Monthly Price */}
@@ -189,12 +212,15 @@ export default async function CustomerViewPage({ params }: { params: { id: strin
                     <span>מחיר חודשי</span>
                     <CreditCard size={16} className="text-slate-400" />
                   </label>
-                  <div className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-right text-slate-800">
-                    ₪{user.custom_price ?? user.plan?.monthly_price ?? 0}
+                  <div className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-right">
+                    <EditMonthlyPrice
+                      userId={user.id}
+                      currentPrice={user.custom_price ?? user.plan?.monthly_price ?? 0}
+                    />
                     {user.custom_price && user.plan?.monthly_price && user.custom_price !== user.plan.monthly_price && (
-                      <span className="text-sm text-orange-600 mr-2">
-                        (מחיר רגיל: ₪{user.plan.monthly_price})
-                      </span>
+                      <div className="text-sm text-orange-600 mt-2">
+                        מחיר רגיל של התוכנית: ₪{user.plan.monthly_price}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -238,6 +264,27 @@ export default async function CustomerViewPage({ params }: { params: { id: strin
               </div>
             )}
           </div>
+        </div>
+
+        {/* Invoice Creator */}
+        <div className="mt-8">
+          <InvoiceCreator
+            userId={user.id}
+            customerName={user.full_name || user.email}
+            customerEmail={user.email}
+          />
+        </div>
+
+        {/* Subscription Manager */}
+        <div className="mt-8">
+          <SubscriptionManager
+            userId={user.id}
+            userEmail={user.email}
+            userName={user.full_name || user.email}
+            userMonthlyPrice={user.custom_price || user.plan?.monthly_price || 0}
+            userPlanId={user.plan_id || user.plan?.id || ""}
+            userPlanName={user.plan?.name_he || user.plan?.name}
+          />
         </div>
       </div>
     </main>
