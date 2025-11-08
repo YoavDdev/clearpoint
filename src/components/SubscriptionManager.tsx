@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar, CreditCard, Power, XCircle, CheckCircle, Loader2, AlertCircle, DollarSign } from "lucide-react";
+import { Calendar, CreditCard, Power, XCircle, CheckCircle, Loader2, AlertCircle, DollarSign, Link as LinkIcon } from "lucide-react";
 
 interface Subscription {
   id: string;
@@ -32,6 +32,8 @@ export default function SubscriptionManager({
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [activating, setActivating] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [paymentLink, setPaymentLink] = useState<string | null>(null);
 
   useEffect(() => {
     loadSubscription();
@@ -110,6 +112,60 @@ export default function SubscriptionManager({
     } catch (error) {
       console.error("Error cancelling subscription:", error);
       alert("❌ שגיאה בביטול חיוב");
+    }
+  }
+
+  async function regeneratePaymentLink() {
+    if (!confirm("❓ האם ליצור לינק תשלום חדש? (זה ידרוס לינקים קודמים)")) {
+      return;
+    }
+
+    setRegenerating(true);
+    try {
+      // קודם נמצא את התשלום הממתין של המשתמש
+      const paymentsRes = await fetch(`/api/admin/get-user-payments?userId=${userId}`);
+      const paymentsData = await paymentsRes.json();
+      
+      if (!paymentsData.success || !paymentsData.payments?.length) {
+        alert("❌ לא נמצא תשלום ממתין");
+        return;
+      }
+
+      // מוצאים תשלום ממתין ללא לינק
+      const pendingPayment = paymentsData.payments.find(
+        (p: any) => p.status === "pending" && !p.provider_payment_id
+      );
+
+      if (!pendingPayment) {
+        alert("❌ לא נמצא תשלום ממתין ללא לינק");
+        return;
+      }
+
+      // יוצרים לינק חדש
+      const res = await fetch("/api/admin/regenerate-payment-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentId: pendingPayment.id }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setPaymentLink(data.paymentLink);
+        alert(`✅ לינק תשלום נוצר!\n\nהלינק הועתק ללוח:\n${data.paymentLink}`);
+        
+        // העתקה אוטומטית ללוח
+        navigator.clipboard.writeText(data.paymentLink);
+        
+        loadSubscription();
+      } else {
+        alert("❌ שגיאה: " + data.error + (data.details ? `\n\nפרטים: ${data.details}` : ""));
+      }
+    } catch (error) {
+      console.error("Error regenerating payment link:", error);
+      alert("❌ שגיאה ביצירת לינק תשלום");
+    } finally {
+      setRegenerating(false);
     }
   }
 
@@ -207,14 +263,63 @@ export default function SubscriptionManager({
               <div className="text-xs text-slate-500">הלקוח יקבל הודעה לפני כל חיוב</div>
             </div>
 
-            {/* כפתור ביטול */}
-            <button
-              onClick={cancelSubscription}
-              className="w-full px-6 py-3 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition-colors font-medium border-2 border-red-300 flex items-center justify-center gap-2"
-            >
-              <XCircle size={20} />
-              <span>ביטול חיוב אוטומטי</span>
-            </button>
+            {/* לינק תשלום אם נוצר */}
+            {paymentLink && (
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border-2 border-green-200">
+                <div className="flex items-center gap-2 justify-end mb-2">
+                  <span className="font-semibold text-green-800">🎉 לינק תשלום נוצר!</span>
+                  <LinkIcon size={18} className="text-green-600" />
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-green-200 mb-3">
+                  <code className="text-sm text-slate-700 break-all">{paymentLink}</code>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(paymentLink);
+                      alert("✅ הלינק הועתק ללוח");
+                    }}
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                  >
+                    📋 העתק לינק
+                  </button>
+                  <button
+                    onClick={() => window.open(paymentLink, "_blank")}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    🔗 פתח לינק
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* כפתורי פעולה */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={regeneratePaymentLink}
+                disabled={regenerating}
+                className="px-4 py-3 bg-blue-100 text-blue-700 rounded-xl hover:bg-blue-200 transition-colors font-medium border-2 border-blue-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {regenerating ? (
+                  <>
+                    <Loader2 className="animate-spin" size={20} />
+                    <span>יוצר לינק...</span>
+                  </>
+                ) : (
+                  <>
+                    <LinkIcon size={20} />
+                    <span>צור לינק מחדש</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={cancelSubscription}
+                className="px-4 py-3 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition-colors font-medium border-2 border-red-300 flex items-center justify-center gap-2"
+              >
+                <XCircle size={20} />
+                <span>ביטול מנוי</span>
+              </button>
+            </div>
           </div>
         ) : (
           /* אין מנוי פעיל */
