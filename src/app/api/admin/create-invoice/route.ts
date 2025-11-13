@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createOneTimePayment } from "@/lib/grow";
+import { createOneTimePayment } from "@/lib/payplus";
 
 export async function POST(req: NextRequest) {
   try {
@@ -81,6 +81,7 @@ export async function POST(req: NextRequest) {
       .from("payments")
       .insert({
         user_id: userId,
+        provider: "payplus",
         payment_type: "one_time",
         amount: totalAmount.toString(),
         currency: "ILS",
@@ -108,11 +109,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // יצירת לינק תשלום דרך Grow
+    // יצירת לינק תשלום דרך PayPlus
     const returnUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/invoice-payment-success?invoice_id=${invoice.id}`;
     const cancelUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/payment-cancelled`;
 
-    const growResponse = await createOneTimePayment({
+    const payplusResponse = await createOneTimePayment({
       sum: totalAmount,
       description: `חשבונית #${invoice.invoice_number} - ${customerName}`,
       customer_name: customerName,
@@ -128,21 +129,21 @@ export async function POST(req: NextRequest) {
       cancel_url: cancelUrl,
     });
 
-    if (growResponse.status !== "1" || !growResponse.data) {
-      console.error("Grow payment creation failed:", growResponse);
+    if (payplusResponse.status !== "1" || !payplusResponse.data) {
+      console.error("PayPlus payment creation failed:", payplusResponse);
       return NextResponse.json(
-        { success: false, error: "Failed to create payment link", details: growResponse.err },
+        { success: false, error: "Failed to create payment link", details: payplusResponse.err },
         { status: 500 }
       );
     }
 
-    // עדכון רשומת התשלום עם פרטי Grow
+    // עדכון רשומת התשלום עם פרטי PayPlus
     await supabase
       .from("payments")
       .update({
-        provider_transaction_id: growResponse.data.processId,
-        provider_payment_url: growResponse.data.pageUrl,
-        provider_response: growResponse.data,
+        provider_transaction_id: payplusResponse.data.processId,
+        provider_payment_url: payplusResponse.data.pageUrl,
+        provider_response: payplusResponse.data,
       })
       .eq("id", payment.id);
 
@@ -151,13 +152,13 @@ export async function POST(req: NextRequest) {
       .from("invoices")
       .update({
         payment_id: payment.id,
-        payment_link: growResponse.data.pageUrl,
+        payment_link: payplusResponse.data.pageUrl,
         status: "sent",
         sent_at: new Date().toISOString(),
       })
       .eq("id", invoice.id);
 
-    // לינק לדף החשבונית שלנו (לא ישר ל-Grow)
+    // לינק לדף החשבונית שלנו (לא ישר ל-PayPlus)
     const invoiceUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/invoice/${invoice.id}`;
 
     return NextResponse.json({
@@ -170,11 +171,11 @@ export async function POST(req: NextRequest) {
       payment: {
         id: payment.id,
         amount: totalAmount,
-        paymentUrl: growResponse.data.pageUrl,
-        processId: growResponse.data.processId,
+        paymentUrl: payplusResponse.data.pageUrl,
+        processId: payplusResponse.data.processId,
       },
       invoiceUrl: invoiceUrl, // לינק לחשבונית שלנו
-      paymentUrl: growResponse.data.pageUrl, // לינק ל-Grow (לשימוש פנימי)
+      paymentUrl: payplusResponse.data.pageUrl, // לינק ל-PayPlus (לשימוש פנימי)
     });
   } catch (error) {
     console.error("Error in create-invoice:", error);

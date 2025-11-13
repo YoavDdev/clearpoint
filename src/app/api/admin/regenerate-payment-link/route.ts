@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createRecurringSubscription } from "@/lib/grow";
+import { createRecurringSubscription } from "@/lib/payplus";
 
 /**
  * API לשיחזור לינק תשלום שנכשל

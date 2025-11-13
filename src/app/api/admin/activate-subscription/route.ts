@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createRecurringSubscription, calculateNextBillingDate } from "@/lib/grow";
+import { createRecurringSubscription, calculateNextBillingDate } from "@/lib/payplus";
 
 export async function POST(req: NextRequest) {
   try {

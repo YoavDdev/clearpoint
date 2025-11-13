@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/libs/supabaseAdmin";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { notFound, redirect } from "next/navigation";
 import { CreditCard, FileText, Calendar, User, Package } from "lucide-react";
 

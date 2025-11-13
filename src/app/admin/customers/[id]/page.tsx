@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/libs/supabaseAdmin";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import InvoiceCreator from "@/components/InvoiceCreator";

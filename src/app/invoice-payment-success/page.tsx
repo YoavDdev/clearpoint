@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/libs/supabaseAdmin";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { CheckCircle, FileText, Home } from "lucide-react";
 import Link from "next/link";
 

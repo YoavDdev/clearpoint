@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createOneTimePayment } from "@/lib/grow";
+import { createOneTimePayment } from "@/lib/payplus";
 
 // Admin API - צריך להיות מוגן!
 export async function POST(req: NextRequest) {
@@ -124,11 +124,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 6. יצירת לינק תשלום דרך Grow
+    // 6. יצירת לינק תשלום דרך PayPlus
     const returnUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/payment-success?payment_id=${payment.id}`;
     const cancelUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/payment-cancelled`;
 
-    const growResponse = await createOneTimePayment({
+    const payplusResponse = await createOneTimePayment({
       sum: plan.setup_price,
       description: `התקנה - ${plan.name_he || plan.name}`,
       customer_name: request.full_name,
@@ -146,21 +146,22 @@ export async function POST(req: NextRequest) {
       cancel_url: cancelUrl,
     });
 
-    if (growResponse.status !== '1' || !growResponse.data) {
-      console.error("Grow payment creation failed:", growResponse);
+    if (payplusResponse.status !== '1' || !payplusResponse.data) {
+      console.error("PayPlus payment creation failed:", payplusResponse);
       return NextResponse.json(
-        { success: false, error: "Failed to create payment link", details: growResponse.err },
+        { success: false, error: "Failed to create payment link", details: payplusResponse.err },
         { status: 500 }
       );
     }
 
-    // 7. עדכון רשומת התשלום עם פרטי Grow
+    // 7. עדכון רשומת התשלום עם פרטי PayPlus
     await supabase
       .from("payments")
       .update({
-        provider_transaction_id: growResponse.data.processId,
-        provider_payment_url: growResponse.data.pageUrl,
-        provider_response: growResponse.data,
+        provider: "payplus",
+        provider_transaction_id: payplusResponse.data.processId,
+        provider_payment_url: payplusResponse.data.pageUrl,
+        provider_response: payplusResponse.data,
       })
       .eq("id", payment.id);
 
@@ -169,7 +170,7 @@ export async function POST(req: NextRequest) {
       .from("subscription_requests")
       .update({
         status: "payment_link_sent",
-        payment_link: growResponse.data.pageUrl,
+        payment_link: payplusResponse.data.pageUrl,
         user_id: newUser.id,
       })
       .eq("id", requestId);
@@ -187,8 +188,8 @@ export async function POST(req: NextRequest) {
       payment: {
         id: payment.id,
         amount: payment.amount,
-        paymentUrl: growResponse.data.pageUrl,
-        processId: growResponse.data.processId,
+        paymentUrl: payplusResponse.data.pageUrl,
+        processId: payplusResponse.data.processId,
       },
     });
   } catch (error) {
