@@ -70,7 +70,7 @@ async function cleanupExpiredVods() {
 
   // 1) Build effective retention per user: COALESCE(user.plan_duration_days, plan.retention_days)
   const [{ data: users, error: userErr }, { data: plans, error: planErr }] = await Promise.all([
-    supabase.from('users').select('id, plan_id, plan_duration_days'),
+    supabase.from('users').select('id, role, plan_id, plan_duration_days'),
     supabase.from('plans').select('id, retention_days'),
   ]);
 
@@ -85,10 +85,17 @@ async function cleanupExpiredVods() {
 
   const retentionByUser: Record<string, number> = {};
   for (const u of users ?? []) {
+    // אדמין - לא מוחקים הקלטות (retention = 365 ימים)
+    if (u?.role === 'admin') {
+      console.log(`👨‍💼 Skipping admin user ID: ${u.id}`);
+      retentionByUser[u.id] = 365; // שנה מלאה
+      continue;
+    }
+    
     const uDays = Number(u?.plan_duration_days);
     const pDays = planById.has(u?.plan_id) ? Number(planById.get(u.plan_id!)) : NaN;
     const eff = Number.isFinite(uDays) ? uDays : pDays;
-    if (u?.id && Number.isFinite(eff)) retentionByUser[u.id] = eff; // 1, 3, 7, 14
+    if (u?.id && Number.isFinite(eff)) retentionByUser[u.id] = eff; // 0, 7, 14
   }
 
   const nowUtc = utcMidnight(new Date());

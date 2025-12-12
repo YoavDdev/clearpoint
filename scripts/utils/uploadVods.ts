@@ -121,6 +121,35 @@ async function processSegments() {
       const userId = cameraRow.user_id;
       const userEmail = cameraRow.user_email || 'unknown@clearpoint.local';
 
+      // Check if user has active subscription
+      const { data: userData, error: userErr } = await supabase
+        .from('users')
+        .select('subscription_status')
+        .eq('id', userId)
+        .single();
+
+      if (userErr) {
+        console.warn(`⚠️ Error checking subscription for user ${userId}:`, userErr.message);
+        continue;
+      }
+
+      // Skip upload if subscription is not active
+      if (userData?.subscription_status !== 'active') {
+        console.log(`⏸️ User ${userEmail} has inactive subscription - skipping upload and cleaning local files`);
+        
+        // Delete local files to prevent disk from filling up
+        for (const file of files) {
+          const filePath = path.join(cameraPath, file);
+          try {
+            fs.unlinkSync(filePath);
+            console.log(`🗑️ Deleted local file: ${file}`);
+          } catch (err) {
+            console.error(`❌ Failed to delete ${file}:`, err);
+          }
+        }
+        continue;
+      }
+
       let upload: { uploadUrl: string; authorizationToken: string };
       try {
         upload = await getUploadUrl(auth.apiUrl, auth.authorizationToken, process.env.B2_BUCKET_ID!);

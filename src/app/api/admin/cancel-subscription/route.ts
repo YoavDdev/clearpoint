@@ -48,6 +48,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ביטול המנוי ב-PayPlus אם יש provider_subscription_id
+    if (subscription.provider_subscription_id) {
+      console.log(`🚫 Admin cancelling subscription in PayPlus: ${subscription.provider_subscription_id}`);
+      
+      const { cancelSubscription } = await import('@/lib/payplus');
+      const payPlusCancelled = await cancelSubscription(subscription.provider_subscription_id);
+      
+      if (!payPlusCancelled) {
+        console.error('❌ Failed to cancel subscription in PayPlus');
+        // נמשיך בכל זאת - לפחות ביטלנו ב-DB שלנו
+      } else {
+        console.log('✅ Subscription cancelled in PayPlus successfully');
+      }
+    } else {
+      console.log('⚠️ No provider_subscription_id - cancelling only in DB');
+    }
+
     // רישום בהיסטוריה אם הטבלה קיימת
     try {
       await supabase.from("subscription_history").insert({
@@ -61,9 +78,6 @@ export async function POST(req: NextRequest) {
     } catch (historyError) {
       console.log("⚠️ subscription_history table does not exist, skipping history log");
     }
-
-    // TODO: ביטול המנוי ב-Grow אם יש provider_subscription_id
-    // צריך להוסיף פונקציה ב-lib/grow.ts
 
     return NextResponse.json({
       success: true,

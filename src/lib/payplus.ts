@@ -27,6 +27,7 @@ export interface PayplusPaymentRequest {
   notify_url?: string; // Webhook URL
   max_payments?: number; // תשלומים
   items?: PayplusPaymentItem[];
+  monthly_price?: number; // מחיר חודשי למצב Mock (לתצוגה בלבד)
 }
 
 export interface PayplusPaymentItem {
@@ -92,7 +93,10 @@ const PAYPLUS_CONFIG = {
   apiKey: process.env.PAYPLUS_API_KEY || '',
   secretKey: process.env.PAYPLUS_SECRET_KEY || '',
   paymentPageUid: process.env.PAYPLUS_PAYMENT_PAGE_UID || '',
-  testMode: process.env.NODE_ENV !== 'production',
+  terminalUid: process.env.PAYPLUS_TERMINAL_UID || '',
+  cashierUid: process.env.PAYPLUS_CASHIER_UID || '',
+  // Force production mode if PAYPLUS_FORCE_PRODUCTION is set
+  testMode: process.env.PAYPLUS_FORCE_PRODUCTION === 'true' ? false : (process.env.NODE_ENV !== 'production'),
   useMock: process.env.PAYPLUS_USE_MOCK === 'true', // 🧪 Mock mode לפיתוח
 };
 
@@ -132,6 +136,7 @@ export async function createOneTimePayment(
         sum: request.sum,
         customer_name: request.customer_name,
         description: request.description,
+        monthly_price: request.monthly_price, // העברת מחיר חודשי למצב Mock
       };
       
       const response = await fetch(`${getBaseUrl()}/create-payment`, {
@@ -140,7 +145,25 @@ export async function createOneTimePayment(
         body: JSON.stringify(mockPayload),
       });
       
-      return await response.json();
+      const data = await response.json();
+      
+      // המרה לפורמט Grow (תאימות עם הקוד הקיים)
+      if (data.results?.status === 'success') {
+        return {
+          status: '1',
+          data: {
+            pageUrl: data.data?.payment_page_link || '',
+            transactionId: data.data?.page_request_uid || '',
+            processId: data.data?.page_request_uid || '',
+            processToken: data.data?.page_request_uid || '',
+          },
+        };
+      } else {
+        return {
+          status: '0',
+          err: data.results?.description || 'Failed to create payment',
+        };
+      }
     }
 
     // 🚀 Production mode - שימוש ב-API האמיתי של Payplus
@@ -182,12 +205,22 @@ export async function createOneTimePayment(
       }));
     }
 
-    console.log('📤 Sending to Payplus API:', JSON.stringify({
+    const apiUrl = `${getBaseUrl()}/PaymentPages/GenerateLink`;
+    
+    console.log('📤 Sending to Payplus API:');
+    console.log('   URL:', apiUrl);
+    console.log('   Method: POST');
+    console.log('   Headers:', {
+      'Content-Type': 'application/json',
+      'api-key': PAYPLUS_CONFIG.apiKey ? `${PAYPLUS_CONFIG.apiKey.substring(0, 8)}...` : 'MISSING',
+      'secret-key': PAYPLUS_CONFIG.secretKey ? `${PAYPLUS_CONFIG.secretKey.substring(0, 8)}...` : 'MISSING',
+    });
+    console.log('   Payload:', JSON.stringify({
       ...payload,
-      payment_page_uid: '***HIDDEN***',
+      payment_page_uid: payload.payment_page_uid ? `${payload.payment_page_uid.substring(0, 8)}...` : 'MISSING',
     }, null, 2));
 
-    const response = await fetch(`${getBaseUrl()}/PaymentPages/GenerateLink`, {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -197,8 +230,19 @@ export async function createOneTimePayment(
       body: JSON.stringify(payload),
     });
 
+    console.log('📥 Response status:', response.status, response.statusText);
+
     if (!response.ok) {
-      throw new Error(`Payplus API error: ${response.status} ${response.statusText}`);
+      // קריאת הגוף של השגיאה
+      let errorBody = '';
+      try {
+        errorBody = await response.text();
+        console.error('📥 Error response body:', errorBody);
+      } catch (e) {
+        console.error('Could not read error body');
+      }
+      
+      throw new Error(`Payplus API error: ${response.status} ${response.statusText}${errorBody ? `\nDetails: ${errorBody}` : ''}`);
     }
 
     const data = await response.json();
@@ -250,7 +294,25 @@ export async function createRecurringSubscription(
         body: JSON.stringify(mockPayload),
       });
       
-      return await response.json();
+      const data = await response.json();
+      
+      // המרה לפורמט Grow (תאימות עם הקוד הקיים)
+      if (data.results?.status === 'success') {
+        return {
+          status: '1',
+          data: {
+            pageUrl: data.data?.payment_page_link || '',
+            transactionId: data.data?.recurring_uid || '',
+            processId: data.data?.recurring_uid || '',
+            processToken: data.data?.recurring_uid || '',
+          },
+        };
+      } else {
+        return {
+          status: '0',
+          err: data.results?.description || 'Failed to create subscription',
+        };
+      }
     }
 
     // ✅ Validate configuration
@@ -260,10 +322,19 @@ export async function createRecurringSubscription(
 
     const payload = {
       payment_page_uid: PAYPLUS_CONFIG.paymentPageUid,
+      terminal_uid: PAYPLUS_CONFIG.terminalUid, // ✅ חובה
+      cashier_uid: PAYPLUS_CONFIG.cashierUid, // ✅ חובה
+      customer_uid: request.customer_id, // ✅ חובה
+      
       amount: request.amount,
       currency_code: request.currency || 'ILS',
       
-      // הגדרות Recurring
+      // הגדרות Recurring - חובה
+      recurring_type: 2, // סוג מנוי: 2 = תעריף קבוע (FIXED_RATE)
+      recurring_range: 1, // טווח: 1 = חוזר (RECURRING)
+      number_of_charges: 9999, // מספר חיובים: אין הגבלה (עד ביטול)
+      instant_first_payment: false, // ✅ חובה - לא לחייב מיד (חודש ראשון חינם)
+      
       charge_method: 'Regular', // סוג חיוב קבוע
       charge_frequency: request.billing_cycle === 'monthly' ? 'Monthly' : 'Yearly',
       start_date: request.start_date || new Date().toISOString().split('T')[0],
@@ -273,9 +344,18 @@ export async function createRecurringSubscription(
       customer: {
         customer_name: request.customer_name,
         email: request.customer_email,
-        phone: request.customer_phone,
-        customer_uid: request.customer_id, // שימוש ב-customer_id כ-UID
+        phone: request.customer_phone || '',
       },
+      
+      // פריטים - חובה
+      items: [
+        {
+          name: request.description,
+          quantity: 1,
+          price: request.amount,
+          vat_type: 0, // ללא מע"מ (או 1 עם מע"מ)
+        }
+      ],
       
       // תיאור
       description: request.description,
@@ -305,7 +385,14 @@ export async function createRecurringSubscription(
     });
 
     if (!response.ok) {
-      throw new Error(`Payplus API error: ${response.status} ${response.statusText}`);
+      let errorBody = '';
+      try {
+        errorBody = await response.text();
+        console.error('📥 Error response body:', errorBody);
+      } catch (e) {
+        console.error('Could not read error body');
+      }
+      throw new Error(`Payplus API error: ${response.status} ${response.statusText}${errorBody ? `\nDetails: ${errorBody}` : ''}`);
     }
 
     const data = await response.json();
@@ -337,16 +424,35 @@ export async function createRecurringSubscription(
 }
 
 /**
- * ביטול מנוי חוזר
+ * ביטול מנוי חוזר ב-PayPlus
+ * @param recurringUid - ה-UID של המנוי החוזר (provider_subscription_id)
+ * @returns true אם הביטול הצליח, false אחרת
  */
 export async function cancelSubscription(recurringUid: string): Promise<boolean> {
   try {
+    if (!recurringUid) {
+      console.error('❌ cancelSubscription: Missing recurringUid');
+      return false;
+    }
+
+    console.log(`🚫 Cancelling PayPlus subscription: ${recurringUid}`);
+
     if (PAYPLUS_CONFIG.useMock) {
-      console.log('🧪 Mock: Cancel subscription', recurringUid);
+      console.log('🧪 Mock: Subscription cancelled successfully');
       return true;
     }
 
-    const response = await fetch(`${getBaseUrl()}/RecurringPayments/DeleteRecurring/${recurringUid}`, {
+    // ✅ Validate configuration
+    if (!PAYPLUS_CONFIG.apiKey || !PAYPLUS_CONFIG.secretKey) {
+      throw new Error('PayPlus API configuration is missing');
+    }
+
+    const apiUrl = `${getBaseUrl()}/RecurringPayments/DeleteRecurring/${recurringUid}`;
+    
+    console.log('📤 Sending cancellation request to PayPlus:');
+    console.log('   URL:', apiUrl);
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -355,10 +461,33 @@ export async function cancelSubscription(recurringUid: string): Promise<boolean>
       },
     });
 
+    console.log('📥 Response status:', response.status, response.statusText);
+
+    if (!response.ok) {
+      let errorBody = '';
+      try {
+        errorBody = await response.text();
+        console.error('📥 Error response body:', errorBody);
+      } catch (e) {
+        console.error('Could not read error body');
+      }
+      throw new Error(`PayPlus API error: ${response.status} ${response.statusText}${errorBody ? `\nDetails: ${errorBody}` : ''}`);
+    }
+
     const data = await response.json();
-    return data.results?.status === 'success';
+    console.log('📥 PayPlus cancellation response:', JSON.stringify(data, null, 2));
+
+    const success = data.results?.status === 'success';
+    
+    if (success) {
+      console.log('✅ Subscription cancelled successfully in PayPlus');
+    } else {
+      console.error('❌ PayPlus returned failure:', data.results?.description);
+    }
+
+    return success;
   } catch (error) {
-    console.error('Payplus subscription cancellation error:', error);
+    console.error('❌ PayPlus subscription cancellation error:', error);
     return false;
   }
 }
@@ -411,9 +540,18 @@ export function verifyWebhookSignature(
 /**
  * המרת webhook payload למידע תשלום
  */
-export function parseWebhookData(payload: PayplusWebhookPayload) {
+export function parseWebhookData(payload: any) {
+  // PayPlus יכול לשלוח בשני פורמטים:
+  // 1. Flat format (ישן)
+  // 2. Nested format (חדש) - עם transaction object
+  
+  const transaction = payload.transaction || payload;
+  const data = payload.data || {};
+  const cardInfo = data.card_information || {};
+  
   // Parse more_info (metadata)
-  const moreInfoParts = payload.more_info?.split('|') || [];
+  const moreInfo = transaction.more_info || payload.more_info || '';
+  const moreInfoParts = moreInfo.split('|') || [];
   const customFields = {
     cField1: moreInfoParts[0] || undefined,
     cField2: moreInfoParts[1] || undefined,
@@ -421,21 +559,23 @@ export function parseWebhookData(payload: PayplusWebhookPayload) {
   };
 
   return {
-    paymentId: payload.transaction_uid,
-    transactionId: payload.transaction_uid,
-    amount: parseFloat(payload.amount),
-    status: payload.status_code === '000' ? 'completed' : 'failed',
-    payerName: payload.customer_name || '',
-    payerEmail: payload.email || '',
-    payerPhone: payload.phone || '',
-    paymentDate: payload.transaction_date || payload.created || new Date().toISOString(),
+    paymentId: transaction.uid || payload.transaction_uid,
+    transactionId: transaction.uid || payload.transaction_uid,
+    amount: parseFloat(transaction.amount || payload.amount || '0'),
+    status: (transaction.status_code || payload.status_code) === '000' ? 'completed' : 'failed',
+    payerName: data.customer_name || payload.customer_name || '',
+    payerEmail: data.customer_email || payload.customer_email || payload.email || '',
+    payerPhone: data.customer_phone || payload.customer_phone || payload.phone || '',
+    paymentDate: transaction.date || payload.transaction_date || payload.created || new Date().toISOString(),
     cardDetails: {
-      suffix: payload.four_digits || '',
-      type: payload.card_type || '',
-      brand: payload.card_type || '',
-      expiry: payload.card_exp || '',
+      suffix: cardInfo.four_digits || payload.four_digits || '',
+      type: cardInfo.brand_name || payload.card_type || '',
+      brand: cardInfo.brand_name || payload.card_type || '',
+      expiry: cardInfo.expiry_month && cardInfo.expiry_year 
+        ? `${cardInfo.expiry_month}/${cardInfo.expiry_year}` 
+        : payload.card_exp || '',
     },
-    asmachta: payload.approval_num || '',
+    asmachta: transaction.approval_number || payload.approval_num || '',
     paymentsNum: 1,
     allPaymentsNum: 1,
     customFields,

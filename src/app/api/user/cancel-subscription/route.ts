@@ -70,6 +70,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ביטול המנוי ב-PayPlus אם יש provider_subscription_id
+    if (subscription.provider_subscription_id) {
+      console.log(`🚫 Cancelling subscription in PayPlus: ${subscription.provider_subscription_id}`);
+      
+      const { cancelSubscription } = await import('@/lib/payplus');
+      const payPlusCancelled = await cancelSubscription(subscription.provider_subscription_id);
+      
+      if (!payPlusCancelled) {
+        console.error('❌ Failed to cancel subscription in PayPlus');
+        // נמשיך בכל זאת - לפחות ביטלנו ב-DB שלנו
+      } else {
+        console.log('✅ Subscription cancelled in PayPlus successfully');
+      }
+    } else {
+      console.log('⚠️ No provider_subscription_id - cancelling only in DB');
+    }
+
     // רישום בהיסטוריה (אם הטבלה קיימת)
     try {
       await supabase.from("subscription_history").insert({
@@ -84,10 +101,35 @@ export async function POST(req: NextRequest) {
       console.log("⚠️ subscription_history table does not exist, skipping history log");
     }
 
-    // TODO: ביטול המנוי ב-Grow אם יש provider_subscription_id
-    // אם יש provider_subscription_id, צריך לשלוח בקשה ל-Grow API לביטול החיוב
-
     console.log(`✅ Subscription cancelled successfully for user: ${user.id}`);
+
+    // שליחת אימייל אישור ביטול
+    try {
+      const { sendCancellationConfirmation } = await import('@/lib/email');
+      
+      // קבלת פרטי המשתמש
+      const { data: userData } = await supabase
+        .from("users")
+        .select("full_name, email")
+        .eq("id", user.id)
+        .single();
+
+      if (userData) {
+        await sendCancellationConfirmation({
+          customerName: userData.full_name || userData.email,
+          customerEmail: userData.email,
+          cancellationDate: new Date().toLocaleDateString('he-IL'),
+          endOfServiceDate: subscription.next_billing_date 
+            ? new Date(subscription.next_billing_date).toLocaleDateString('he-IL')
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('he-IL'),
+          cancellationReason: reason || undefined,
+        });
+        console.log('📧 Cancellation confirmation email sent');
+      }
+    } catch (emailError) {
+      console.error('⚠️ Failed to send cancellation email:', emailError);
+      // לא עוצרים את הזרימה אם המייל נכשל
+    }
 
     return NextResponse.json({
       success: true,

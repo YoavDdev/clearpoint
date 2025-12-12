@@ -158,16 +158,16 @@ export async function POST(req: NextRequest) {
     });
 
     if (!growSubscription.data?.pageUrl) {
-      console.error("Failed to create Grow payment");
+      console.error("Failed to create PayPlus payment");
       return NextResponse.json(
-        { success: false, error: "Failed to create Grow payment" },
+        { success: false, error: "Failed to create PayPlus payment" },
         { status: 500 }
       );
     }
 
-    console.log(`✅ Grow payment created`);
+    console.log(`✅ PayPlus payment created`);
 
-    // עדכון החשבונית והמנוי עם פרטי Grow
+    // עדכון החשבונית והמנוי עם פרטי PayPlus
     await supabase
       .from("invoices")
       .update({

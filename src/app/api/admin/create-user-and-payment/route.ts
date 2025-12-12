@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
     await supabase
       .from("payments")
       .update({
-        provider: "payplus",
+        payment_provider: "payplus",
         provider_transaction_id: payplusResponse.data.processId,
         provider_payment_url: payplusResponse.data.pageUrl,
         provider_response: payplusResponse.data,

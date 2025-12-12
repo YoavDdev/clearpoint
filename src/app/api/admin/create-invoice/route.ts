@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createOneTimePayment } from "@/lib/payplus";
+import { createOneTimePayment, createRecurringSubscription } from "@/lib/payplus";
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, items, notes, customerName, customerEmail } = await req.json();
+    const { 
+      userId, 
+      items, 
+      notes, 
+      customerName, 
+      customerEmail,
+      includeSubscription,
+      monthlyPrice 
+    } = await req.json();
 
     if (!userId || !items || items.length === 0) {
       return NextResponse.json(
@@ -18,11 +26,14 @@ export async function POST(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // חישוב סכום כולל
-    const totalAmount = items.reduce(
+    // חישוב סכום כולל (ציוד + התקנה)
+    // ⚠️ חודש ראשון חינם! לא מחייבים אותו בתשלום הראשוני
+    const installationTotal = items.reduce(
       (sum: number, item: any) => sum + (item.total_price || 0),
       0
     );
+    // תמיד רק ציוד + התקנה, בלי חודש ראשון
+    const totalAmount = installationTotal;
 
     // יצירת מספר חשבונית
     const { data: invoiceNumber } = await supabase.rpc("generate_invoice_number");
@@ -37,6 +48,8 @@ export async function POST(req: NextRequest) {
         total_amount: totalAmount,
         currency: "ILS",
         notes: notes || null,
+        has_subscription: includeSubscription || false,
+        monthly_price: includeSubscription ? monthlyPrice : null,
       })
       .select()
       .single();
@@ -81,7 +94,7 @@ export async function POST(req: NextRequest) {
       .from("payments")
       .insert({
         user_id: userId,
-        provider: "payplus",
+        payment_provider: "payplus",
         payment_type: "one_time",
         amount: totalAmount.toString(),
         currency: "ILS",
@@ -115,7 +128,9 @@ export async function POST(req: NextRequest) {
 
     const payplusResponse = await createOneTimePayment({
       sum: totalAmount,
-      description: `חשבונית #${invoice.invoice_number} - ${customerName}`,
+      description: includeSubscription 
+        ? `חשבונית #${invoice.invoice_number} (כולל מנוי) - ${customerName}`
+        : `חשבונית #${invoice.invoice_number} - ${customerName}`,
       customer_name: customerName,
       customer_email: customerEmail,
       customer_phone: "", // נוסיף אם יש
@@ -127,6 +142,8 @@ export async function POST(req: NextRequest) {
       })),
       success_url: returnUrl,
       cancel_url: cancelUrl,
+      // מידע נוסף למצב Mock
+      monthly_price: includeSubscription ? monthlyPrice : undefined,
     });
 
     if (payplusResponse.status !== "1" || !payplusResponse.data) {
@@ -158,6 +175,72 @@ export async function POST(req: NextRequest) {
       })
       .eq("id", invoice.id);
 
+    // יצירת מנוי חודשי אם נדרש
+    let subscriptionId = null;
+    if (includeSubscription && monthlyPrice) {
+      console.log('🔄 Creating recurring subscription...');
+      
+      // תאריך התחלה - חודש מהיום
+      const startDate = new Date();
+      startDate.setMonth(startDate.getMonth() + 1);
+      
+      const subscriptionResponse = await createRecurringSubscription({
+        amount: monthlyPrice,
+        currency: 'ILS',
+        customer_name: customerName,
+        customer_email: customerEmail,
+        customer_phone: '',
+        customer_id: userId,
+        billing_cycle: 'monthly',
+        description: `מנוי חודשי - ${customerName}`,
+        start_date: startDate.toISOString().split('T')[0],
+        notify_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhooks/payplus/recurring`,
+      });
+
+      if (subscriptionResponse.status === '1' && subscriptionResponse.data) {
+        console.log('✅ Subscription created:', subscriptionResponse.data.transactionId);
+        
+        // שמירת המנוי ב-DB
+        const { data: subscription, error: subError } = await supabase
+          .from('subscriptions')
+          .insert({
+            user_id: userId,
+            plan_id: 'monthly-service', // או ID של תוכנית
+            status: 'active',
+            billing_cycle: 'monthly',
+            amount: monthlyPrice,
+            currency: 'ILS',
+            next_billing_date: startDate.toISOString().split('T')[0],
+            started_at: new Date().toISOString(),
+            payment_provider: 'payplus',
+            provider_subscription_id: subscriptionResponse.data.transactionId,
+            metadata: subscriptionResponse.data,
+          })
+          .select()
+          .single();
+
+        if (!subError && subscription) {
+          subscriptionId = subscription.id;
+          console.log('✅ Subscription saved to DB:', subscriptionId);
+          
+          // עדכון users.plan_duration_days (14 ימים עם מנוי)
+          await supabase
+            .from('users')
+            .update({
+              plan_duration_days: 14,
+              subscription_active: true
+            })
+            .eq('id', userId);
+          
+          console.log('✅ Updated user plan_duration_days = 14');
+        } else {
+          console.error('❌ Failed to save subscription to DB:', subError);
+        }
+      } else {
+        console.error('❌ Failed to create PayPlus subscription:', subscriptionResponse.err);
+      }
+    }
+
     // לינק לדף החשבונית שלנו (לא ישר ל-PayPlus)
     const invoiceUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/invoice/${invoice.id}`;
 
@@ -167,6 +250,8 @@ export async function POST(req: NextRequest) {
         id: invoice.id,
         invoice_number: invoice.invoice_number,
         total_amount: totalAmount,
+        has_subscription: includeSubscription,
+        monthly_price: monthlyPrice,
       },
       payment: {
         id: payment.id,
@@ -174,6 +259,7 @@ export async function POST(req: NextRequest) {
         paymentUrl: payplusResponse.data.pageUrl,
         processId: payplusResponse.data.processId,
       },
+      subscription: subscriptionId ? { id: subscriptionId } : null,
       invoiceUrl: invoiceUrl, // לינק לחשבונית שלנו
       paymentUrl: payplusResponse.data.pageUrl, // לינק ל-PayPlus (לשימוש פנימי)
     });

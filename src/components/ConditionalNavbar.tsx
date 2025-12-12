@@ -6,10 +6,11 @@ import ModernNavbar from './ModernNavbar';
 export default function ConditionalNavbar() {
   const pathname = usePathname();
   
-  // Hide navbar on dashboard, admin, and auth pages for clean interface
+  // Hide navbar on dashboard, admin, invoices, and auth pages for clean interface
   const hiddenRoutes = [
     '/dashboard', 
     '/admin',
+    '/invoice',
     '/login',
     '/forgot-password',
     '/reset-password',

@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
         .eq('id', payment.id);
 
       return NextResponse.json(
-        { success: false, error: 'Failed to create Grow payment' },
+        { success: false, error: 'Failed to create PayPlus payment' },
         { status: 500 }
       );
     }

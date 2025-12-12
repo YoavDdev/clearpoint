@@ -12,7 +12,8 @@ import {
   AlertCircle,
   CheckCircle,
   Bell,
-  LogOut
+  LogOut,
+  FileText
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -28,6 +29,12 @@ const navigation = [
     href: "/admin/customers",
     icon: Users,
     description: "ניהול לקוחות"
+  },
+  {
+    name: "חשבוניות",
+    href: "/admin/invoices",
+    icon: FileText,
+    description: "ניהול חשבוניות ותשלומים"
   },
   {
     name: "מצלמות",

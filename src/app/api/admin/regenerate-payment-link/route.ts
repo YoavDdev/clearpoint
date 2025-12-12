@@ -69,8 +69,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // יצירת לינק חדש ב-Grow
-    console.log("🚀 Creating new Grow payment link...");
+    // יצירת לינק חדש ב-PayPlus
+    console.log("🚀 Creating new PayPlus payment link...");
     let growSubscription;
     try {
       growSubscription = await createRecurringSubscription({
@@ -85,11 +85,11 @@ export async function POST(req: NextRequest) {
         start_date: new Date().toISOString().split("T")[0],
       });
     } catch (growError) {
-      console.error("❌ Grow API error:", growError);
+      console.error("❌ PayPlus API error:", growError);
       return NextResponse.json(
         { 
           success: false, 
-          error: "Failed to create Grow payment link",
+          error: "Failed to create PayPlus payment link",
           details: growError instanceof Error ? growError.message : "Unknown error"
         },
         { status: 500 }
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
 
     if (!growSubscription.data?.pageUrl) {
       return NextResponse.json(
-        { success: false, error: "Grow returned no payment URL" },
+        { success: false, error: "PayPlus returned no payment URL" },
         { status: 500 }
       );
     }

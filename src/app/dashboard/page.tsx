@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import SurveillanceCameraView from "@/components/SurveillanceCameraView";
 import FootageView from "@/components/FootageView";
-import { AlertTriangle, Video, Monitor, Maximize, Clock, Minimize, Eye, Calendar, Settings } from "lucide-react";
+import { AlertTriangle, Video, Monitor, Maximize, Clock, Minimize, Eye, Calendar, Settings, Lock, CreditCard } from "lucide-react";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -19,6 +19,8 @@ export default function DashboardPage() {
     modeParam === 'recordings' ? 'recordings' : 'live'
   );
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>('active');
+  const [connectionType, setConnectionType] = useState<string | null>(null);
 
   // Update view mode when URL parameter changes
   useEffect(() => {
@@ -39,6 +41,8 @@ export default function DashboardPage() {
         if (result.success) {
           setCameras(result.cameras);
           setTunnelName(result.tunnel_name);
+          setSubscriptionStatus(result.subscription_status || 'inactive');
+          setConnectionType(result.connection_type);
         } else {
           console.error("API Error:", result.error);
         }
@@ -191,6 +195,36 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Subscription Warning Banner */}
+      {subscriptionStatus !== 'active' && (
+        <div className="bg-gradient-to-l from-orange-600 to-red-600 px-3 sm:px-6 py-4">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3 text-white">
+                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div className="text-center sm:text-right">
+                  <p className="font-bold text-base sm:text-lg">המנוי שלך לא פעיל</p>
+                  <p className="text-sm opacity-90">
+                    {connectionType === 'sim' 
+                      ? 'המערכת אינה זמינה ללא מנוי פעיל (כולל אינטרנט SIM). חדש מנוי לחזרה לשירות מלא.'
+                      : 'ניתן לצפות בשידור חי בלבד. חדש את המנוי כדי לגשת להקלטות.'}
+                  </p>
+                </div>
+              </div>
+              <a
+                href="/dashboard/subscription"
+                className="flex items-center gap-2 px-6 py-3 bg-white text-orange-600 rounded-xl font-bold hover:bg-orange-50 transition-all shadow-lg whitespace-nowrap"
+              >
+                <CreditCard className="w-5 h-5" />
+                <span>חדש מנוי</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Large, Clear Mode Switcher - Mobile Responsive */}
       <div className="bg-white border-b border-slate-200 px-3 sm:px-6 py-3 sm:py-4">
         <div className="max-w-7xl mx-auto">
@@ -210,17 +244,27 @@ export default function DashboardPage() {
               </div>
             </button>
             <button
-              onClick={() => router.push('/dashboard?mode=recordings')}
+              onClick={() => {
+                if (subscriptionStatus === 'active') {
+                  router.push('/dashboard?mode=recordings');
+                }
+              }}
+              disabled={subscriptionStatus !== 'active'}
               className={`flex-1 flex items-center justify-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all ${
-                viewMode === 'recordings'
+                subscriptionStatus !== 'active'
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                  : viewMode === 'recordings'
                   ? 'bg-gradient-to-l from-blue-600 to-cyan-600 text-white shadow-lg sm:scale-105'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
+              {subscriptionStatus !== 'active' && <Lock className="w-4 h-4 sm:w-5 sm:h-5" />}
               <Video className="w-5 h-5 sm:w-6 sm:h-6" />
               <div className="flex flex-col sm:flex-row items-center gap-0 sm:gap-2">
                 <span>הקלטות</span>
-                <span className="text-xs sm:text-sm opacity-75 hidden sm:inline">צפה בהקלטות קודמות</span>
+                <span className="text-xs sm:text-sm opacity-75 hidden sm:inline">
+                  {subscriptionStatus !== 'active' ? 'דורש מנוי פעיל' : 'צפה בהקלטות קודמות'}
+                </span>
               </div>
             </button>
             {viewMode === 'live' && cameras.length > 0 && (
@@ -269,7 +313,27 @@ export default function DashboardPage() {
           <div className="max-w-7xl mx-auto">
             {viewMode === 'live' ? (
               // Live View Mode
-              cameras.length === 0 ? (
+              // Check if SIM plan without active subscription (no internet = no access)
+              subscriptionStatus !== 'active' && connectionType === 'sim' ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-6">
+                    <Lock className="w-12 h-12 text-red-600" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-slate-900 mb-2">השירות אינו זמין</h2>
+                  <p className="text-lg text-slate-600 text-center max-w-md mb-2">
+                    מכיוון שהמנוי שלך כולל אינטרנט SIM, ללא מנוי פעיל אין חיבור לאינטרנט ולכן המערכת אינה זמינה.
+                  </p>
+                  <p className="text-base text-slate-500 text-center max-w-md">
+                    חדש את המנוי כדי להמשיך להשתמש במערכת.
+                  </p>
+                  <a 
+                    href="/dashboard/subscription"
+                    className="mt-6 px-6 py-3 bg-gradient-to-l from-orange-600 to-red-600 text-white rounded-xl font-bold hover:scale-105 transition-all shadow-lg"
+                  >
+                    חדש מנוי עכשיו
+                  </a>
+                </div>
+              ) : cameras.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20">
                   <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-6">
                     <AlertTriangle className="w-12 h-12 text-yellow-600" />

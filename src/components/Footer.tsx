@@ -108,22 +108,22 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="#" className="text-slate-400 hover:text-blue-400 transition-colors duration-200 flex items-center gap-2 group">
+                <Link href="/faq" className="text-slate-400 hover:text-blue-400 transition-colors duration-200 flex items-center gap-2 group">
                   <span className="w-1.5 h-1.5 bg-blue-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></span>
                   <span>שאלות נפוצות</span>
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-slate-400 hover:text-blue-400 transition-colors duration-200 flex items-center gap-2 group">
+                <Link href="/guides" className="text-slate-400 hover:text-blue-400 transition-colors duration-200 flex items-center gap-2 group">
                   <span className="w-1.5 h-1.5 bg-blue-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></span>
                   <span>מדריכי שימוש</span>
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-slate-400 hover:text-blue-400 transition-colors duration-200 flex items-center gap-2 group">
+                <Link href="/contact" className="text-slate-400 hover:text-blue-400 transition-colors duration-200 flex items-center gap-2 group">
                   <span className="w-1.5 h-1.5 bg-blue-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></span>
                   <span>צור קשר</span>
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -181,17 +181,17 @@ export default function Footer() {
 
           {/* Legal Links */}
           <div className="flex flex-wrap justify-center gap-6 text-sm">
-            <a href="#" className="text-slate-400 hover:text-blue-400 transition-colors">
+            <Link href="/terms" className="text-slate-400 hover:text-blue-400 transition-colors">
               תנאי שימוש
-            </a>
+            </Link>
             <span className="text-slate-700">•</span>
-            <a href="#" className="text-slate-400 hover:text-blue-400 transition-colors">
+            <Link href="/privacy" className="text-slate-400 hover:text-blue-400 transition-colors">
               מדיניות פרטיות
-            </a>
+            </Link>
             <span className="text-slate-700">•</span>
-            <a href="#" className="text-slate-400 hover:text-blue-400 transition-colors">
+            <Link href="/license" className="text-slate-400 hover:text-blue-400 transition-colors">
               הסכם רישיון
-            </a>
+            </Link>
           </div>
         </div>
       </div>

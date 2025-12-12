@@ -37,6 +37,10 @@ export default function InvoiceCreator({ userId, customerName, customerEmail }: 
   const [showTemplates, setShowTemplates] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [invoiceLink, setInvoiceLink] = useState("");
+  
+  // מנוי חודשי - מודל חכם
+  const [includeSubscription, setIncludeSubscription] = useState(true); // ברירת מחדל: כן
+  const [monthlyPrice, setMonthlyPrice] = useState(149);
 
   useEffect(() => {
     fetchTemplates();
@@ -86,8 +90,14 @@ export default function InvoiceCreator({ userId, customerName, customerEmail }: 
     setItems(items.filter(item => item.id !== id));
   }
 
-  function getTotalAmount() {
+  function getInstallationTotal() {
     return items.reduce((sum, item) => sum + item.total_price, 0);
+  }
+  
+  function getTotalAmount() {
+    const installation = getInstallationTotal();
+    // ⚠️ חודש ראשון חינם! תמיד רק ציוד + התקנה
+    return installation;
   }
 
   async function createInvoice() {
@@ -107,6 +117,9 @@ export default function InvoiceCreator({ userId, customerName, customerEmail }: 
           notes,
           customerName,
           customerEmail,
+          // מנוי חודשי
+          includeSubscription,
+          monthlyPrice: includeSubscription ? monthlyPrice : null,
         }),
       });
 
@@ -183,6 +196,8 @@ export default function InvoiceCreator({ userId, customerName, customerEmail }: 
                 setItems([]);
                 setNotes("");
                 setInvoiceLink("");
+                setIncludeSubscription(true);
+                setMonthlyPrice(149);
               }}
               className="px-6 py-3 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors font-medium"
             >
@@ -339,15 +354,112 @@ export default function InvoiceCreator({ userId, customerName, customerEmail }: 
           />
         </div>
 
+        {/* Subscription Toggle */}
+        <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200">
+          <div className="flex items-start gap-4 mb-4">
+            <input
+              type="checkbox"
+              id="includeSubscription"
+              checked={includeSubscription}
+              onChange={(e) => setIncludeSubscription(e.target.checked)}
+              className="w-5 h-5 mt-1 accent-blue-600 cursor-pointer"
+            />
+            <div className="flex-1 text-right">
+              <label htmlFor="includeSubscription" className="font-bold text-slate-800 text-lg cursor-pointer block mb-1">
+                🔄 כלול מנוי חודשי (מומלץ!)
+              </label>
+              <p className="text-sm text-slate-600">
+                🎁 חודש ראשון חינם! התשלום הראשוני כולל רק ציוד + התקנה. מחודש 2 ואילך - חיוב אוטומטי חודשי
+              </p>
+            </div>
+          </div>
+
+          {includeSubscription ? (
+            <div className="mt-4 bg-white rounded-lg p-4 border border-blue-200">
+              <label className="text-sm font-medium text-slate-700 mb-2 block text-right">
+                💰 מחיר מנוי חודשי (₪)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={monthlyPrice}
+                onChange={(e) => setMonthlyPrice(parseFloat(e.target.value) || 0)}
+                placeholder="149"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right text-lg font-semibold"
+              />
+              <div className="mt-3 text-xs text-slate-600 text-right space-y-1">
+                <p>🎁 חודש ראשון חינם במתנה!</p>
+                <p>✓ מחודש 2: חיוב אוטומטי ₪{monthlyPrice}/חודש</p>
+                <p>✓ אפשרות לעד 12 תשלומים על הסכום הראשוני</p>
+                <p>✓ ללא מנוי פעיל - השירות יושבת אוטומטית</p>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 bg-amber-50 rounded-lg p-4 border-2 border-amber-300">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">⚠️</span>
+                <div className="flex-1 text-right">
+                  <p className="font-bold text-amber-800 mb-2">תשלום רק על התקנה (ללא מנוי)</p>
+                  <div className="text-sm text-amber-700 space-y-1">
+                    <p>• הלקוח ישלם רק על הציוד וההתקנה</p>
+                    <p>• לא יהיה חיוב חודשי אוטומטי</p>
+                    <p>• תצטרך להפעיל מנוי ידנית אחר כך (מדף הלקוח)</p>
+                    <p>• השירותים החודשיים לא יהיו זמינים ללקוח</p>
+                  </div>
+                  <p className="text-xs text-amber-600 mt-3 font-semibold">
+                    💡 מומלץ לכלול מנוי לחוויה מלאה
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Total & Submit */}
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border-2 border-green-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-right">
-              <div className="text-sm text-slate-600 mb-1">סה"כ לתשלום</div>
-              <div className="text-4xl font-bold text-green-700">₪{getTotalAmount().toFixed(2)}</div>
+          {/* Breakdown */}
+          <div className="mb-4 text-right space-y-2">
+            <div className="flex justify-between items-center text-slate-700">
+              <span className="font-semibold">₪{getInstallationTotal().toFixed(2)}</span>
+              <span>💰 ציוד והתקנה</span>
             </div>
-            <Calculator size={40} className="text-green-600" />
+            {includeSubscription ? (
+              <div className="flex justify-between items-center text-green-700 bg-green-50 px-2 py-1 rounded">
+                <span className="font-semibold text-green-800">₪0 (חינם!)</span>
+                <span className="text-sm">🎁 חודש ראשון במתנה!</span>
+              </div>
+            ) : (
+              <div className="flex justify-between items-center text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                <span className="font-semibold">₪0</span>
+                <span className="text-sm">⚠️ אין מנוי חודשי</span>
+              </div>
+            )}
+            <div className="border-t-2 border-green-300 pt-2 flex justify-between items-center">
+              <div className="text-right">
+                <div className="text-sm text-slate-600">סה"כ לתשלום עכשיו</div>
+                <div className="text-4xl font-bold text-green-700">₪{getTotalAmount().toFixed(2)}</div>
+                {includeSubscription && (
+                  <div className="text-xs text-green-600 mt-1">🎁 חודש ראשון חינם!</div>
+                )}
+                {!includeSubscription && (
+                  <div className="text-xs text-amber-600 mt-1">רק התקנה - ללא מנוי</div>
+                )}
+              </div>
+              <Calculator size={40} className="text-green-600" />
+            </div>
           </div>
+          
+          {includeSubscription && (
+            <div className="mb-4 bg-blue-50 border border-blue-300 rounded-lg p-3 text-right">
+              <p className="text-sm text-blue-800 font-medium">
+                🔄 מחודש 2 ואילך: חיוב אוטומטי של ₪{monthlyPrice}/חודש
+              </p>
+              <p className="text-xs text-blue-600 mt-1">
+                הלקוח יכול לשלם בעד 12 תשלומים על הסכום הראשוני
+              </p>
+            </div>
+          )}
 
           <button
             onClick={createInvoice}

@@ -351,7 +351,7 @@ export default function SubscriptionManager({
                   <ul className="space-y-1 text-xs">
                     <li>• הלקוח ישלם ₪{userMonthlyPrice} כל חודש</li>
                     <li>• החיוב הראשון יתבצע בעוד חודש מהיום</li>
-                    <li>• החיוב אוטומטי דרך Grow Payment</li>
+                    <li>• החיוב אוטומטי דרך PayPlus</li>
                     <li>• ניתן לבטל בכל עת</li>
                   </ul>
                 </div>

@@ -1,0 +1,65 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+
+// GET /api/admin/invoices - רשימת כל החשבוניות
+export async function GET(req: NextRequest) {
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("user_id");
+    const status = searchParams.get("status");
+
+    let query = supabase
+      .from("invoices")
+      .select(`
+        *,
+        user:users (
+          id,
+          full_name,
+          email,
+          phone
+        ),
+        payment:payments (
+          id,
+          status,
+          amount,
+          paid_at,
+          provider_transaction_id,
+          metadata
+        )
+      `)
+      .order("created_at", { ascending: false });
+
+    // פילטר לפי לקוח
+    if (userId) {
+      query = query.eq("user_id", userId);
+    }
+
+    // פילטר לפי סטטוס
+    if (status && status !== "all") {
+      query = query.eq("status", status);
+    }
+
+    const { data: invoices, error } = await query;
+
+    if (error) {
+      console.error("Error fetching invoices:", error);
+      return NextResponse.json(
+        { success: false, error: "Failed to fetch invoices" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true, invoices });
+  } catch (error) {
+    console.error("Error in admin invoices API:", error);
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
