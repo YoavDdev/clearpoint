@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Lock, Eye, EyeOff, UserPlus, CheckCircle } from "lucide-react";
@@ -8,8 +8,8 @@ import { Lock, Eye, EyeOff, UserPlus, CheckCircle } from "lucide-react";
 export const dynamic = 'force-dynamic';
 
 export default function SetupPasswordPage() {
-  const supabase = createClientComponentClient();
   const router = useRouter();
+  const supabase = useMemo(() => createClientComponentClient(), []);
 
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);

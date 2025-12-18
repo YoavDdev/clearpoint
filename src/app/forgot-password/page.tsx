@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Link from "next/link";
 import { Mail, ArrowRight, KeyRound } from "lucide-react";
@@ -8,11 +8,12 @@ import { Mail, ArrowRight, KeyRound } from "lucide-react";
 export const dynamic = 'force-dynamic';
 
 export default function ForgotPasswordPage() {
-  const supabase = createClientComponentClient();
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const supabase = useMemo(() => createClientComponentClient(), []);
 
   const handleResetPassword = async () => {
     setLoading(true);
