@@ -5,6 +5,8 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Link from "next/link";
 import { Mail, ArrowRight, KeyRound } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 export default function ForgotPasswordPage() {
   const supabase = createClientComponentClient();
   const [email, setEmail] = useState("");
