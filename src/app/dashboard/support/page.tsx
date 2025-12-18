@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { HelpCircle, MessageCircle, Phone, Mail, CheckCircle2, Upload, Send } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default function SupportPage() {
   const [message, setMessage] = useState('');
   const [category, setCategory] = useState('');
