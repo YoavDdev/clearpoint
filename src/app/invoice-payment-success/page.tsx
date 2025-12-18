@@ -5,9 +5,9 @@ import Link from "next/link";
 export default async function InvoicePaymentSuccessPage({
   searchParams,
 }: {
-  searchParams: { invoice_id?: string };
+  searchParams: Promise<{ invoice_id?: string }>;
 }) {
-  const invoiceId = searchParams.invoice_id;
+  const { invoice_id: invoiceId } = await searchParams;
 
   let invoice = null;
   if (invoiceId) {
@@ -54,38 +54,20 @@ export default async function InvoicePaymentSuccessPage({
                   </div>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="font-semibold text-slate-800">#{invoice.invoice_number}</span>
                       <span className="text-slate-600">מספר חשבונית:</span>
+                      <span className="font-semibold text-slate-800">#{invoice.invoice_number}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="font-semibold text-green-700">₪{invoice.total_amount.toFixed(2)}</span>
                       <span className="text-slate-600">סכום ששולם:</span>
+                      <span className="font-semibold text-green-700">₪{invoice.total_amount.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="font-semibold text-slate-800">{invoice.user?.full_name || "לקוח"}</span>
                       <span className="text-slate-600">שם לקוח:</span>
+                      <span className="font-semibold text-slate-800">{invoice.user?.full_name || "לקוח"}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Next Steps */}
-                <div className="bg-blue-50 rounded-2xl p-6 text-right border border-blue-200">
-                  <h3 className="text-lg font-bold text-slate-800 mb-3">מה הלאה?</h3>
-                  <ul className="space-y-2 text-slate-700">
-                    <li className="flex items-start gap-2 justify-end">
-                      <span>אישור תשלום נשלח לכתובת המייל שלך</span>
-                      <span className="text-blue-600">✓</span>
-                    </li>
-                    <li className="flex items-start gap-2 justify-end">
-                      <span>הצוות שלנו יצור איתך קשר בקרוב</span>
-                      <span className="text-blue-600">✓</span>
-                    </li>
-                    <li className="flex items-start gap-2 justify-end">
-                      <span>ההתקנה תתואם בהתאם לתאריך המועדף</span>
-                      <span className="text-blue-600">✓</span>
-                    </li>
-                  </ul>
-                </div>
               </div>
             ) : (
               <div className="text-center py-8">

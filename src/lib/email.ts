@@ -48,6 +48,22 @@ export interface CancellationConfirmationData {
   cancellationReason?: string;
 }
 
+export interface InvoiceEmailData {
+  customerName: string;
+  customerEmail: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  totalAmount: number;
+  items: Array<{
+    name: string;
+    description?: string;
+    quantity: number;
+    price: number;
+  }>;
+  invoiceUrl: string;
+  isMonthlyRecurring?: boolean; // אם זו חשבונית חודשית
+}
+
 // =====================================================
 // Email Templates
 // =====================================================
@@ -278,6 +294,90 @@ function upcomingChargeTemplate(data: UpcomingChargeData): string {
   `.trim();
 }
 
+function invoiceEmailTemplate(data: InvoiceEmailData): string {
+  return `
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${data.isMonthlyRecurring ? 'חשבונית חודשית' : 'חשבונית חדשה'}</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f4f4;">
+  <div style="background-color: white; border-radius: 10px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <div style="text-align: center; margin-bottom: 30px;">
+      <h1 style="color: ${data.isMonthlyRecurring ? '#8b5cf6' : '#10b981'}; margin: 0;">📄 ${data.isMonthlyRecurring ? 'חשבונית חודשית' : 'חשבונית חדשה'}</h1>
+    </div>
+    
+    <div style="background: linear-gradient(135deg, ${data.isMonthlyRecurring ? '#8b5cf6 0%, #7c3aed' : '#10b981 0%, #059669'} 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+      <p style="margin: 0; font-size: 14px;">שלום ${data.customerName},</p>
+      <p style="margin: 10px 0 0 0; font-size: 16px;">${data.isMonthlyRecurring ? 'קיבלת חשבונית חודשית חדשה עבור המנוי שלך' : 'החשבונית שלך מוכנה!'}</p>
+    </div>
+
+    <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 20px; direction: rtl;">
+      <h3 style="margin-top: 0; color: #1f2937; text-align: right;">פרטי החשבונית:</h3>
+      <table dir="rtl" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: right; width: 50%;">מספר חשבונית:</td>
+          <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: left; font-weight: bold; font-family: monospace; width: 50%;">#${data.invoiceNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: right; width: 50%;">תאריך:</td>
+          <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: left; width: 50%;">${data.invoiceDate}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px; border-bottom: 2px solid #d1d5db; text-align: right; font-weight: bold; width: 50%;">סכום כולל:</td>
+          <td style="padding: 10px; border-bottom: 2px solid #d1d5db; text-align: left; font-weight: bold; font-size: 24px; color: #10b981; width: 50%;">₪${data.totalAmount.toLocaleString()}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="background-color: #f0fdf4; border-right: 4px solid #10b981; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+      <h4 style="margin-top: 0; color: #065f46;">פריטים בחשבונית:</h4>
+      <ul style="margin: 0; padding-right: 20px; color: #064e3b;">
+        ${data.items.map(item => `
+        <li style="margin-bottom: 8px;">
+          <strong>${item.name}</strong> ${item.description ? `<br><span style="font-size: 12px; color: #6b7280;">${item.description}</span>` : ''}
+          <br><span style="font-size: 13px;">כמות: ${item.quantity} × ₪${item.price.toLocaleString()} = ₪${(item.quantity * item.price).toLocaleString()}</span>
+        </li>
+        `).join('')}
+      </ul>
+    </div>
+
+    ${data.isMonthlyRecurring ? `
+    <div style="background-color: #fef3c7; border-right: 4px solid #f59e0b; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+      <p style="margin: 0; color: #78350f; font-size: 14px;">
+        🔄 <strong>זוהי חשבונית חודשית אוטומטית</strong><br>
+        התשלום בוצע אוטומטית מכרטיס האשראי שלך. אין צורך בפעולה מצדך.
+      </p>
+    </div>
+    ` : ''}
+
+    <div style="text-align: center; margin-top: 30px;">
+      <a href="${data.invoiceUrl}" style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+        📄 צפה בחשבונית המלאה
+      </a>
+    </div>
+
+    <div style="background-color: #dbeafe; border-right: 4px solid #3b82f6; padding: 15px; border-radius: 8px; margin-top: 20px;">
+      <p style="margin: 0; color: #1e3a8a; font-size: 14px;">
+        💡 <strong>טיפ:</strong> שמור חשבונית זו לצורך תיעוד והנהלת חשבונות
+      </p>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+      <p style="margin: 0; font-size: 12px; color: #6b7280;">Clearpoint Security Systems</p>
+      <p style="margin: 5px 0; font-size: 12px; color: #6b7280;">טלפון: 050-123-4567 | אימייל: info@clearpoint.co.il</p>
+      <p style="margin: 10px 0 0 0; font-size: 11px; color: #9ca3af;">
+        קיבלת מייל זה כי נוצרה עבורך חשבונית במערכת Clearpoint Security
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
+}
+
 function cancellationConfirmationTemplate(data: CancellationConfirmationData): string {
   return `
 <!DOCTYPE html>
@@ -430,6 +530,25 @@ export async function sendCancellationConfirmation(data: CancellationConfirmatio
     return true;
   } catch (error) {
     console.error('❌ Failed to send cancellation confirmation:', error);
+    return false;
+  }
+}
+
+export async function sendInvoiceEmail(data: InvoiceEmailData): Promise<boolean> {
+  try {
+    console.log('📧 Sending invoice email to:', data.customerEmail);
+    
+    const result = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: data.customerEmail,
+      subject: `📄 ${data.isMonthlyRecurring ? 'חשבונית חודשית' : 'חשבונית חדשה'} #${data.invoiceNumber} | Clearpoint Security`,
+      html: invoiceEmailTemplate(data),
+    });
+
+    console.log('✅ Invoice email sent:', result);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to send invoice email:', error);
     return false;
   }
 }

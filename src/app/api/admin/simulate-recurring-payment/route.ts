@@ -119,6 +119,38 @@ export async function POST(req: NextRequest) {
 
         console.log(`✅ Invoice created: ${newInvoice.invoice_number}`);
 
+        // שליחת אימייל ללקוח עם החשבונית
+        try {
+          const { data: user } = await supabase
+            .from("users")
+            .select("full_name, email")
+            .eq("id", userId)
+            .single();
+
+          if (user) {
+            const { sendInvoiceEmail } = await import('@/lib/email');
+            await sendInvoiceEmail({
+              customerName: user.full_name || user.email,
+              customerEmail: user.email,
+              invoiceNumber: newInvoice.invoice_number,
+              invoiceDate: new Date().toLocaleDateString('he-IL'),
+              totalAmount: subscription.custom_price || subscription.amount,
+              items: [{
+                name: "מנוי חודשי",
+                description: `מנוי לשירות Clearpoint Security - ${new Date().toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })}`,
+                quantity: 1,
+                price: subscription.custom_price || subscription.amount,
+              }],
+              invoiceUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/invoice/${newInvoice.id}`,
+              isMonthlyRecurring: true,
+            });
+            console.log('📧 Monthly invoice email sent to customer');
+          }
+        } catch (emailError) {
+          console.error('⚠️ Failed to send invoice email:', emailError);
+          // לא עוצרים את הזרימה - החשבונית כבר נוצרה
+        }
+
         return NextResponse.json({
           success: true,
           message: "Recurring payment simulated successfully",

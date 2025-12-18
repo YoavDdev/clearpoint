@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar, CreditCard, Power, XCircle, CheckCircle, Loader2, AlertCircle, DollarSign, Link as LinkIcon } from "lucide-react";
+import { Calendar, CreditCard, Power, XCircle, CheckCircle, Loader2, AlertCircle, DollarSign, Link as LinkIcon, Plus } from "lucide-react";
 
 interface Subscription {
   id: string;
@@ -31,9 +31,8 @@ export default function SubscriptionManager({
 }: SubscriptionManagerProps) {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activating, setActivating] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
-  const [paymentLink, setPaymentLink] = useState<string | null>(null);
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [creatingManual, setCreatingManual] = useState(false);
 
   useEffect(() => {
     loadSubscription();
@@ -53,39 +52,49 @@ export default function SubscriptionManager({
     }
   }
 
-  async function activateSubscription() {
-    if (!confirm(`האם להפעיל חיוב חודשי אוטומטי של ₪${userMonthlyPrice}?`)) {
+  function openPayPlusDashboard() {
+    window.open('https://www.payplus.co.il/dashboard', '_blank');
+  }
+
+  async function createManualSubscription() {
+    if (!confirm(
+      `האם לקוח זה כבר שילם ויש לו הוראת קבע פעילה ב-PayPlus?\n\n` +
+      `פעולה זו תיצור מנוי ידני ותיתן ללקוח גישה מלאה למערכת.\n\n` +
+      `סכום: ₪${userMonthlyPrice}/חודש`
+    )) {
       return;
     }
 
-    setActivating(true);
+    setCreatingManual(true);
+
     try {
-      const res = await fetch("/api/admin/activate-subscription", {
+      const res = await fetch("/api/admin/create-manual-subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId,
-          planId: userPlanId,
-          billingCycle: "monthly",
-          userEmail,
-          userName,
-          customPrice: userMonthlyPrice, // שולח את המחיר המותאם אישית
+          amount: userMonthlyPrice,
+          billingCycle: 'monthly'
         }),
       });
 
       const data = await res.json();
 
       if (data.success) {
-        alert(`✅ חיוב חודשי אוטומטי הופעל!\n\nמחיר: ₪${userMonthlyPrice}/חודש\nחיוב ראשון: ${new Date(data.subscription.nextBillingDate).toLocaleDateString("he-IL")}`);
+        alert(
+          "✅ מנוי נוצר בהצלחה!\n\n" +
+          "הלקוח קיבל גישה מלאה למערכת.\n" +
+          "מהחיוב החודשי הבא - הכל יעבוד אוטומטית דרך webhook."
+        );
         loadSubscription();
       } else {
         alert("❌ שגיאה: " + data.error);
       }
     } catch (error) {
-      console.error("Error activating subscription:", error);
-      alert("❌ שגיאה בהפעלת חיוב אוטומטי");
+      console.error("Error creating manual subscription:", error);
+      alert("❌ שגיאה ביצירת מנוי ידני");
     } finally {
-      setActivating(false);
+      setCreatingManual(false);
     }
   }
 
@@ -115,59 +124,6 @@ export default function SubscriptionManager({
     }
   }
 
-  async function regeneratePaymentLink() {
-    if (!confirm("❓ האם ליצור לינק תשלום חדש? (זה ידרוס לינקים קודמים)")) {
-      return;
-    }
-
-    setRegenerating(true);
-    try {
-      // קודם נמצא את התשלום הממתין של המשתמש
-      const paymentsRes = await fetch(`/api/admin/get-user-payments?userId=${userId}`);
-      const paymentsData = await paymentsRes.json();
-      
-      if (!paymentsData.success || !paymentsData.payments?.length) {
-        alert("❌ לא נמצא תשלום ממתין");
-        return;
-      }
-
-      // מוצאים תשלום ממתין ללא לינק
-      const pendingPayment = paymentsData.payments.find(
-        (p: any) => p.status === "pending" && !p.provider_payment_id
-      );
-
-      if (!pendingPayment) {
-        alert("❌ לא נמצא תשלום ממתין ללא לינק");
-        return;
-      }
-
-      // יוצרים לינק חדש
-      const res = await fetch("/api/admin/regenerate-payment-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentId: pendingPayment.id }),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        setPaymentLink(data.paymentLink);
-        alert(`✅ לינק תשלום נוצר!\n\nהלינק הועתק ללוח:\n${data.paymentLink}`);
-        
-        // העתקה אוטומטית ללוח
-        navigator.clipboard.writeText(data.paymentLink);
-        
-        loadSubscription();
-      } else {
-        alert("❌ שגיאה: " + data.error + (data.details ? `\n\nפרטים: ${data.details}` : ""));
-      }
-    } catch (error) {
-      console.error("Error regenerating payment link:", error);
-      alert("❌ שגיאה ביצירת לינק תשלום");
-    } finally {
-      setRegenerating(false);
-    }
-  }
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, { bg: string; text: string; icon: any; label: string }> = {
@@ -259,67 +215,19 @@ export default function SubscriptionManager({
 
             {/* מידע נוסף */}
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 text-right">
-              <div className="text-sm text-slate-600 mb-2">💡 החיוב מתבצע אוטומטית דרך Grow</div>
+              <div className="text-sm text-slate-600 mb-2">💡 החיוב מתבצע אוטומטית דרך PayPlus</div>
               <div className="text-xs text-slate-500">הלקוח יקבל הודעה לפני כל חיוב</div>
             </div>
 
-            {/* לינק תשלום אם נוצר */}
-            {paymentLink && (
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border-2 border-green-200">
-                <div className="flex items-center gap-2 justify-end mb-2">
-                  <span className="font-semibold text-green-800">🎉 לינק תשלום נוצר!</span>
-                  <LinkIcon size={18} className="text-green-600" />
-                </div>
-                <div className="bg-white rounded-lg p-3 border border-green-200 mb-3">
-                  <code className="text-sm text-slate-700 break-all">{paymentLink}</code>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(paymentLink);
-                      alert("✅ הלינק הועתק ללוח");
-                    }}
-                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                  >
-                    📋 העתק לינק
-                  </button>
-                  <button
-                    onClick={() => window.open(paymentLink, "_blank")}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                  >
-                    🔗 פתח לינק
-                  </button>
-                </div>
-              </div>
-            )}
 
-            {/* כפתורי פעולה */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={regeneratePaymentLink}
-                disabled={regenerating}
-                className="px-4 py-3 bg-blue-100 text-blue-700 rounded-xl hover:bg-blue-200 transition-colors font-medium border-2 border-blue-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {regenerating ? (
-                  <>
-                    <Loader2 className="animate-spin" size={20} />
-                    <span>יוצר לינק...</span>
-                  </>
-                ) : (
-                  <>
-                    <LinkIcon size={20} />
-                    <span>צור לינק מחדש</span>
-                  </>
-                )}
-              </button>
-              <button
-                onClick={cancelSubscription}
-                className="px-4 py-3 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition-colors font-medium border-2 border-red-300 flex items-center justify-center gap-2"
-              >
-                <XCircle size={20} />
-                <span>ביטול מנוי</span>
-              </button>
-            </div>
+            {/* כפתור ביטול */}
+            <button
+              onClick={cancelSubscription}
+              className="w-full px-4 py-3 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition-colors font-medium border-2 border-red-300 flex items-center justify-center gap-2"
+            >
+              <XCircle size={20} />
+              <span>ביטול מנוי</span>
+            </button>
           </div>
         ) : (
           /* אין מנוי פעיל */
@@ -358,24 +266,127 @@ export default function SubscriptionManager({
               </div>
             </div>
 
-            {/* כפתור הפעלה */}
-            <button
-              onClick={activateSubscription}
-              disabled={activating}
-              className="w-full px-8 py-5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-            >
-              {activating ? (
-                <>
-                  <Loader2 className="animate-spin" size={24} />
-                  <span>מפעיל חיוב אוטומטי...</span>
-                </>
-              ) : (
-                <>
-                  <Power size={24} />
-                  <span>הפעל חיוב חודשי אוטומטי</span>
-                </>
-              )}
-            </button>
+            {/* הנחיות יצירה ידנית */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-xl p-6 text-right">
+              <div className="flex items-start gap-3 mb-4">
+                <AlertCircle className="text-blue-600 mt-1" size={28} />
+                <div className="flex-1">
+                  <h4 className="font-bold text-blue-900 mb-2 text-lg">📝 איך ליצור הוראת קבף ידנית</h4>
+                  <p className="text-sm text-slate-700 mb-4">
+                    עקב מגבלות PayPlus API, הוראת הקבף נוצרת ידנית ב-PayPlus Dashboard.
+                    לאחר יצירה, המערכת תעדכן את המנוי אוטומטית!
+                  </p>
+                </div>
+              </div>
+
+              {/* שלבים */}
+              <div className="space-y-3 mb-4">
+                <div className="bg-white rounded-lg p-4 border border-blue-200">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
+                      1
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-slate-800 mb-1">פתח PayPlus Dashboard</p>
+                      <p className="text-sm text-slate-600">לחץ על הכפתור למטה לפתיחת הדשבורד</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-4 border border-blue-200">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
+                      2
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-slate-800 mb-1">חפש את הלקוח</p>
+                      <p className="text-sm text-slate-600 mb-2">ברשימת הלקוחות, חפש:</p>
+                      <div className="bg-slate-50 rounded p-2 text-xs font-mono">
+                        {userName} ({userEmail})
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-4 border border-blue-200">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
+                      3
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-slate-800 mb-1">יצור הוראת קבף</p>
+                      <p className="text-sm text-slate-600 mb-2">לחץ על "הוסף הוראת קבף" והגדר:</p>
+                      <ul className="text-xs text-slate-600 space-y-1">
+                        <li>• <strong>סכום:</strong> ₪{userMonthlyPrice}</li>
+                        <li>• <strong>תדירות:</strong> חודשי</li>
+                        <li>• <strong>חיוב ראשון:</strong> מייד</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-4 border border-green-200">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
+                      ✓
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-slate-800 mb-1">המערכת תעדכן אוטומטית!</p>
+                      <p className="text-sm text-slate-600">
+                        כש-PayPlus יחייב את הלקוח, המערכת תקבל webhook ותפעיל את המנוי באופן אוטומטי!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* מידע חשוב */}
+              <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-3 mb-4">
+                <p className="text-xs text-yellow-800">
+                  <strong>💡 חשוב:</strong> וודא שהאימייל ב-PayPlus זהה לאימייל במערכת ({userEmail}) כדי שהסינכרון יעבוד!
+                </p>
+              </div>
+            </div>
+
+            {/* כפתורי פעולה */}
+            <div className="space-y-3">
+              {/* כפתור יצירת מנוי ידני */}
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl p-4">
+                <div className="text-right mb-3">
+                  <h4 className="font-bold text-green-900 mb-1">✅ כבר יצרת הוראת קבע ב-PayPlus?</h4>
+                  <p className="text-sm text-slate-700">
+                    אם הלקוח כבר שילם ויש לו הוראת קבע פעילה במערכת PayPlus,
+                    לחץ כאן כדי להפעיל את המנוי במערכת שלנו ולתת גישה מלאה ללקוח.
+                  </p>
+                </div>
+                <button
+                  onClick={createManualSubscription}
+                  disabled={creatingManual}
+                  className="w-full px-6 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all font-bold text-lg flex items-center justify-center gap-3 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {creatingManual ? (
+                    <>
+                      <Loader2 className="animate-spin" size={24} />
+                      <span>יוצר מנוי...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={24} />
+                      <span>צור מנוי ידני והפעל גישה</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* כפתור פתיחת Dashboard */}
+              <button
+                onClick={openPayPlusDashboard}
+                className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all font-bold text-lg flex items-center justify-center gap-3 shadow-lg"
+              >
+                <LinkIcon size={24} />
+                <span>פתח PayPlus Dashboard</span>
+              </button>
+            </div>
           </div>
         )}
       </div>

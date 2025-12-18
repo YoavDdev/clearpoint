@@ -42,10 +42,5 @@ export default async function InvoiceViewPage({ params }: { params: { id: string
     .eq("invoice_id", id)
     .order("sort_order", { ascending: true });
 
-  // אם החשבונית כבר שולמה, נפנה לעמוד הצלחה
-  if (invoice.status === "paid") {
-    redirect(`/invoice-payment-success?invoice_id=${id}`);
-  }
-
   return <ModernInvoice invoice={invoice} items={items || []} isAdmin={false} />;
 }

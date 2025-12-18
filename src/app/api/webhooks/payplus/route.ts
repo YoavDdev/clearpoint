@@ -117,6 +117,7 @@ export async function POST(req: NextRequest) {
             approval_num: parsedData.asmachta,
             card_suffix: parsedData.cardDetails.suffix,
             card_type: parsedData.cardDetails.type,
+            card_token: parsedData.cardToken || null,
           },
         })
         .eq("id", payment.id);
@@ -125,24 +126,164 @@ export async function POST(req: NextRequest) {
         console.error("❌ Failed to update payment:", paymentError);
       } else {
         console.log("✅ Payment updated successfully");
+        
+        // אם התשלום הושלם ויש חשבונית מקושרת - נעדכן גם אותה
+        if (parsedData.status === 'completed' && payment.invoice_id) {
+          console.log("📄 Updating invoice status to paid:", payment.invoice_id);
+          
+          // קבלת פרטי החשבונית
+          const { data: invoice } = await supabase
+            .from("invoices")
+            .select("*")
+            .eq("id", payment.invoice_id)
+            .single();
+          
+          const { error: invoiceError } = await supabase
+            .from("invoices")
+            .update({
+              status: 'paid',
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", payment.invoice_id);
+
+          if (invoiceError) {
+            console.error("❌ Failed to update invoice:", invoiceError);
+          } else {
+            console.log("✅ Invoice status updated to paid");
+            
+            // 🔄 זיהוי תשלום מנוי והפעלת הוראת קבע
+            if (payment.payment_type === 'recurring' && payment.metadata?.subscription_first_payment) {
+              console.log("🎯 Subscription first payment detected - creating subscription record");
+              
+              const { data: user } = await supabase
+                .from("users")
+                .select("id, plan_id, custom_price")
+                .eq("id", payment.user_id)
+                .single();
+              
+              if (user) {
+                // תאריך חיוב הבא - חודש מהיום
+                const nextBillingDate = new Date();
+                nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+                
+                // יצירת רשומת מנוי
+                const { data: subscription, error: subError } = await supabase
+                  .from("subscriptions")
+                  .insert({
+                    user_id: payment.user_id,
+                    plan_id: payment.metadata.plan_id || user.plan_id || 'monthly-service',
+                    status: 'active',
+                    billing_cycle: 'monthly',
+                    amount: parseFloat(payment.amount),
+                    currency: 'ILS',
+                    next_billing_date: nextBillingDate.toISOString().split('T')[0],
+                    started_at: new Date().toISOString(),
+                    payment_provider: 'payplus',
+                    provider_subscription_id: parsedData.transactionId,
+                  })
+                  .select()
+                  .single();
+                
+                if (!subError && subscription) {
+                  console.log("✅ Subscription created:", subscription.id);
+                  
+                  // עדכון users עם subscription_id
+                  await supabase
+                    .from("users")
+                    .update({
+                      subscription_id: subscription.id,
+                      subscription_active: true,
+                      subscription_status: 'active',
+                    })
+                    .eq("id", payment.user_id);
+                  
+                  console.log("✅ User subscription status updated");
+                } else {
+                  console.error("❌ Failed to create subscription:", subError);
+                }
+              }
+            }
+          }
+        }
       }
     } else {
       console.warn("⚠️ Could not find payment to update");
     }
 
     // ===== אם זה תשלום חוזר (מנוי), נעדכן את המנוי =====
-    if (parsedData.isRecurring && userId) {
+    if (parsedData.isRecurring) {
       console.log("🔄 Processing recurring payment for subscription");
+      
+      // זיהוי משתמש - לפי userId מה-more_info, או לפי אימייל
+      let foundUserId = userId;
+      
+      if (!foundUserId && parsedData.payerEmail) {
+        console.log("🔍 No userId in more_info, searching by email:", parsedData.payerEmail);
+        const { data: userByEmail } = await supabase
+          .from("users")
+          .select("id")
+          .eq("email", parsedData.payerEmail)
+          .single();
+        
+        if (userByEmail) {
+          foundUserId = userByEmail.id;
+          console.log("✅ Found user by email:", foundUserId);
+        }
+      }
+      
+      if (!foundUserId) {
+        console.error("❌ Could not identify user for recurring payment");
+        return NextResponse.json({
+          success: false,
+          error: "Could not identify user for recurring payment",
+        });
+      }
 
-      // קבלת המנוי
+      // קבלת המנוי (או null אם אין)
       const { data: subscription } = await supabase
         .from("subscriptions")
         .select("*")
-        .eq("user_id", userId)
-        .eq("status", "active")
+        .eq("user_id", foundUserId)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .single();
 
-      if (subscription) {
+      if (subscription && subscription.status === 'active') {
+        // מנוי קיים ופעיל
+        
+        // טיפול בביטול הוראת קבע
+        if (parsedData.status === 'cancelled') {
+          console.log("🚫 Recurring payment cancelled by customer or PayPlus");
+          
+          // עדכון המנוי לסטטוס cancelled
+          await supabase
+            .from("subscriptions")
+            .update({
+              status: 'cancelled',
+              cancelled_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", subscription.id);
+          
+          // חסימת גישה למערכת
+          await supabase
+            .from("users")
+            .update({
+              subscription_active: false,
+              subscription_status: 'cancelled',
+            })
+            .eq("id", foundUserId);
+          
+          console.log("✅ Subscription cancelled and user access blocked");
+          
+          return NextResponse.json({
+            success: true,
+            message: "Subscription cancelled successfully",
+            subscriptionId: subscription.id,
+          });
+        }
+        
+        // עדכון רגיל - חיוב מוצלח
         if (parsedData.status === 'completed') {
           // חישוב תאריך חיוב הבא
           const nextBillingDate = new Date(subscription.next_billing_date);
@@ -225,6 +366,38 @@ export async function POST(req: NextRequest) {
                   });
 
                 console.log(`✅ Monthly invoice created: ${newInvoice.invoice_number}`);
+
+                // שליחת אימייל ללקוח עם החשבונית
+                try {
+                  const { data: user } = await supabase
+                    .from("users")
+                    .select("full_name, email")
+                    .eq("id", userId)
+                    .single();
+
+                  if (user) {
+                    const { sendInvoiceEmail } = await import('@/lib/email');
+                    await sendInvoiceEmail({
+                      customerName: user.full_name || user.email,
+                      customerEmail: user.email,
+                      invoiceNumber: newInvoice.invoice_number,
+                      invoiceDate: new Date().toLocaleDateString('he-IL'),
+                      totalAmount: subscription.custom_price || subscription.amount,
+                      items: [{
+                        name: "מנוי חודשי",
+                        description: `מנוי לשירות Clearpoint Security - ${new Date().toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })}`,
+                        quantity: 1,
+                        price: subscription.custom_price || subscription.amount,
+                      }],
+                      invoiceUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/invoice/${newInvoice.id}`,
+                      isMonthlyRecurring: true,
+                    });
+                    console.log('📧 Monthly invoice email sent to customer');
+                  }
+                } catch (emailError) {
+                  console.error('⚠️ Failed to send invoice email:', emailError);
+                  // לא עוצרים את הזרימה - החשבונית כבר נוצרה
+                }
               } else {
                 console.error("❌ Failed to create invoice:", invoiceError);
               }
@@ -235,7 +408,7 @@ export async function POST(req: NextRequest) {
           }
 
           // הפעלת תכונות חזרה אחרי תשלום מוצלח
-          await enableFeaturesAfterPayment(userId);
+          await enableFeaturesAfterPayment(foundUserId);
           console.log("✅ Features enabled for user after successful payment");
 
           // שליחת אימייל אישור תשלום
@@ -268,11 +441,142 @@ export async function POST(req: NextRequest) {
           console.log("⚠️ Subscription marked as past_due due to failed payment");
 
           // השבתת תכונות עקב תשלום שנכשל
-          await disableFeaturesDueToNoSubscription(userId);
+          await disableFeaturesDueToNoSubscription(foundUserId);
           console.log("🚫 Features disabled for user due to failed payment");
         }
       } else {
-        console.warn("⚠️ No active subscription found for user:", userId);
+        // אין מנוי פעיל - זה כנראה חיוב ראשון של הוראת קבע שנוצרה ידנית!
+        console.log("🆕 No active subscription found - this is likely a NEW manually-created recurring payment");
+        
+        if (parsedData.status === 'completed') {
+          // קבלת פרטי המשתמש
+          const { data: user } = await supabase
+            .from("users")
+            .select("id, plan_id, custom_price")
+            .eq("id", foundUserId)
+            .single();
+          
+          if (!user) {
+            console.error("❌ User not found:", foundUserId);
+            return NextResponse.json({
+              success: false,
+              error: "User not found",
+            });
+          }
+          
+          // תאריך חיוב הבא - חודש מהיום
+          const nextBillingDate = new Date();
+          nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+          
+          // יצירת רשומת מנוי חדשה
+          const { data: newSubscription, error: subError } = await supabase
+            .from("subscriptions")
+            .insert({
+              user_id: foundUserId,
+              plan_id: user.plan_id || 'monthly-service',
+              status: 'active',
+              billing_cycle: 'monthly',
+              amount: parsedData.amount,
+              currency: 'ILS',
+              next_billing_date: nextBillingDate.toISOString().split('T')[0],
+              started_at: new Date().toISOString(),
+              payment_provider: 'payplus',
+              provider_subscription_id: parsedData.transactionId,
+              metadata: {
+                created_from: 'manual_payplus_dashboard',
+                first_payment_transaction_id: parsedData.transactionId,
+              },
+            })
+            .select()
+            .single();
+          
+          if (subError || !newSubscription) {
+            console.error("❌ Failed to create subscription:", subError);
+          } else {
+            console.log("✅ NEW subscription created:", newSubscription.id);
+            
+            // עדכון users עם subscription_id
+            await supabase
+              .from("users")
+              .update({
+                subscription_id: newSubscription.id,
+                subscription_active: true,
+                subscription_status: 'active',
+              })
+              .eq("id", foundUserId);
+            
+            console.log("✅ User subscription status updated");
+            
+            // יצירת רשומת payment
+            const { data: newPayment } = await supabase
+              .from("payments")
+              .insert({
+                user_id: foundUserId,
+                amount: parsedData.amount,
+                currency: "ILS",
+                status: "completed",
+                payment_type: "recurring",
+                description: `תשלום חודשי ראשון - ${new Date().toLocaleDateString('he-IL')}`,
+                payment_provider: "payplus",
+                provider_payment_id: parsedData.transactionId,
+                provider_transaction_id: parsedData.transactionId,
+                paid_at: new Date().toISOString(),
+              })
+              .select()
+              .single();
+            
+            console.log("✅ Payment record created for first recurring charge");
+            
+            // יצירת חשבונית
+            if (newPayment) {
+              try {
+                const { data: invoiceNumber } = await supabase.rpc("generate_invoice_number");
+                
+                const { data: newInvoice } = await supabase
+                  .from("invoices")
+                  .insert({
+                    user_id: foundUserId,
+                    invoice_number: invoiceNumber || `INV-${Date.now()}`,
+                    status: "paid",
+                    total_amount: parsedData.amount,
+                    currency: "ILS",
+                    payment_id: newPayment.id,
+                    has_subscription: true,
+                    monthly_price: parsedData.amount,
+                    notes: `תשלום חודשי ראשון\nתאריך: ${new Date().toLocaleDateString('he-IL')}\nעסקה: ${parsedData.transactionId}`,
+                    sent_at: new Date().toISOString(),
+                  })
+                  .select()
+                  .single();
+                
+                if (newInvoice) {
+                  await supabase
+                    .from("invoice_items")
+                    .insert({
+                      invoice_id: newInvoice.id,
+                      item_type: "subscription",
+                      item_name: "מנוי חודשי",
+                      item_description: `מנוי לשירות Clearpoint Security - ${new Date().toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })}`,
+                      quantity: 1,
+                      unit_price: parsedData.amount,
+                      total_price: parsedData.amount,
+                      sort_order: 0,
+                    });
+                  
+                  console.log(`✅ First monthly invoice created: ${newInvoice.invoice_number}`);
+                }
+              } catch (invoiceError) {
+                console.error("⚠️ Failed to create invoice:", invoiceError);
+              }
+            }
+            
+            // הפעלת תכונות
+            await enableFeaturesAfterPayment(foundUserId);
+            console.log("✅ Features enabled for new subscription");
+          }
+        } else {
+          console.warn("⚠️ First recurring payment failed - not creating subscription");
+        }
       }
     }
 

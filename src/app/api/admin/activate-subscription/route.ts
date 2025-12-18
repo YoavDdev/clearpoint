@@ -5,8 +5,8 @@ import { createRecurringSubscription, calculateNextBillingDate } from "@/lib/pay
 export async function POST(req: NextRequest) {
   try {
     console.log("🔵 activate-subscription API called");
-    const { userId, planId, billingCycle = "monthly", userEmail, userName, customPrice } = await req.json();
-    console.log("📦 Request data:", { userId, planId, billingCycle, customPrice });
+    const { userId, planId, billingCycle = "monthly", userEmail, userName, customPrice, cardToken } = await req.json();
+    console.log("📦 Request data:", { userId, planId, billingCycle, customPrice, hasCardToken: !!cardToken });
 
     if (!userId || !planId) {
       return NextResponse.json(
@@ -151,6 +151,9 @@ export async function POST(req: NextRequest) {
 
     // יצירת מנוי חוזר ב-Grow
     console.log("🚀 Creating Grow subscription...");
+    if (cardToken) {
+      console.log("💳 Using card token from previous payment");
+    }
     let growSubscription;
     try {
       growSubscription = await createRecurringSubscription({
@@ -163,6 +166,7 @@ export async function POST(req: NextRequest) {
         customer_phone: user.phone || "",
         billing_cycle: billingCycle,
         start_date: now.toISOString().split("T")[0],
+        card_token: cardToken, // 💳 העברת card token אם קיים
       });
     } catch (growError) {
       console.error("❌ Grow subscription creation failed:", growError);

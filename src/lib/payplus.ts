@@ -81,6 +81,7 @@ export interface PayplusSubscriptionRequest {
   start_date?: string; // YYYY-MM-DD
   notify_url?: string;
   recurring_amount?: number; // סכום החיוב החודשי (אם שונה מהתשלום הראשון)
+  card_token?: string; // טוקן כרטיס אשראי קיים
 }
 
 // =====================================================
@@ -320,7 +321,7 @@ export async function createRecurringSubscription(
       throw new Error('Payplus API configuration is missing');
     }
 
-    const payload = {
+    const payload: any = {
       payment_page_uid: PAYPLUS_CONFIG.paymentPageUid,
       terminal_uid: PAYPLUS_CONFIG.terminalUid, // ✅ חובה
       cashier_uid: PAYPLUS_CONFIG.cashierUid, // ✅ חובה
@@ -333,7 +334,7 @@ export async function createRecurringSubscription(
       recurring_type: 2, // סוג מנוי: 2 = תעריף קבוע (FIXED_RATE)
       recurring_range: 1, // טווח: 1 = חוזר (RECURRING)
       number_of_charges: 9999, // מספר חיובים: אין הגבלה (עד ביטול)
-      instant_first_payment: false, // ✅ חובה - לא לחייב מיד (חודש ראשון חינם)
+      instant_first_payment: true, // ✅ חייב תשלום ראשון כדי לקבל פרטי כרטיס למנוי
       
       charge_method: 'Regular', // סוג חיוב קבוע
       charge_frequency: request.billing_cycle === 'monthly' ? 'Monthly' : 'Yearly',
@@ -366,6 +367,12 @@ export async function createRecurringSubscription(
       // Metadata
       more_info: `${request.customer_id}|recurring|${request.billing_cycle}`,
     };
+
+    // 💳 אם יש card_token, נוסיף אותו (מאפשר מנוי אוטומטי אחרי תשלום)
+    if (request.card_token) {
+      payload.card_token = request.card_token;
+      console.log('💳 Using existing card token for automatic subscription');
+    }
 
     console.log('📤 Sending to Payplus Recurring API:', JSON.stringify({
       ...payload,
@@ -575,6 +582,7 @@ export function parseWebhookData(payload: any) {
         ? `${cardInfo.expiry_month}/${cardInfo.expiry_year}` 
         : payload.card_exp || '',
     },
+    cardToken: data.token || payload.token || payload.card_token || '',
     asmachta: transaction.approval_number || payload.approval_num || '',
     paymentsNum: 1,
     allPaymentsNum: 1,

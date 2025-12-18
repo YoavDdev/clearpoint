@@ -18,6 +18,9 @@ import {
   Clock,
   UserPlus,
   Filter,
+  Calendar,
+  XCircle,
+  DollarSign,
 } from "lucide-react";
 
 interface Customer {
@@ -32,6 +35,21 @@ interface Customer {
   has_pending_support?: boolean;
   camera_count?: number;
   initial_camera_count?: number;
+  subscription_active?: boolean;
+  subscription_status?: string;
+  subscription?: {
+    status: string;
+    amount: number;
+    next_billing_date: string;
+    last_billing_date: string;
+    billing_cycle: string;
+  } | null;
+  latest_payment?: {
+    amount: number;
+    status: string;
+    paid_at: string;
+    payment_type: string;
+  } | null;
 }
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -133,13 +151,13 @@ export default function CustomersPage() {
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div className="flex items-center justify-between">
               <div className="text-right">
-                <p className="text-slate-600 text-sm font-medium">מצלמות פעילות</p>
+                <p className="text-slate-600 text-sm font-medium">מנויים פעילים</p>
                 <p className="text-3xl font-bold text-green-600">
-                  {customers.reduce((sum, c) => sum + (c.camera_count || 0), 0)}
+                  {customers.filter(c => c.subscription?.status === 'active').length}
                 </p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <Camera size={24} className="text-green-600" />
+                <CreditCard size={24} className="text-green-600" />
               </div>
             </div>
           </div>
@@ -200,6 +218,8 @@ export default function CustomersPage() {
                     <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700">מסלול</th>
                     <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700">מחיר</th>
                     <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700">מצלמות</th>
+                    <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700">הוראת קבע</th>
+                    <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700">חיוב הבא</th>
                     <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700">סטטוס</th>
                     <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700">פעולות</th>
                   </tr>
@@ -241,6 +261,61 @@ export default function CustomersPage() {
                           <Camera size={16} />
                           <span>{customer.camera_count || 0}</span>
                         </Link>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {customer.subscription ? (
+                          <div className="space-y-1">
+                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-medium ${
+                              customer.subscription.status === 'active'
+                                ? 'bg-green-100 text-green-800'
+                                : customer.subscription.status === 'cancelled'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {customer.subscription.status === 'active' ? (
+                                <>
+                                  <CheckCircle size={16} />
+                                  <span>פעילה</span>
+                                </>
+                              ) : customer.subscription.status === 'cancelled' ? (
+                                <>
+                                  <XCircle size={16} />
+                                  <span>בוטלה</span>
+                                </>
+                              ) : (
+                                <>
+                                  <AlertTriangle size={16} />
+                                  <span>{customer.subscription.status}</span>
+                                </>
+                              )}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              ₪{customer.subscription.amount}/{customer.subscription.billing_cycle === 'monthly' ? 'חודש' : 'שנה'}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium">
+                            <XCircle size={16} />
+                            <span>אין מנוי</span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {customer.subscription?.next_billing_date ? (
+                          <div className="space-y-1">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium">
+                              <Calendar size={16} />
+                              <span>{new Date(customer.subscription.next_billing_date).toLocaleDateString('he-IL')}</span>
+                            </div>
+                            {customer.latest_payment && (
+                              <div className="text-xs text-slate-500">
+                                חיוב אחרון: {new Date(customer.latest_payment.paid_at).toLocaleDateString('he-IL')}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-slate-400">-</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="space-y-2">
