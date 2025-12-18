@@ -3,6 +3,8 @@ import { MiniPCsTable } from "./MiniPCsTable";
 import Link from "next/link";
 import { Monitor, Plus } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 type MiniPC = {
   id: string;
   device_name: string;

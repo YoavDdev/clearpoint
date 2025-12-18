@@ -3,6 +3,7 @@ import { CamerasTable } from "./CamerasTable";
 import Link from "next/link";
 import { Camera, Plus } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
 
 // ✅ Match your Camera type
 type Camera = {

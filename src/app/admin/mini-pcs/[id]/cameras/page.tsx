@@ -4,6 +4,8 @@ import Link from "next/link";
 import { ArrowRight, Camera, Monitor } from "lucide-react";
 import { notFound } from "next/navigation";
 
+export const dynamic = 'force-dynamic';
+
 type Camera = {
   id: string;
   name: string;

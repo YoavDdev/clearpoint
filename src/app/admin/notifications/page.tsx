@@ -2,6 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import { NotificationsContent } from "./NotificationsContent";
 import { Mail } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 export default async function NotificationsPage() {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { format } from "date-fns";
 import Link from "next/link";
+
+export const dynamic = 'force-dynamic';
 import {
   FileText,
   User,
@@ -42,10 +44,14 @@ type SubscriptionRequest = {
 };
 
 export default function AdminRequestsPage() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const [supabase, setSupabase] = useState<any>(null);
+
+  useEffect(() => {
+    setSupabase(createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    ));
+  }, []);
 
   const [requests, setRequests] = useState<SubscriptionRequest[]>([]);
   const [userEmails, setUserEmails] = useState<Set<string>>(new Set());
@@ -54,6 +60,7 @@ export default function AdminRequestsPage() {
   const [showPaymentLink, setShowPaymentLink] = useState<{id: string, link: string} | null>(null);
 
   async function fetchData() {
+    if (!supabase) return;
     const { data: requestsData } = await supabase
       .from("subscription_requests")
       .select("*");
@@ -64,7 +71,7 @@ export default function AdminRequestsPage() {
       usersJson.users?.map((u: any) => u.email?.trim().toLowerCase()) || []
     );
 
-    const enrichedRequests = (requestsData || []).map((req) => ({
+    const enrichedRequests = (requestsData || []).map((req: any) => ({
       ...req,
       isCustomer: emails.has(req.email?.trim().toLowerCase()),
     }));
@@ -76,7 +83,7 @@ export default function AdminRequestsPage() {
     };
 
     const sortedRequests = enrichedRequests.sort(
-      (a, b) =>
+      (a: any, b: any) =>
         statusOrder[a.status as keyof typeof statusOrder] -
         statusOrder[b.status as keyof typeof statusOrder]
     );
@@ -87,16 +94,19 @@ export default function AdminRequestsPage() {
   }
 
   async function updateStatus(id: string, status: string) {
+    if (!supabase) return;
     await supabase.from("subscription_requests").update({ status }).eq("id", id);
     fetchData();
   }
 
   async function updateNote(id: string, note: string) {
+    if (!supabase) return;
     await supabase.from("subscription_requests").update({ admin_notes: note }).eq("id", id);
     fetchData();
   }
 
   async function deleteRequest(id: string) {
+    if (!supabase) return;
     const confirmed = confirm("האם אתה בטוח שברצונך למחוק את הבקשה לצמיתות?");
     if (!confirmed) return;
 
@@ -143,8 +153,10 @@ export default function AdminRequestsPage() {
   }
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (supabase) {
+      fetchData();
+    }
+  }, [supabase]);
 
   if (loading) {
     return (
