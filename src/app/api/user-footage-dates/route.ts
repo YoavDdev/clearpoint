@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { format } from 'date-fns';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const cameraId = url.searchParams.get('cameraId');

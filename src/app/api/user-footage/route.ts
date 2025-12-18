@@ -4,6 +4,8 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { canStoreRecordings } from "@/lib/subscription-check";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
 

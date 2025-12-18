@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * יצירת קבלה חודשית לתשלום מנוי
  * GET /api/invoices/monthly-receipt?paymentId=xxx

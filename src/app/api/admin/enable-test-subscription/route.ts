@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * API זמני להפעלת מנוי ידנית למשתמש (לבדיקות בלבד!)
  * POST /api/admin/enable-test-subscription

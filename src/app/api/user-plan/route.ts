@@ -3,6 +3,8 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
+export const dynamic = 'force-dynamic';
+
 type Plan = {
   name: string;
   name_he: string;

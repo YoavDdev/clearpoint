@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createRecurringSubscription, calculateNextBillingDate } from "@/lib/payplus";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * יצירת תשלום מושלם: חשבונית התקנה + מנוי חודשי
  * POST /api/admin/create-complete-payment

@@ -3,6 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 import { verifyWebhookSignature, parseWebhookData } from "@/lib/payplus";
 import { enableFeaturesAfterPayment, disableFeaturesDueToNoSubscription } from "@/lib/subscription-check";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Webhook מ-Payplus לעדכון סטטוס תשלומים ומנויים
  * POST /api/webhooks/payplus

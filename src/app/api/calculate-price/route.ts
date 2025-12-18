@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 const PLANS = {
   Basic: { cost: 79.17, price: 115 },
   Standard: { cost: 99.84, price: 140 },

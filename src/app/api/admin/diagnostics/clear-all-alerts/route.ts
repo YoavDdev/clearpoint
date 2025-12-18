@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
+export const dynamic = 'force-dynamic';
+
 // Clear all unresolved alerts - useful for cleanup
 export async function POST() {
   const supabase = createClient(

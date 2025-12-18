@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createOneTimePayment } from '@/lib/payplus';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * טסט חיבור בסיסי ל-PayPlus
  * GET /api/test-payplus

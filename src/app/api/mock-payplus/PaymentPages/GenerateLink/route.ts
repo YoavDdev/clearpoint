@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Mock PayPlus API - PaymentPages/GenerateLink
  * מדמה את endpoint האמיתי של PayPlus לתשלומים חד-פעמיים

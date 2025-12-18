@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = 'force-dynamic';
+
 // Test endpoint to manually trigger monitoring
 export async function GET() {
   try {

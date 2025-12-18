@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Mock PayPlus API - create-recurring
  * מדמה מנוי חוזר בפורמט פשוט

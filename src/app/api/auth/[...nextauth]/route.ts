@@ -3,6 +3,8 @@ import { type JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { createClient } from "@supabase/supabase-js";
 
+export const dynamic = 'force-dynamic';
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({

@@ -2,6 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { sendEmailNotification, sendWhatsAppNotification, NotificationData } from "@/lib/notifications";
 
+export const dynamic = 'force-dynamic';
+
 // This endpoint will be called by a cron job or monitoring service
 export async function POST() {
   const supabase = createClient(

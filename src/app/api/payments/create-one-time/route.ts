@@ -3,6 +3,8 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { createOneTimePayment } from '@/lib/payplus';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * יצירת תשלום חד-פעמי (חומרה)
  * POST /api/payments/create-one-time

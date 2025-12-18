@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import monitoringScheduler from "@/lib/monitoring-scheduler";
 
+export const dynamic = 'force-dynamic';
+
 // Initialize automatic monitoring system
 export async function POST(request: NextRequest) {
   try {

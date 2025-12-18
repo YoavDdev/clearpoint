@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Mock PayPlus API - GenerateLink
  * מדמה את ה-API של PayPlus לצורך פיתוח

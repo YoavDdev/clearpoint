@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hasActiveSubscription, getSubscriptionDetails } from '@/lib/subscription-check';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * בדיקת סטטוס מנוי
  * GET /api/subscription/check?userId=xxx

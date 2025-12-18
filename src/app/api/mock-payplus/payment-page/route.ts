@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Mock PayPlus Payment Page
  * דף תשלום מזויף - מציג הודעה שזה Mock ומאפשר "לשלם"

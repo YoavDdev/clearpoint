@@ -3,6 +3,8 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { createRecurringSubscription, calculateNextBillingDate } from '@/lib/payplus';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * יצירת מנוי חודשי/שנתי
  * POST /api/payments/create-subscription

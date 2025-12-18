@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * 🧪 API לסימולציה של תשלום חוזר (מנוי)
  * משמש לבדיקת המערכת ללא צורך לחכות לתשלום אמיתי מPayPlus

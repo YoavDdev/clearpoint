@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Mock API for Grow Payment Creation
  * זה מדמה את ה-API של Grow לצורך פיתוח

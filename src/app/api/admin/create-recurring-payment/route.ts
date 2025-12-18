@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createRecurringSubscription } from "@/lib/payplus";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * API ליצירת הוראת קבע חודשית ישירות דרך PayPlus
  * הזרימה:
