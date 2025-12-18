@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = 'force-dynamic';
 
-export default function SubscribeFormPage() {
+function SubscribeForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -376,5 +376,13 @@ export default function SubscribeFormPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SubscribeFormPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>}>
+      <SubscribeForm />
+    </Suspense>
   );
 }
