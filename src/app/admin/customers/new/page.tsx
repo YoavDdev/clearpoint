@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 export const dynamic = 'force-dynamic';
@@ -28,7 +28,7 @@ interface Plan {
   connection_type: string;
 }
 
-export default function NewCustomerPage() {
+function NewCustomerForm() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [planId, setPlanId] = useState<string | null>(null);
 
@@ -372,5 +372,13 @@ export default function NewCustomerPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function NewCustomerPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>}>
+      <NewCustomerForm />
+    </Suspense>
   );
 }
