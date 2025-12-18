@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Lock, Eye, EyeOff, UserPlus, CheckCircle } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 export default function SetupPasswordPage() {
   const supabase = createClientComponentClient();
   const router = useRouter();

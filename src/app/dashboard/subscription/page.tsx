@@ -5,6 +5,8 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import { Calendar, CreditCard, AlertCircle, CheckCircle, TrendingUp, XCircle } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 type Subscription = {
   id: string;
   plan_id: string;
