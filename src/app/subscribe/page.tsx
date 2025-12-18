@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
+export const dynamic = 'force-dynamic';
+
 // Supabase client setup
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
