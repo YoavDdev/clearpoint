@@ -6,12 +6,6 @@ import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = 'force-dynamic';
 
-// Supabase client setup
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export default function SubscribeFormPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -28,9 +22,18 @@ export default function SubscribeFormPage() {
   const [error, setError] = useState("");
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [supabase, setSupabase] = useState<any>(null);
+
+  useEffect(() => {
+    setSupabase(createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    ));
+  }, []);
 
   // טעינת תוכניות מהטבלה - רק תוכניות פעילות ללקוחות
   useEffect(() => {
+    if (!supabase) return;
     async function loadPlans() {
       const { data, error } = await supabase
         .from('plans')
@@ -44,7 +47,7 @@ export default function SubscribeFormPage() {
       setLoading(false);
     }
     loadPlans();
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     const plan = searchParams.get("plan");
