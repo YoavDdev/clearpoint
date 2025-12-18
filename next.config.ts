@@ -12,8 +12,6 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '2mb',
     },
   },
-  // Skip static optimization for API routes
-  output: 'standalone',
 };
 
 export default nextConfig;
