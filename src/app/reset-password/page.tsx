@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Lock, Eye, EyeOff, ShieldCheck, CheckCircle } from "lucide-react";
@@ -9,8 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const supabase = useMemo(() => createClientComponentClient(), []);
-
+  const [supabase, setSupabase] = useState<any>(null);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -19,6 +18,11 @@ export default function ResetPasswordPage() {
   const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
+    setSupabase(createClientComponentClient());
+  }, []);
+
+  useEffect(() => {
+    if (!supabase) return;
     const init = async () => {
       const { data, error } = await supabase.auth.getSession();
 
@@ -33,7 +37,7 @@ export default function ResetPasswordPage() {
     };
 
     init();
-  }, []);
+  }, [supabase]);
 
   const isStrongPassword = (pwd: string) => {
     return pwd.length >= 8 && /[A-Z]/.test(pwd) && /[0-9]/.test(pwd);

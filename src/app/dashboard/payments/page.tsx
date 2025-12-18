@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 
@@ -24,11 +24,16 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const router = useRouter();
-  const supabase = useMemo(() => createClientComponentClient(), []);
+  const [supabase, setSupabase] = useState<any>(null);
 
   useEffect(() => {
-    loadPayments();
+    setSupabase(createClientComponentClient());
   }, []);
+
+  useEffect(() => {
+    if (!supabase) return;
+    loadPayments();
+  }, [supabase]);
 
   async function loadPayments() {
     try {

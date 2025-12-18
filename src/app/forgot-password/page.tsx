@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Link from "next/link";
 import { Mail, ArrowRight, KeyRound } from "lucide-react";
@@ -12,8 +12,11 @@ export default function ForgotPasswordPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [supabase, setSupabase] = useState<any>(null);
 
-  const supabase = useMemo(() => createClientComponentClient(), []);
+  useEffect(() => {
+    setSupabase(createClientComponentClient());
+  }, []);
 
   const handleResetPassword = async () => {
     setLoading(true);

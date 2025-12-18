@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import { Calendar, CreditCard, AlertCircle, CheckCircle, TrendingUp, XCircle } from "lucide-react";
@@ -42,11 +42,16 @@ export default function SubscriptionPage() {
   const [cancelling, setCancelling] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const router = useRouter();
-  const supabase = useMemo(() => createClientComponentClient(), []);
+  const [supabase, setSupabase] = useState<any>(null);
 
   useEffect(() => {
-    loadSubscriptionData();
+    setSupabase(createClientComponentClient());
   }, []);
+
+  useEffect(() => {
+    if (!supabase) return;
+    loadSubscriptionData();
+  }, [supabase]);
 
   async function loadSubscriptionData() {
     try {
