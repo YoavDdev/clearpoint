@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { FileText, Calendar, DollarSign, Eye, Printer, Download } from "lucide-react";
 import Link from "next/link";
 
@@ -26,7 +26,7 @@ interface Invoice {
   } | null;
 }
 
-export default function UserInvoicesPage() {
+function InvoicesContent() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -236,5 +236,13 @@ export default function UserInvoicesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function UserInvoicesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>}>
+      <InvoicesContent />
+    </Suspense>
   );
 }
