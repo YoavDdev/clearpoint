@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import SurveillanceCameraView from "@/components/SurveillanceCameraView";
 import FootageView from "@/components/FootageView";
 import { AlertTriangle, Video, Monitor, Maximize, Clock, Minimize, Eye, Calendar, Settings, Lock, CreditCard } from "lucide-react";
 
-export default function DashboardPage() {
+export const dynamic = 'force-dynamic';
+
+function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const modeParam = searchParams.get('mode');
@@ -370,5 +372,13 @@ export default function DashboardPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>}>
+      <DashboardContent />
+    </Suspense>
   );
 }

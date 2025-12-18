@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { FileText, Calendar, DollarSign, Eye, Printer, Download } from "lucide-react";
 import Link from "next/link";
 
+export const dynamic = 'force-dynamic';
+
 interface Invoice {
   id: string;
   invoice_number: string;

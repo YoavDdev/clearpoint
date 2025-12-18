@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { CheckCircle, Home, CreditCard } from 'lucide-react';
 import { Suspense } from 'react';
 
+export const dynamic = 'force-dynamic';
+
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   
