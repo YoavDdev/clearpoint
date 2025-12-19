@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendInvoiceEmail } from "@/lib/email-service";
 import { verifyWebhookSignature, parseWebhookData } from "@/lib/payplus";
 
 export const dynamic = 'force-dynamic';
@@ -244,8 +245,114 @@ export async function POST(req: NextRequest) {
       console.log("✅ Subscription updated - payment successful");
       console.log(`📅 Next payment date: ${nextPaymentDate.toISOString()}`);
 
-      // שלח אימייל ללקוח (אופציונלי)
-      // await sendPaymentSuccessEmail(subscription.user_id, webhookData.amount);
+      // שלב 6: יצירת חשבונית אוטומטית לחיוב המנוי
+      try {
+        // שלוף פרטי משתמש
+        const { data: user } = await supabase
+          .from("users")
+          .select("id, full_name, email, phone")
+          .eq("id", subscription.user_id)
+          .single();
+
+        if (user) {
+          // יצירת מספר חשבונית
+          const { data: invoiceNumber } = await supabase.rpc("generate_invoice_number");
+
+          // יצירת חשבונית
+          const { data: invoice, error: invoiceError } = await supabase
+            .from("invoices")
+            .insert({
+              user_id: user.id,
+              invoice_number: invoiceNumber || `INV-${Date.now()}`,
+              status: "paid",
+              total_amount: webhookData.amount,
+              currency: subscription.currency || "ILS",
+              paid_at: new Date(webhookData.paymentDate),
+              notes: `חיוב חודשי אוטומטי - מנוי Clearpoint Security`,
+              has_subscription: true,
+              metadata: {
+                charge_id: charge.id,
+                transaction_id: webhookData.transactionId,
+                subscription_id: subscription.id,
+                auto_generated: true,
+              },
+            })
+            .select()
+            .single();
+
+          if (!invoiceError && invoice) {
+            // הוספת פריט לחשבונית
+            await supabase
+              .from("invoice_items")
+              .insert({
+                invoice_id: invoice.id,
+                item_type: "subscription",
+                item_name: "מנוי חודשי Clearpoint Security",
+                item_description: `תקופה: ${new Date(webhookData.paymentDate).toLocaleDateString("he-IL")} - ${nextPaymentDate.toLocaleDateString("he-IL")}`,
+                quantity: 1,
+                unit_price: webhookData.amount,
+                total_price: webhookData.amount,
+                sort_order: 0,
+              });
+
+            // יצירת רשומת תשלום
+            await supabase
+              .from("payments")
+              .insert({
+                user_id: user.id,
+                payment_provider: "payplus",
+                payment_type: "recurring",
+                amount: webhookData.amount.toString(),
+                currency: subscription.currency || "ILS",
+                status: "completed",
+                description: "חיוב חודשי אוטומטי",
+                invoice_id: invoice.id,
+                provider_transaction_id: webhookData.transactionId,
+                paid_at: new Date(webhookData.paymentDate),
+                metadata: {
+                  charge_id: charge.id,
+                  subscription_id: subscription.id,
+                  auto_generated: true,
+                },
+              });
+
+            // עדכן את החשבונית עם payment_id
+            await supabase
+              .from("invoices")
+              .update({
+                payment_id: invoice.id,
+              })
+              .eq("id", invoice.id);
+
+            console.log(`📄 Invoice created automatically: ${invoice.invoice_number}`);
+
+            // שלח מייל ללקוח עם קישור לחשבונית
+            const invoiceUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/invoice/${invoice.id}`;
+            
+            // שליחת מייל עם החשבונית
+            const emailResult = await sendInvoiceEmail({
+              to: user.email,
+              userName: user.full_name || user.email,
+              invoiceNumber: invoice.invoice_number,
+              amount: webhookData.amount,
+              invoiceUrl: invoiceUrl,
+              paymentDate: new Date(webhookData.paymentDate).toLocaleDateString("he-IL"),
+              nextPaymentDate: nextPaymentDate.toLocaleDateString("he-IL"),
+            });
+            
+            if (emailResult.success) {
+              console.log(`📧 Invoice email sent successfully to ${user.email}`);
+            } else {
+              console.error(`❌ Failed to send invoice email: ${emailResult.error}`);
+            }
+          } else {
+            console.error("❌ Failed to create invoice:", invoiceError);
+          }
+        }
+      } catch (invoiceCreationError) {
+        console.error("❌ Error creating invoice:", invoiceCreationError);
+        // לא נכשיל את כל ה-webhook אם יצירת החשבונית נכשלה
+      }
 
     } else {
       // חיוב נכשל - הגדל payment_failures
