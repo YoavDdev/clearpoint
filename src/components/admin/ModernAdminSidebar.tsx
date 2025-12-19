@@ -13,7 +13,8 @@ import {
   CheckCircle,
   Bell,
   LogOut,
-  FileText
+  FileText,
+  Home
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -133,6 +134,13 @@ export function ModernAdminSidebar() {
 
       {/* Footer */}
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 bg-white space-y-2">
+        <Link
+          href="/dashboard"
+          className="w-full flex items-center gap-3 p-3 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+        >
+          <Home className="w-5 h-5" />
+          <span className="font-medium">דשבורד משתמש</span>
+        </Link>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"

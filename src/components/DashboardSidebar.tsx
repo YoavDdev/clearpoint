@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
-import { Home, Video, HelpCircle, Settings, LogOut, Menu, X, CreditCard, Repeat, FileText } from "lucide-react";
+import { Home, Video, HelpCircle, Settings, LogOut, Menu, X, CreditCard, Repeat, FileText, Shield } from "lucide-react";
 import { useState } from "react";
 import { signOut } from "next-auth/react";
 
-export default function DashboardSidebar() {
+export default function DashboardSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -115,6 +115,15 @@ export default function DashboardSidebar() {
 
         {/* Bottom Actions */}
         <div className="p-4 border-t border-slate-200 space-y-2">
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-3 p-3 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+            >
+              <Shield className="w-5 h-5" />
+              <span className="font-medium">ממשק ניהול</span>
+            </Link>
+          )}
           <Link
             href="/settings"
             className="flex items-center gap-3 p-3 text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
