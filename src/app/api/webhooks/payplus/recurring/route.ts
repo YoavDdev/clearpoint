@@ -137,18 +137,31 @@ export async function POST(req: NextRequest) {
       subError = result.error;
     }
     
-    // אם עדיין לא מצאנו, נסה לפי customer_uid (fallback אחרון)
+    // אם עדיין לא מצאנו, נסה לפי payplus_customer_uid (PayPlus customer ID)
     if ((!subscription || subError) && customerUid) {
-      console.log(`🔍 Still not found, trying customer_uid: ${customerUid}`);
+      console.log(`🔍 Still not found, trying payplus_customer_uid: ${customerUid}`);
       
       const result = await supabase
         .from("subscriptions")
         .select("*")
-        .eq("user_id", customerUid)
+        .eq("payplus_customer_uid", customerUid)
         .eq("status", "active")
         .single();
       subscription = result.data;
       subError = result.error;
+      
+      // אם לא מצאנו, נסה גם לפי user_id (fallback למקרים ישנים)
+      if (!subscription && customerUid) {
+        console.log(`🔍 Trying user_id as last resort: ${customerUid}`);
+        const result2 = await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", customerUid)
+          .eq("status", "active")
+          .single();
+        subscription = result2.data;
+        subError = result2.error;
+      }
     }
     
     // אם עדיין לא מצאנו ויש transaction_uid, חפש לפי חיוב קודם
