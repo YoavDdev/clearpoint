@@ -1,25 +1,52 @@
 import PlanCardsGrid from "@/components/PlanCardsGrid";
 import Footer from "@/components/Footer";
-import { Shield, Eye, Lock, Zap, Camera, Cloud, Cpu, BadgeCheck } from "lucide-react";
+import { Shield, Eye, Lock, Zap, Camera, Cloud, Cpu, BadgeCheck, User, LogIn, LayoutDashboard } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { redirect } from "next/navigation";
+import Link from "next/link";
 
 export default async function HomePage() {
-  // Check if user is already logged in
   const session = await getServerSession(authOptions);
-  
-  if (session?.user) {
-    // Redirect based on role
-    if (session.user.role === "admin") {
-      redirect("/admin");
-    } else {
-      redirect("/dashboard");
-    }
-  }
+  const isLoggedIn = !!session?.user;
+  const userName = session?.user?.email?.split('@')[0] || 'משתמש';
 
   return (
     <main dir="rtl" className="min-h-screen">
+      {/* Welcome Banner for Logged In Users */}
+      {isLoggedIn && (
+        <div className="bg-gradient-to-l from-blue-600 to-cyan-600 py-4 px-4 shadow-lg">
+          <div className="max-w-7xl mx-auto flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                <User className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p className="text-white/90 text-sm">שלום,</p>
+                <p className="text-white font-bold text-lg">{userName}</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              {session?.user?.role === "admin" && (
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-2 px-6 py-2.5 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-all shadow-lg"
+                >
+                  <Shield className="w-5 h-5" />
+                  <span>ממשק ניהול</span>
+                </Link>
+              )}
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-2 px-6 py-2.5 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-all shadow-lg"
+              >
+                <LayoutDashboard className="w-5 h-5" />
+                <span>הדשבורד שלי</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section with Gradient Background */}
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 pt-32 pb-20 px-4">
         {/* Animated Background Pattern */}
@@ -71,15 +98,34 @@ export default async function HomePage() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a 
-              href="#plans" 
-              className="group px-8 py-4 bg-gradient-to-l from-blue-600 to-cyan-600 text-white rounded-xl font-bold text-lg shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
-            >
-              <span>התחל עכשיו</span>
-              <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </a>
+            {isLoggedIn ? (
+              <Link
+                href="/dashboard"
+                className="group px-8 py-4 bg-gradient-to-l from-blue-600 to-cyan-600 text-white rounded-xl font-bold text-lg shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
+              >
+                <span>עבור לדשבורד</span>
+                <LayoutDashboard className="w-5 h-5" />
+              </Link>
+            ) : (
+              <>
+                <a 
+                  href="#plans" 
+                  className="group px-8 py-4 bg-gradient-to-l from-blue-600 to-cyan-600 text-white rounded-xl font-bold text-lg shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  <span>התחל עכשיו</span>
+                  <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </a>
+                <Link
+                  href="/login"
+                  className="px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-xl font-bold text-lg border border-white/20 hover:bg-white/20 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  <LogIn className="w-5 h-5" />
+                  <span>התחבר</span>
+                </Link>
+              </>
+            )}
             <a 
               href="#features" 
               className="px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-xl font-bold text-lg border border-white/20 hover:bg-white/20 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"

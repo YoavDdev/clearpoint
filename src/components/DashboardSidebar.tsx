@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
-import { Home, Video, HelpCircle, Settings, LogOut, Menu, X, CreditCard, Repeat, FileText, Shield } from "lucide-react";
+import { Home, Video, HelpCircle, Settings, LogOut, Menu, X, CreditCard, Repeat, FileText, Shield, Globe } from "lucide-react";
 import { useState } from "react";
 import { signOut } from "next-auth/react";
 
@@ -115,6 +115,13 @@ export default function DashboardSidebar({ isAdmin = false }: { isAdmin?: boolea
 
         {/* Bottom Actions */}
         <div className="p-4 border-t border-slate-200 space-y-2">
+          <Link
+            href="/"
+            className="flex items-center gap-3 p-3 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+          >
+            <Globe className="w-5 h-5" />
+            <span className="font-medium">עמוד ראשי</span>
+          </Link>
           {isAdmin && (
             <Link
               href="/admin"
