@@ -85,15 +85,23 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    // בדוק שיש לפחות אחד משלושה
-    if (!recurringUid && !customerUid && !userIdFromMoreInfo) {
-      console.error("❌ Missing all identifiers (recurring_uid, customer_uid, more_info) in webhook");
+    // חלץ transaction_uid למקרה שנצטרך אותו
+    const transactionUid = payload.transaction_uid
+      || payload.data?.transaction_uid
+      || payload.data?.transaction?.transaction_uid
+      || payload.payload?.transaction_uid;
+    
+    // בדוק שיש לפחות אחד מהמזהים
+    if (!recurringUid && !customerUid && !userIdFromMoreInfo && !transactionUid) {
+      console.error("❌ Missing all identifiers in webhook");
       console.error("📦 Full payload for debugging:", JSON.stringify(payload, null, 2));
       return NextResponse.json(
         { success: false, error: "Missing subscription identifiers" },
         { status: 400 }
       );
     }
+    
+    console.log(`🔍 Identifiers found - recurring_uid: ${recurringUid}, user_id: ${userIdFromMoreInfo}, customer_uid: ${customerUid}, transaction_uid: ${transactionUid}`);
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -142,9 +150,28 @@ export async function POST(req: NextRequest) {
       subscription = result.data;
       subError = result.error;
     }
+    
+    // אם עדיין לא מצאנו ויש transaction_uid, חפש לפי חיוב קודם
+    if ((!subscription || subError) && transactionUid) {
+      console.log(`🔍 Trying to find via previous charge with transaction_uid: ${transactionUid}`);
+      
+      // חפש בטבלת subscription_charges
+      const { data: previousCharge } = await supabase
+        .from("subscription_charges")
+        .select("subscription_id, subscriptions(*)")
+        .eq("transaction_id", transactionUid)
+        .single();
+      
+      if (previousCharge?.subscriptions) {
+        subscription = previousCharge.subscriptions;
+        subError = null;
+        console.log(`✅ Found subscription via transaction_uid!`);
+      }
+    }
 
     if (subError || !subscription) {
-      console.error("❌ Subscription not found for recurring_uid:", recurringUid);
+      console.error("❌ Subscription not found with any identifier");
+      console.error(`Tried: recurring_uid=${recurringUid}, user_id=${userIdFromMoreInfo}, customer_uid=${customerUid}, transaction_uid=${transactionUid}`);
       return NextResponse.json(
         { success: false, error: "Subscription not found" },
         { status: 404 }
