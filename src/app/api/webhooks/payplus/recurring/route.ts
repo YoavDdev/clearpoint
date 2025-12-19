@@ -59,6 +59,21 @@ export async function POST(req: NextRequest) {
       || payload.data?.data?.customer_uid
       || payload.payload?.customer_uid;
     
+    // חלץ user_id מתוך more_info (פורמט: "user_id|recurring|monthly")
+    let moreInfo = payload.more_info
+      || payload.data?.more_info
+      || payload.data?.data?.more_info
+      || payload.payload?.more_info;
+    
+    let userIdFromMoreInfo;
+    if (moreInfo && typeof moreInfo === 'string') {
+      const parts = moreInfo.split('|');
+      if (parts.length > 0) {
+        userIdFromMoreInfo = parts[0]; // ה-user_id האמיתי שלך!
+        console.log(`📋 Extracted user_id from more_info: ${userIdFromMoreInfo}`);
+      }
+    }
+    
     // אם Zapier שולח את כל ה-payload בתוך payload.payload
     if (isFromZapier && payload.payload && typeof payload.payload === 'string') {
       try {
@@ -70,12 +85,12 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    // בדוק שיש לפחות אחד מהשניים
-    if (!recurringUid && !customerUid) {
-      console.error("❌ Missing both recurring_uid and customer_uid in webhook");
+    // בדוק שיש לפחות אחד משלושה
+    if (!recurringUid && !customerUid && !userIdFromMoreInfo) {
+      console.error("❌ Missing all identifiers (recurring_uid, customer_uid, more_info) in webhook");
       console.error("📦 Full payload for debugging:", JSON.stringify(payload, null, 2));
       return NextResponse.json(
-        { success: false, error: "Missing recurring_uid or customer_uid" },
+        { success: false, error: "Missing subscription identifiers" },
         { status: 400 }
       );
     }
@@ -85,11 +100,12 @@ export async function POST(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // נסה למצוא את המנוי - קודם לפי recurring_uid, אחר כך לפי customer_uid
+    // נסה למצוא את המנוי - קודם לפי recurring_uid, אחר כך לפי user_id מ-more_info
     let subscription;
     let subError;
     
     if (recurringUid) {
+      console.log(`🔍 Searching subscription by recurring_uid: ${recurringUid}`);
       const result = await supabase
         .from("subscriptions")
         .select("*")
@@ -99,27 +115,32 @@ export async function POST(req: NextRequest) {
       subError = result.error;
     }
     
-    // אם לא מצאנו לפי recurring_uid, נסה לפי customer_uid
-    if ((!subscription || subError) && customerUid) {
-      console.log("⚠️ Subscription not found by recurring_uid, trying customer_uid...");
+    // אם לא מצאנו לפי recurring_uid, נסה לפי user_id מ-more_info
+    if ((!subscription || subError) && userIdFromMoreInfo) {
+      console.log(`🔍 Subscription not found by recurring_uid, trying user_id from more_info: ${userIdFromMoreInfo}`);
       
-      // מצא את ה-user לפי customer_uid
-      const { data: user } = await supabase
-        .from("users")
-        .select("id")
-        .eq("id", customerUid)
+      const result = await supabase
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", userIdFromMoreInfo)
+        .eq("status", "active")
         .single();
+      subscription = result.data;
+      subError = result.error;
+    }
+    
+    // אם עדיין לא מצאנו, נסה לפי customer_uid (fallback אחרון)
+    if ((!subscription || subError) && customerUid) {
+      console.log(`🔍 Still not found, trying customer_uid: ${customerUid}`);
       
-      if (user) {
-        const result = await supabase
-          .from("subscriptions")
-          .select("*")
-          .eq("user_id", user.id)
-          .eq("status", "active")
-          .single();
-        subscription = result.data;
-        subError = result.error;
-      }
+      const result = await supabase
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", customerUid)
+        .eq("status", "active")
+        .single();
+      subscription = result.data;
+      subError = result.error;
     }
 
     if (subError || !subscription) {
