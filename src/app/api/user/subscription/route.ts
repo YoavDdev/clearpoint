@@ -1,14 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/user/invoices - חשבוניות של המשתמש המחובר
-export async function GET(req: NextRequest) {
+// GET /api/user/subscription - מנוי של המשתמש המחובר
+export async function GET() {
   try {
-    // בדיקת אימות דרך NextAuth
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
@@ -18,13 +17,12 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // יצירת Supabase client עם service role לשליפת נתונים
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // קבלת פרטי המשתמש
+    // Get user ID
     const { data: user } = await supabase
       .from("users")
       .select("id")
@@ -38,34 +36,40 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // שליפת החשבוניות
-    const { data: invoices, error } = await supabase
-      .from("invoices")
+    // Load active subscription with plan details
+    const { data: subscription, error: subError } = await supabase
+      .from("subscriptions")
       .select(`
         *,
-        payment:payments (
-          id,
-          status,
-          amount,
-          paid_at,
-          provider_transaction_id,
-          metadata
-        )
+        plan:plans(*)
       `)
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      .eq("status", "active")
+      .single();
 
-    if (error) {
-      console.error("Error fetching user invoices:", error);
+    if (subError && subError.code !== "PGRST116") {
+      console.error("Error fetching subscription:", subError);
       return NextResponse.json(
-        { success: false, error: "Failed to fetch invoices" },
+        { success: false, error: "Failed to fetch subscription" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ success: true, invoices });
+    // Load recent payments
+    const { data: payments } = await supabase
+      .from("payments")
+      .select("id, amount, status, created_at, paid_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    return NextResponse.json({ 
+      success: true, 
+      subscription: subscription || null,
+      payments: payments || []
+    });
   } catch (error) {
-    console.error("Error in user invoices API:", error);
+    console.error("Error in user subscription API:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 }

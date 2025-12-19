@@ -20,8 +20,7 @@ export default function DashboardSidebar({ isAdmin = false }: { isAdmin?: boolea
   const menuItems = [
     { href: "/dashboard", icon: Home, label: "דף הבית", description: "צפייה חיה במצלמות" },
     { href: "/dashboard?mode=recordings", icon: Video, label: "הקלטות", description: "צפייה בהקלטות קודמות" },
-    { href: "/dashboard/subscription", icon: Repeat, label: "המנוי שלי", description: "ניהול מנוי ותשלומים" },
-    { href: "/dashboard/payments", icon: CreditCard, label: "תשלומים", description: "היסטוריית תשלומים" },
+    { href: "/dashboard/subscription", icon: Repeat, label: "המנוי שלי", description: "פרטי התוכנית שלי" },
     { href: "/dashboard/invoices", icon: FileText, label: "חשבוניות", description: "כל החשבוניות שלי" },
     { href: "/dashboard/support", icon: HelpCircle, label: "עזרה ותמיכה", description: "קבלו עזרה מהצוות" },
   ];

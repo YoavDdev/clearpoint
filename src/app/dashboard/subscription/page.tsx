@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
-import { Calendar, CreditCard, AlertCircle, CheckCircle, TrendingUp, XCircle } from "lucide-react";
+import { Calendar, CreditCard, AlertCircle, CheckCircle, TrendingUp, XCircle, FileText, HelpCircle } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
@@ -42,58 +41,28 @@ export default function SubscriptionPage() {
   const [cancelling, setCancelling] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const router = useRouter();
-  const [supabase, setSupabase] = useState<any>(null);
 
   useEffect(() => {
-    setSupabase(createClientComponentClient());
-  }, []);
-
-  useEffect(() => {
-    if (!supabase) return;
     loadSubscriptionData();
-  }, [supabase]);
+  }, []);
 
   async function loadSubscriptionData() {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push("/login");
-        return;
+      const response = await fetch("/api/user/subscription");
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          router.push("/login");
+          return;
+        }
+        throw new Error("Failed to fetch subscription");
       }
 
-      const { data: user } = await supabase
-        .from("users")
-        .select("id")
-        .eq("email", session.user.email)
-        .single();
-
-      if (!user) return;
-
-      // Load active subscription
-      const { data: subData } = await supabase
-        .from("subscriptions")
-        .select(`
-          *,
-          plan:plans(*)
-        `)
-        .eq("user_id", user.id)
-        .eq("status", "active")
-        .single();
-
-      if (subData) {
-        setSubscription(subData as any);
-      }
-
-      // Load recent payments
-      const { data: paymentsData } = await supabase
-        .from("payments")
-        .select("id, amount, status, created_at, paid_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      if (paymentsData) {
-        setRecentPayments(paymentsData);
+      const data = await response.json();
+      
+      if (data.success) {
+        setSubscription(data.subscription);
+        setRecentPayments(data.payments || []);
       }
     } catch (error) {
       console.error("Error loading subscription:", error);
@@ -179,14 +148,19 @@ export default function SubscriptionPage() {
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-6" dir="rtl">
         <div className="max-w-6xl mx-auto">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
-            <div className="text-6xl mb-4">📋</div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-3">אין מנוי פעיל</h2>
-            <p className="text-slate-600 mb-6">נראה שעדיין אין לך מנוי פעיל במערכת</p>
+            <div className="text-6xl mb-4">📹</div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-3">צפייה חיה בלבד</h2>
+            <p className="text-slate-600 mb-6">
+              שילמת על המערכת (ציוד והתקנה) ויש לך גישה לצפייה חיה במצלמות
+            </p>
+            <p className="text-slate-500 text-sm mb-6">
+              כרגע אין לך מנוי פעיל לשמירת הקלטות. רוצה להוסיף מנוי?
+            </p>
             <button
               onClick={() => router.push("/subscribe")}
               className="px-6 py-3 bg-gradient-to-l from-blue-600 to-cyan-600 text-white rounded-xl font-bold hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
             >
-              בחר תוכנית והירשם
+              הוסף מנוי לשמירת הקלטות
             </button>
           </div>
         </div>
@@ -201,155 +175,129 @@ export default function SubscriptionPage() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">📋 ניהול מנוי</h1>
-          <p className="text-slate-600">כל המידע על המנוי והתוכנית שלך</p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">📋 המנוי שלי</h1>
+          <p className="text-slate-600">פרטי התוכנית והשירותים שלך</p>
         </div>
 
         {/* Active Subscription Card */}
         <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl shadow-lg border-2 border-blue-200 p-8 mb-6">
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h2 className="text-2xl font-bold text-slate-900">
-                  {subscription.plan?.name_he || subscription.plan?.name}
-                </h2>
-                {getStatusBadge(subscription.status)}
+          <div className="mb-6">
+            <div className="flex items-center gap-3 mb-3">
+              <h2 className="text-3xl font-bold text-slate-900">
+                {subscription.plan?.name_he || subscription.plan?.name}
+              </h2>
+              {getStatusBadge(subscription.status)}
+            </div>
+            <p className="text-lg text-slate-700">
+              {subscription.plan?.connection_type === "wifi" ? "🌐 חיבור Wi-Fi" : "📡 חיבור SIM"}
+            </p>
+          </div>
+
+          {/* What's Included */}
+          <div className="bg-white rounded-2xl p-6 mb-6 shadow-sm">
+            <h3 className="text-xl font-bold text-slate-900 mb-4">✨ מה כלול בתוכנית?</h3>
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span className="text-xl">📹</span>
+                </div>
+                <div>
+                  <div className="font-semibold text-slate-900">עד {subscription.plan?.camera_limit} מצלמות</div>
+                  <div className="text-sm text-slate-600">ניטור וצפייה חיה בכל המצלמות במקביל</div>
+                </div>
               </div>
-              <p className="text-slate-600">
-                {subscription.plan?.connection_type === "wifi" ? "חיבור Wi-Fi" : "חיבור SIM"}
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span className="text-xl">💾</span>
+                </div>
+                <div>
+                  <div className="font-semibold text-slate-900">שמירת הקלטות {subscription.plan?.retention_days} ימים</div>
+                  <div className="text-sm text-slate-600">גישה מלאה להקלטות שנשמרו בענן</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span className="text-xl">🔄</span>
+                </div>
+                <div>
+                  <div className="font-semibold text-slate-900">הקלטה רציפה 24/7</div>
+                  <div className="text-sm text-slate-600">כל המצלמות מקליטות באופן אוטומטי ללא הפסקה</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span className="text-xl">☁️</span>
+                </div>
+                <div>
+                  <div className="font-semibold text-slate-900">גיבוי בענן מאובטח</div>
+                  <div className="text-sm text-slate-600">כל ההקלטות מגובות באופן אוטומטי</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span className="text-xl">📱</span>
+                </div>
+                <div>
+                  <div className="font-semibold text-slate-900">גישה מכל מקום</div>
+                  <div className="text-sm text-slate-600">צפייה מהמחשב, טאבלט או סמארטפון</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-50 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-sm text-slate-700">
+              <Calendar className="w-4 h-4" />
+              <span>
+                מנוי פעיל מאז: {new Date(subscription.created_at).toLocaleDateString("he-IL", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric"
+                })}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Info Card */}
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
+          <div className="flex items-start gap-3">
+            <div className="text-2xl">ℹ️</div>
+            <div>
+              <h3 className="font-bold text-blue-900 mb-2">לגבי החיובים</h3>
+              <p className="text-sm text-blue-800 leading-relaxed">
+                החיוב החודשי מתבצע אוטומטית באמצעות הוראת קבע.
+                כל החשבוניות והחיובים זמינים בלשונית "חשבוניות" בתפריט הצד.
               </p>
             </div>
-            <div className="text-left">
-              <div className="text-4xl font-bold text-blue-900">₪{subscription.plan?.monthly_price}</div>
-              <div className="text-sm text-slate-600">לחודש</div>
-            </div>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-white rounded-xl p-4">
-              <div className="text-sm text-slate-600 mb-1">מצלמות</div>
-              <div className="text-2xl font-bold text-slate-900">{subscription.plan?.camera_limit}</div>
-            </div>
-            <div className="bg-white rounded-xl p-4">
-              <div className="text-sm text-slate-600 mb-1">ימי שמירה</div>
-              <div className="text-2xl font-bold text-slate-900">{subscription.plan?.retention_days}</div>
-            </div>
-            <div className="bg-white rounded-xl p-4">
-              <div className="text-sm text-slate-600 mb-1">סוג מנוי</div>
-              <div className="text-lg font-bold text-slate-900">
-                {subscription.billing_cycle === "monthly" ? "חודשי" : "שנתי"}
+        {/* Help Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <h3 className="text-lg font-bold text-slate-900 mb-4">צריך עזרה?</h3>
+          <div className="space-y-3">
+            <button
+              onClick={() => router.push("/dashboard/invoices")}
+              className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <FileText className="w-5 h-5 text-slate-600" />
+                <span className="font-medium text-slate-900">צפה בכל החשבוניות שלי</span>
               </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm text-slate-700">
-            <Calendar className="w-4 h-4" />
-            <span>
-              תאריך הצטרפות: {new Date(subscription.created_at).toLocaleDateString("he-IL", {
-                year: "numeric",
-                month: "long",
-                day: "numeric"
-              })}
-            </span>
-          </div>
-        </div>
-
-        {/* Next Billing */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
-              <CreditCard className="w-6 h-6 text-blue-600" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-bold text-slate-900 mb-2">החיוב הבא</h3>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <p className="text-slate-600">
-                    {subscription.next_billing_date && (
-                      <>
-                        תאריך: {new Date(subscription.next_billing_date).toLocaleDateString("he-IL", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric"
-                        })}
-                      </>
-                    )}
-                  </p>
-                  {daysUntilBilling !== null && daysUntilBilling > 0 && (
-                    <p className="text-sm text-slate-500 mt-1">
-                      בעוד {daysUntilBilling} ימים
-                    </p>
-                  )}
-                  {daysUntilBilling !== null && daysUntilBilling < 0 && (
-                    <p className="text-sm text-red-600 mt-1 font-medium">
-                      ⚠️ איחור של {Math.abs(daysUntilBilling)} ימים
-                    </p>
-                  )}
-                </div>
-                <div className="text-2xl font-bold text-slate-900">
-                  ₪{parseFloat(subscription.amount).toLocaleString()}
-                </div>
+              <span className="text-slate-400">←</span>
+            </button>
+            <button
+              onClick={() => router.push("/dashboard/support")}
+              className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <HelpCircle className="w-5 h-5 text-slate-600" />
+                <span className="font-medium text-slate-900">פנה לתמיכה הטכנית</span>
               </div>
-            </div>
+              <span className="text-slate-400">←</span>
+            </button>
           </div>
-        </div>
-
-        {/* Recent Payments */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">חיובים אחרונים</h3>
-          {recentPayments.length === 0 ? (
-            <p className="text-slate-600 text-center py-8">אין חיובים להצגה</p>
-          ) : (
-            <div className="space-y-3">
-              {recentPayments.map((payment) => (
-                <div key={payment.id} className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0">
-                  <div className="flex items-center gap-3">
-                    {payment.status === "completed" ? (
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                    ) : payment.status === "failed" ? (
-                      <AlertCircle className="w-5 h-5 text-red-600" />
-                    ) : (
-                      <AlertCircle className="w-5 h-5 text-yellow-600" />
-                    )}
-                    <div>
-                      <div className="font-medium text-slate-900">
-                        {new Date(payment.created_at).toLocaleDateString("he-IL")}
-                      </div>
-                      <div className="text-sm text-slate-600">
-                        {payment.status === "completed" ? "שולם בהצלחה" : 
-                         payment.status === "failed" ? "נכשל" : "ממתין לתשלום"}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="font-bold text-slate-900">₪{parseFloat(payment.amount).toLocaleString()}</div>
-                </div>
-              ))}
-            </div>
-          )}
-          <button
-            onClick={() => router.push("/dashboard/payments")}
-            className="mt-4 w-full py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium"
-          >
-            צפה בכל התשלומים →
-          </button>
-        </div>
-
-        {/* Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button
-            onClick={() => router.push("/subscribe")}
-            className="flex items-center justify-center gap-3 p-6 bg-gradient-to-l from-green-600 to-emerald-600 text-white rounded-xl font-bold hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg"
-          >
-            <TrendingUp className="w-5 h-5" />
-            שדרג תוכנית
-          </button>
-          <button
-            onClick={() => setShowCancelConfirm(true)}
-            className="flex items-center justify-center gap-3 p-6 bg-white border-2 border-red-200 text-red-600 rounded-xl font-bold hover:bg-red-50 transition-all"
-          >
-            <XCircle className="w-5 h-5" />
-            בטל מנוי
-          </button>
         </div>
 
         {/* Cancel Confirmation Modal */}
