@@ -6,8 +6,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <ModernAdminSidebar />
       
       {/* Main Content */}
-      <div className="mr-72">
-        <main className="p-6">
+      <div className="lg:mr-72">
+        <main className="p-4 sm:p-6">
           {children}
         </main>
       </div>

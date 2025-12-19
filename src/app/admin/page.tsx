@@ -75,76 +75,76 @@ export default async function AdminPage() {
     .limit(3);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 px-6">
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div className="text-right">
-              <h1 className="text-4xl font-bold text-slate-800 mb-2">לוח בקרה ראשי</h1>
-              <p className="text-slate-600">ניהול מערכת Clearpoint Security</p>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 mb-2">לוח בקרה ראשי</h1>
+              <p className="text-sm sm:text-base text-slate-600">ניהול מערכת Clearpoint Security</p>
             </div>
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center shadow-lg">
-              <LayoutDashboard size={32} className="text-white" />
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center shadow-lg">
+              <LayoutDashboard size={24} className="sm:w-8 sm:h-8 text-white" />
             </div>
           </div>
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all">
             <div className="flex items-center justify-between">
               <div className="text-right">
-                <p className="text-slate-600 text-sm font-medium">סה"כ לקוחות</p>
-                <p className="text-3xl font-bold text-slate-800">{userCount || 0}</p>
+                <p className="text-slate-600 text-xs sm:text-sm font-medium">סה"כ לקוחות</p>
+                <p className="text-2xl sm:text-3xl font-bold text-slate-800">{userCount || 0}</p>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <Users size={24} className="text-blue-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <Users size={20} className="sm:w-6 sm:h-6 text-blue-600" />
               </div>
             </div>
           </div>
           
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all">
+          <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all">
             <div className="flex items-center justify-between">
               <div className="text-right">
-                <p className="text-slate-600 text-sm font-medium">מצלמות מותקנות</p>
-                <p className="text-3xl font-bold text-green-600">{totalCameras || 0}</p>
+                <p className="text-slate-600 text-xs sm:text-sm font-medium">מצלמות מותקנות</p>
+                <p className="text-2xl sm:text-3xl font-bold text-green-600">{totalCameras || 0}</p>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <Camera size={24} className="text-green-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <Camera size={20} className="sm:w-6 sm:h-6 text-green-600" />
               </div>
             </div>
           </div>
           
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all">
+          <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all">
             <div className="flex items-center justify-between">
               <div className="text-right">
-                <p className="text-slate-600 text-sm font-medium">פניות תמיכה</p>
-                <p className="text-3xl font-bold text-orange-600">{pendingSupport || 0}</p>
+                <p className="text-slate-600 text-xs sm:text-sm font-medium">פניות תמיכה</p>
+                <p className="text-2xl sm:text-3xl font-bold text-orange-600">{pendingSupport || 0}</p>
               </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                <LifeBuoy size={24} className="text-orange-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                <LifeBuoy size={20} className="sm:w-6 sm:h-6 text-orange-600" />
               </div>
             </div>
           </div>
           
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all">
+          <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all">
             <div className="flex items-center justify-between">
               <div className="text-right">
-                <p className="text-slate-600 text-sm font-medium">בקשות חדשות</p>
-                <p className="text-3xl font-bold text-purple-600">{newRequests || 0}</p>
+                <p className="text-slate-600 text-xs sm:text-sm font-medium">בקשות חדשות</p>
+                <p className="text-2xl sm:text-3xl font-bold text-purple-600">{newRequests || 0}</p>
               </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                <FileText size={24} className="text-purple-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                <FileText size={20} className="sm:w-6 sm:h-6 text-purple-600" />
               </div>
             </div>
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 mb-8">
-          <h2 className="text-2xl font-bold text-slate-800 mb-6 text-right">פעולות מהירות</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-2xl shadow-sm border border-slate-200 mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-4 sm:mb-6 text-right">פעולות מהירות</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Link
               href="/admin/customers/new"
               className="group p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border-2 border-green-200 hover:border-green-300 transition-all hover:shadow-lg"
@@ -212,9 +212,9 @@ export default async function AdminPage() {
         </div>
 
         {/* Management Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8">
           {/* Customer Management */}
-          <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+          <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-2xl shadow-sm border border-slate-200">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-slate-800 text-right">ניהול לקוחות</h2>
               <Users size={28} className="text-blue-600" />

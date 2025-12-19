@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { 
   LayoutDashboard, 
   Users, 
@@ -14,7 +15,9 @@ import {
   Bell,
   LogOut,
   FileText,
-  Home
+  Home,
+  Menu,
+  X
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -78,6 +81,7 @@ const navigation = [
 export function ModernAdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     await signOut({ redirect: false });
@@ -85,7 +89,25 @@ export function ModernAdminSidebar() {
   };
 
   return (
-    <div className="fixed right-0 top-0 h-screen w-72 bg-white border-l border-slate-200 shadow-lg overflow-y-auto" dir="rtl">
+    <>
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
+        aria-label="תפריט"
+      >
+        {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+      </button>
+
+      {/* Sidebar */}
+      <div
+        className={`
+          fixed right-0 top-0 h-screen w-72 bg-white border-l border-slate-200 shadow-lg overflow-y-auto
+          transform transition-transform duration-300 ease-in-out z-40
+          ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+        `}
+        dir="rtl"
+      >
       {/* Header */}
       <div className="p-6 border-b border-slate-200">
         <div className="flex items-center gap-3">
@@ -109,6 +131,7 @@ export function ModernAdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => setIsMobileMenuOpen(false)}
               className={`
                 group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all
                 ${isActive 
@@ -157,6 +180,15 @@ export function ModernAdminSidebar() {
           </p>
         </div>
       </div>
-    </div>
+      </div>
+
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-30"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+    </>
   );
 }
