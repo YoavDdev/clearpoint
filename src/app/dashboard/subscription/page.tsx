@@ -14,6 +14,9 @@ type Subscription = {
   amount: string;
   next_billing_date: string;
   created_at: string;
+  grace_period_end?: string;
+  cancelled_at?: string;
+  cancellation_reason?: string;
   plan?: {
     name: string;
     name_he: string;
@@ -259,6 +262,42 @@ export default function SubscriptionPage() {
           </div>
         </div>
 
+        {/* Grace Period Warning for Cancelled Subscriptions */}
+        {subscription.status === 'cancelled' && subscription.grace_period_end && (
+          <div className="bg-orange-50 border-2 border-orange-300 rounded-xl p-6 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="text-3xl">⏰</div>
+              <div className="flex-1">
+                <h3 className="font-bold text-orange-900 mb-2 text-lg">המנוי בוטל - תקופת חסד פעילה</h3>
+                <p className="text-orange-800 mb-3">
+                  המנוי שלך בוטל, אך עדיין יש לך גישה מלאה עד תום תקופת החיוב ששילמת.
+                </p>
+                <div className="bg-white rounded-lg p-4 mb-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-slate-600">הגישה תפוג בתאריך:</span>
+                    <span className="font-bold text-slate-900">
+                      {new Date(subscription.grace_period_end).toLocaleDateString("he-IL", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric"
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">ימים נותרים:</span>
+                    <span className="font-bold text-orange-600 text-xl">
+                      {Math.ceil((new Date(subscription.grace_period_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} ימים
+                    </span>
+                  </div>
+                </div>
+                <p className="text-sm text-orange-700">
+                  💡 רוצה להמשיך להשתמש במערכת? אפשר לחדש את המנוי בכל עת.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Info Card */}
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
           <div className="flex items-start gap-3">
@@ -272,6 +311,23 @@ export default function SubscriptionPage() {
             </div>
           </div>
         </div>
+
+        {/* Cancel Subscription Button */}
+        {subscription.status === 'active' && (
+          <div className="bg-white rounded-xl shadow-sm border border-red-200 p-6 mb-6">
+            <h3 className="text-lg font-bold text-slate-900 mb-3">ניהול מנוי</h3>
+            <p className="text-sm text-slate-600 mb-4">
+              רוצה לבטל את המנוי? שים לב שהגישה שלך תישאר פעילה עד תום תקופת החיוב הנוכחית.
+            </p>
+            <button
+              onClick={() => setShowCancelConfirm(true)}
+              className="w-full py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all shadow-md flex items-center justify-center gap-2"
+            >
+              <XCircle className="w-5 h-5" />
+              <span>בטל מנוי</span>
+            </button>
+          </div>
+        )}
 
         {/* Help Section */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
