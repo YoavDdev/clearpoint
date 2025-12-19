@@ -22,6 +22,49 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // 📹 בדיקת גישה למצלמות וצפייה - דורש מנוי פעיל
+  const subscriptionRequiredPaths = [
+    "/dashboard/",           // דף הבית עם המצלמות
+  ];
+
+  // דפים שלא דורשים מנוי (רק התחברות)
+  const freeAccessPaths = [
+    "/dashboard/subscription",
+    "/dashboard/invoices",
+    "/dashboard/support",
+    "/subscription-expired",
+    "/dashboard/payments",
+  ];
+
+  // בדוק אם זה נתיב שדורש מנוי
+  const requiresSubscription = subscriptionRequiredPaths.some(path => 
+    pathname === path || (pathname.startsWith(path) && !freeAccessPaths.some(free => pathname.startsWith(free)))
+  );
+
+  if (requiresSubscription && token && token.role !== "admin") {
+    // בדוק סטטוס מנוי (קריאה פנימית)
+    try {
+      const baseUrl = process.env.NEXTAUTH_URL || request.nextUrl.origin;
+      const response = await fetch(`${baseUrl}/api/user/subscription-status`, {
+        headers: {
+          Cookie: request.headers.get('cookie') || '',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // אם אין גישה, הפנה לדף מנוי פג תוקף
+        if (!data.hasAccess) {
+          return NextResponse.redirect(new URL("/subscription-expired", request.url));
+        }
+      }
+    } catch (error) {
+      console.error("Middleware: Error checking subscription status:", error);
+      // במקרה של שגיאה, אפשר גישה (כדי לא לחסום את המערכת)
+    }
+  }
+
   return NextResponse.next();
 }
 

@@ -1,34 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { createClient } from "@supabase/supabase-js";
+import { cancelSubscription } from "@/lib/payplus";
 
 export const dynamic = 'force-dynamic';
 
 /**
- * ביטול מנוי על ידי הלקוח
  * POST /api/user/cancel-subscription
+ * ביטול מנוי עם Grace Period - המשתמש ממשיך לקבל גישה עד סוף החודש ששולם
  */
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
-    
-    // אימות משתמש
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.email) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const { reason } = await req.json();
+    const body = await req.json();
+    const { reason } = body;
 
-    console.log(`🚫 User requesting cancellation: ${session.user.email}`);
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
-    // קבלת פרטי המשתמש
+    // Get user
     const { data: user } = await supabase
       .from("users")
-      .select("id")
+      .select("id, email, full_name")
       .eq("email", session.user.email)
       .single();
 
@@ -39,112 +43,89 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // קבלת המנוי הפעיל
-    const { data: subscription, error: fetchError } = await supabase
+    // Get active subscription
+    const { data: subscription } = await supabase
       .from("subscriptions")
       .select("*")
       .eq("user_id", user.id)
       .eq("status", "active")
       .single();
 
-    if (fetchError || !subscription) {
+    if (!subscription) {
       return NextResponse.json(
         { success: false, error: "No active subscription found" },
         { status: 404 }
       );
     }
 
-    // ביטול המנוי
+    // שלב 1: בטל ב-PayPlus (עוצר חיובים עתידיים)
+    let payPlusCancelled = false;
+    if (subscription.recurring_uid) {
+      payPlusCancelled = await cancelSubscription(subscription.recurring_uid);
+      
+      if (!payPlusCancelled) {
+        console.warn("⚠️ Failed to cancel on PayPlus, but continuing with local cancellation");
+      } else {
+        console.log("✅ Successfully cancelled recurring payment on PayPlus");
+      }
+    }
+
+    // שלב 2: חשב Grace Period - עד סוף החודש ששולם
+    let gracePeriodEnd: Date;
+    
+    if (subscription.last_payment_date) {
+      // יש תשלום אחרון - חשב מתי מסתיים החודש ששולם
+      gracePeriodEnd = new Date(subscription.last_payment_date);
+      if (subscription.billing_cycle === 'monthly') {
+        gracePeriodEnd.setMonth(gracePeriodEnd.getMonth() + 1);
+      } else if (subscription.billing_cycle === 'yearly') {
+        gracePeriodEnd.setFullYear(gracePeriodEnd.getFullYear() + 1);
+      }
+    } else if (subscription.free_trial_end) {
+      // עדיין בתקופת ניסיון - סיים את תקופת הניסיון
+      gracePeriodEnd = new Date(subscription.free_trial_end);
+    } else {
+      // אין מידע - תן 30 יום מהיום
+      gracePeriodEnd = new Date();
+      gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 30);
+    }
+
+    // שלב 3: עדכן את המנוי ל-cancelled עם Grace Period
     const { error: updateError } = await supabase
       .from("subscriptions")
       .update({
         status: "cancelled",
         cancelled_at: new Date().toISOString(),
-        cancellation_reason: reason || "User requested cancellation",
+        cancellation_reason: reason || null,
+        grace_period_end: gracePeriodEnd.toISOString(),
+        auto_renew: false,
       })
       .eq("id", subscription.id);
 
     if (updateError) {
-      console.error("Failed to cancel subscription:", updateError);
+      console.error("Error updating subscription:", updateError);
       return NextResponse.json(
         { success: false, error: "Failed to cancel subscription" },
         { status: 500 }
       );
     }
 
-    // ביטול המנוי ב-PayPlus אם יש provider_subscription_id
-    if (subscription.provider_subscription_id) {
-      console.log(`🚫 Cancelling subscription in PayPlus: ${subscription.provider_subscription_id}`);
-      
-      const { cancelSubscription } = await import('@/lib/payplus');
-      const payPlusCancelled = await cancelSubscription(subscription.provider_subscription_id);
-      
-      if (!payPlusCancelled) {
-        console.error('❌ Failed to cancel subscription in PayPlus');
-        // נמשיך בכל זאת - לפחות ביטלנו ב-DB שלנו
-      } else {
-        console.log('✅ Subscription cancelled in PayPlus successfully');
-      }
-    } else {
-      console.log('⚠️ No provider_subscription_id - cancelling only in DB');
-    }
+    console.log(`✅ Subscription cancelled with grace period until: ${gracePeriodEnd.toISOString()}`);
 
-    // רישום בהיסטוריה (אם הטבלה קיימת)
-    try {
-      await supabase.from("subscription_history").insert({
-        subscription_id: subscription.id,
-        user_id: user.id,
-        event_type: "cancelled",
-        old_status: "active",
-        new_status: "cancelled",
-        description: `מנוי בוטל על ידי הלקוח - ${reason || "ללא סיבה"}`,
-      });
-    } catch (historyError) {
-      console.log("⚠️ subscription_history table does not exist, skipping history log");
-    }
-
-    console.log(`✅ Subscription cancelled successfully for user: ${user.id}`);
-
-    // שליחת אימייל אישור ביטול
-    try {
-      const { sendCancellationConfirmation } = await import('@/lib/email');
-      
-      // קבלת פרטי המשתמש
-      const { data: userData } = await supabase
-        .from("users")
-        .select("full_name, email")
-        .eq("id", user.id)
-        .single();
-
-      if (userData) {
-        await sendCancellationConfirmation({
-          customerName: userData.full_name || userData.email,
-          customerEmail: userData.email,
-          cancellationDate: new Date().toLocaleDateString('he-IL'),
-          endOfServiceDate: subscription.next_billing_date 
-            ? new Date(subscription.next_billing_date).toLocaleDateString('he-IL')
-            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('he-IL'),
-          cancellationReason: reason || undefined,
-        });
-        console.log('📧 Cancellation confirmation email sent');
-      }
-    } catch (emailError) {
-      console.error('⚠️ Failed to send cancellation email:', emailError);
-      // לא עוצרים את הזרימה אם המייל נכשל
-    }
+    // שלב 4: שלח אימייל ללקוח (אופציונלי)
+    // await sendCancellationEmail(user.email, gracePeriodEnd);
 
     return NextResponse.json({
       success: true,
-      message: "Subscription cancelled successfully",
+      message: "המנוי בוטל בהצלחה",
+      gracePeriodEnd: gracePeriodEnd.toISOString(),
+      daysRemaining: Math.ceil((gracePeriodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+      payPlusCancelled,
     });
   } catch (error) {
-    console.error("Cancel subscription error:", error);
+    console.error("Error cancelling subscription:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: "Internal server error",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
+      { success: false, error: "Internal server error" },
       { status: 500 }
     );
   }
