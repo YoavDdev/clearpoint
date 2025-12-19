@@ -102,14 +102,15 @@ export function ModernAdminSidebar() {
       {/* Sidebar */}
       <div
         className={`
-          fixed right-0 top-0 h-screen w-72 bg-white border-l border-slate-200 shadow-lg overflow-y-auto
+          fixed right-0 top-0 h-screen w-72 bg-white border-l border-slate-200 shadow-lg
+          flex flex-col
           transform transition-transform duration-300 ease-in-out z-40
           ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
         `}
         dir="rtl"
       >
       {/* Header */}
-      <div className="p-6 border-b border-slate-200">
+      <div className="p-6 border-b border-slate-200 flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
             <CheckCircle className="text-white" size={28} />
@@ -122,7 +123,7 @@ export function ModernAdminSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="p-4 space-y-2">
+      <nav className="p-4 space-y-2 flex-1 overflow-y-auto">
         {navigation.map((item) => {
           const isActive = pathname === item.href || 
                           (item.href !== '/admin' && pathname?.startsWith(item.href));
@@ -156,7 +157,7 @@ export function ModernAdminSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 bg-white space-y-2">
+      <div className="p-4 border-t border-slate-200 bg-white space-y-2 flex-shrink-0">
         <Link
           href="/dashboard"
           className="w-full flex items-center gap-3 p-3 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"

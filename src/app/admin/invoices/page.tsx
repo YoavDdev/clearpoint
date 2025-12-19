@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileText, User, Calendar, DollarSign, Eye, Printer, Search, Filter } from "lucide-react";
+import { FileText, User, Calendar, DollarSign, Eye, Printer, Search, Filter, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 interface Invoice {
@@ -54,6 +54,32 @@ export default function AdminInvoicesPage() {
       console.error("Error fetching invoices:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteInvoice = async (invoiceId: string, invoiceNumber: string) => {
+    if (!confirm(`האם אתה בטוח שברצונך למחוק את חשבונית #${invoiceNumber}?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/admin/delete-invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert("החשבונית נמחקה בהצלחה");
+        fetchInvoices();
+      } else {
+        alert("שגיאה: " + result.error);
+      }
+    } catch (error) {
+      console.error("Error deleting invoice:", error);
+      alert("שגיאה במחיקת החשבונית");
     }
   };
 
@@ -250,6 +276,15 @@ export default function AdminInvoicesPage() {
                           >
                             <Eye size={18} />
                           </Link>
+                          {invoice.status === "sent" && (
+                            <button
+                              onClick={() => handleDeleteInvoice(invoice.id, invoice.invoice_number)}
+                              className="p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
+                              title="מחיקת חשבונית"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
