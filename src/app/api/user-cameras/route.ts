@@ -44,23 +44,7 @@ export async function GET() {
   
   console.log(`🔍 User ${user.id} subscription check:`, isSubscriptionActive);
 
-  // אם אין מנוי פעיל - לא מחזירים מצלמות!
-  if (!isSubscriptionActive) {
-    console.warn(`⚠️ User ${user.id} has no active subscription - blocking camera access`);
-    
-    return NextResponse.json({
-      success: true,
-      tunnel_name: user.tunnel_name,
-      cameras: [], // רשימה ריקה של מצלמות
-      plan_duration_days: 0,
-      subscription_status: 'inactive',
-      connection_type: null,
-      subscription_active: false,
-      message: 'אין מנוי פעיל - גישה למצלמות חסומה'
-    });
-  }
-
-  // Step 2: Get active cameras for the user (רק אם יש מנוי פעיל!)
+  // Step 2: Get active cameras for the user (מצלמות זמינות תמיד ל-live view!)
   const { data: cameras, error: cameraError } = await supabase
     .from("cameras")
     .select("id, name")
@@ -71,6 +55,39 @@ export async function GET() {
     return NextResponse.json({ success: false, error: cameraError.message }, { status: 500 });
   }
 
+  // אם אין מנוי פעיל אבל יש חיבור SIM - חוסמים גישה (אין אינטרנט ללא מנוי)
+  if (!isSubscriptionActive && connectionType === 'sim') {
+    console.warn(`⚠️ User ${user.id} has SIM plan without active subscription - blocking all access (no internet)`);
+    
+    return NextResponse.json({
+      success: true,
+      tunnel_name: user.tunnel_name,
+      cameras: [], // רשימה ריקה - אין אינטרנט
+      plan_duration_days: 0,
+      subscription_status: 'inactive',
+      connection_type: connectionType,
+      subscription_active: false,
+      message: 'אין מנוי פעיל - אין חיבור אינטרנט (SIM)'
+    });
+  }
+
+  // אם אין מנוי פעיל אבל חיבור Wi-Fi - מאפשרים live view בלבד
+  if (!isSubscriptionActive) {
+    console.log(`✅ User ${user.id} has no subscription but can view live cameras (Wi-Fi connection)`);
+    
+    return NextResponse.json({
+      success: true,
+      tunnel_name: user.tunnel_name,
+      cameras, // מצלמות זמינות ל-live view
+      plan_duration_days: 0,
+      subscription_status: 'inactive',
+      connection_type: connectionType,
+      subscription_active: false,
+      message: 'ניתן לצפות בשידור חי בלבד - אין גישה להקלטות'
+    });
+  }
+
+  // מנוי פעיל - גישה מלאה
   return NextResponse.json({
     success: true,
     tunnel_name: user.tunnel_name,
