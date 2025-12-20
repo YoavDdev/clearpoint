@@ -130,13 +130,6 @@ export default function DashboardSidebar({ isAdmin = false }: { isAdmin?: boolea
               <span className="font-medium">ממשק ניהול</span>
             </Link>
           )}
-          <Link
-            href="/settings"
-            className="flex items-center gap-3 p-3 text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
-          >
-            <Settings className="w-5 h-5" />
-            <span className="font-medium">הגדרות</span>
-          </Link>
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
