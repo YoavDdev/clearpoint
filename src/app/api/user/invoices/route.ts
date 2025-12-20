@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     // קבלת פרטי המשתמש
     const { data: user } = await supabase
       .from("users")
-      .select("id")
+      .select("id, email, full_name")
       .eq("email", session.user.email)
       .single();
 
@@ -37,6 +37,8 @@ export async function GET(req: NextRequest) {
         { status: 404 }
       );
     }
+
+    console.log(`🔍 Fetching invoices for user: ${user.email} (${user.full_name}) - ID: ${user.id}`);
 
     // שליפת החשבוניות
     const { data: invoices, error } = await supabase
@@ -54,6 +56,8 @@ export async function GET(req: NextRequest) {
       `)
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
+
+    console.log(`📄 Found ${invoices?.length || 0} invoices for user ${user.email}`);
 
     if (error) {
       console.error("Error fetching user invoices:", error);
