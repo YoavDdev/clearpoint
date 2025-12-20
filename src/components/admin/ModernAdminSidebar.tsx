@@ -17,7 +17,8 @@ import {
   FileText,
   Home,
   Menu,
-  X
+  X,
+  RefreshCw
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -39,6 +40,12 @@ const navigation = [
     href: "/admin/invoices",
     icon: FileText,
     description: "ניהול חשבוניות ותשלומים"
+  },
+  {
+    name: "סנכרון מנויים",
+    href: "/admin/subscriptions-sync",
+    icon: RefreshCw,
+    description: "סנכרון אוטומטי וידני מ-PayPlus"
   },
   {
     name: "מצלמות",
