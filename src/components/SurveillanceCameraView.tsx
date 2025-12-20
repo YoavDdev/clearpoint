@@ -212,6 +212,7 @@ export default function SurveillanceCameraView({ camera, tunnelName, cameraNumbe
 
         <video
           ref={videoRef}
+          autoPlay
           muted={true}
           playsInline
           preload="metadata"
