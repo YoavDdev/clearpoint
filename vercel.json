@@ -4,10 +4,6 @@
   "regions": ["iad1"],
   "crons": [
     {
-      "path": "/api/admin/check-subscriptions",
-      "schedule": "0 2 * * *"
-    },
-    {
       "path": "/api/cron/daily-subscription-sync",
       "schedule": "0 3 * * *"
     }
