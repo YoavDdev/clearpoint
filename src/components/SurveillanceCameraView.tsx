@@ -17,6 +17,7 @@ export default function SurveillanceCameraView({ camera, tunnelName, cameraNumbe
   const [isBuffering, setIsBuffering] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [needsInteraction, setNeedsInteraction] = useState(false);
 
   const { id, name } = camera;
   const streamUrl = `https://${tunnelName}.clearpoint.co.il/${id}/stream.m3u8`;
@@ -64,6 +65,12 @@ export default function SurveillanceCameraView({ camera, tunnelName, cameraNumbe
         setIsLoading(false);
         setIsConnected(true);
         setHasError(false);
+        
+        // Try to autoplay - handle strict Chrome autoplay policy
+        video.play().catch((err) => {
+          console.log('Autoplay blocked - user interaction required');
+          setNeedsInteraction(true);
+        });
       });
       
       hls.on(Hls.Events.BUFFER_APPENDED, () => {
@@ -151,6 +158,24 @@ export default function SurveillanceCameraView({ camera, tunnelName, cameraNumbe
           <div className="bg-black/60 backdrop-blur-sm px-3 py-2 rounded">
             <span className="text-white font-medium text-sm">{name}</span>
           </div>
+        </div>
+      )}
+
+      {/* Manual Play Button - Center - Only shown when autoplay is blocked */}
+      {needsInteraction && !hasError && (
+        <div className="absolute inset-0 flex items-center justify-center z-30 bg-black/50">
+          <button
+            onClick={() => {
+              videoRef.current?.play();
+              setNeedsInteraction(false);
+            }}
+            className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold rounded-xl transition-all shadow-2xl flex items-center gap-3"
+          >
+            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+            הפעל מצלמה
+          </button>
         </div>
       )}
 
