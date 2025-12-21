@@ -23,14 +23,22 @@ export default function SetupPasswordPage() {
   useEffect(() => {
     if (!supabase) return;
     const init = async () => {
+      // בדיקה אם יש session קיים (אחרי auth/callback)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (session) {
+        console.log("✅ Session already exists from callback:", session.user.email);
+        setError("");
+        return;
+      }
+
+      // אם אין session, ננסה לקבל מה-hash (fallback ישן)
       const hashParams = new URLSearchParams(window.location.hash.slice(1));
       const access_token = hashParams.get("access_token");
       const refresh_token = hashParams.get("refresh_token");
-      const expires_at = parseInt(hashParams.get("expires_at") || "0", 10);
-      const token_type = hashParams.get("token_type");
 
-      if (access_token && refresh_token && token_type && expires_at) {
-        console.log("🔐 Manually setting Supabase session");
+      if (access_token && refresh_token) {
+        console.log("🔐 Setting session from URL hash");
 
         const { data, error } = await supabase.auth.setSession({
           access_token,
@@ -38,14 +46,14 @@ export default function SetupPasswordPage() {
         });
 
         if (error || !data.session) {
-          console.error("❌ Failed to set session manually", error);
+          console.error("❌ Failed to set session", error);
           setError("קישור לא תקין או שפג תוקפו. בקש הזמנה חדשה.");
         } else {
-          console.log("✅ Session set manually");
+          console.log("✅ Session set from hash");
           setError("");
         }
       } else {
-        console.warn("❌ Missing access_token or refresh_token in URL hash");
+        console.warn("❌ No session and no tokens in URL");
         setError("קישור לא תקין או שפג תוקפו. בקש הזמנה חדשה.");
       }
     };

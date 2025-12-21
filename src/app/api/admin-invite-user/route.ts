@@ -63,12 +63,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: dbError.message }, { status: 400 });
   }
 
-  // 3. Generate invite link
+  // 3. Generate invite link with proper callback flow
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://clearpoint.co.il';
   const result = await supabaseAdmin.auth.admin.generateLink({
     type: "invite",
     email,
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/setup-password`,
+      redirectTo: `${siteUrl}/auth/callback?next=/setup-password`,
     },
   });
 
