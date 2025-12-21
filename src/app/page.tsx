@@ -1,5 +1,6 @@
 import PlanCardsGrid from "@/components/PlanCardsGrid";
 import Footer from "@/components/Footer";
+import AuthRedirectHandler from "@/components/AuthRedirectHandler";
 import { Shield, Eye, Lock, Zap, Camera, Cloud, Cpu, BadgeCheck, User, LogIn, LayoutDashboard } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
@@ -12,6 +13,8 @@ export default async function HomePage() {
 
   return (
     <main dir="rtl" className="min-h-screen">
+      {/* Handle auth redirects when tokens arrive in hash */}
+      <AuthRedirectHandler />
       {/* Welcome Banner for Logged In Users */}
       {isLoggedIn && (
         <div className="bg-gradient-to-l from-blue-600 to-cyan-600 py-4 px-4 shadow-lg">
