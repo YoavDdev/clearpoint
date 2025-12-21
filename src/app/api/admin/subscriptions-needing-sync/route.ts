@@ -13,7 +13,7 @@ export async function GET() {
   try {
     // בדיקת הרשאות אדמין
     const session = await getServerSession(authOptions);
-    if (!session?.user || (session.user as any).role !== "Admin") {
+    if (!session?.user || (session.user as any).role !== "admin") {
       return NextResponse.json(
         { success: false, error: "Unauthorized - Admin only" },
         { status: 403 }
