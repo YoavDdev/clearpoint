@@ -32,6 +32,7 @@ FROM invoices
 WHERE created_at::date = '2025-12-21'
 ORDER BY created_at DESC;
 
+
 -- 3. חפש תשלומים שנוצרו היום
 SELECT 
   'payments' as table_name,

@@ -48,6 +48,10 @@ export async function POST(req: NextRequest) {
     // שלב 2: פרסור הנתונים מ-PayPlus
     const webhookData = parseWebhookData(payload);
     
+    // חלץ מייל מה-payload (PayPlus שולח את המייל של הלקוח)
+    const customerEmail = payload.customer_email || payload.email || payload.buyer_email || null;
+    console.log(`📧 Customer email from payload: ${customerEmail}`);
+    
     // שלב 3: מצא את המנוי לפי recurring_uid או customer_uid
     // תמיכה במבנים שונים: ישיר, nested, או דרך Zapier
     let recurringUid = payload.recurring_uid 
@@ -183,16 +187,101 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // אם לא מצאנו subscription, ננסה ליצור אחד אוטומטית!
     if (subError || !subscription) {
-      console.error("❌ Subscription not found with any identifier");
-      console.error(`Tried: recurring_uid=${recurringUid}, user_id=${userIdFromMoreInfo}, customer_uid=${customerUid}, transaction_uid=${transactionUid}`);
-      return NextResponse.json(
-        { success: false, error: "Subscription not found" },
-        { status: 404 }
-      );
+      console.log("⚠️ Subscription not found - attempting to create automatically");
+      console.log(`Identifiers: recurring_uid=${recurringUid}, user_id=${userIdFromMoreInfo}, customer_uid=${customerUid}`);
+      
+      // חפש משתמש - תחילה לפי מייל (הכי פשוט!), אחר כך לפי user_id
+      let user = null;
+      let userError = null;
+      
+      // אם יש מייל, חפש לפי מייל (פשוט ומדויק!)
+      if (customerEmail) {
+        console.log(`🔍 Searching user by email: ${customerEmail}`);
+        const result = await supabase
+          .from("users")
+          .select("id, full_name, email, plan_id")
+          .eq("email", customerEmail)
+          .single();
+        user = result.data;
+        userError = result.error;
+      }
+      
+      // אם לא מצאנו לפי מייל, נסה לפי user_id (fallback)
+      const userId = userIdFromMoreInfo || customerUid;
+      if (!user && userId) {
+        console.log(`🔍 Email not found, trying by user_id: ${userId}`);
+        const result = await supabase
+          .from("users")
+          .select("id, full_name, email, plan_id")
+          .eq("id", userId)
+          .single();
+        user = result.data;
+        userError = result.error;
+      }
+      
+      // אם לא מצאנו בכלל - שגיאה
+      if (!user) {
+        console.error(`❌ User not found by email (${customerEmail}) or user_id (${userId})`);
+        return NextResponse.json(
+          { success: false, error: "User not found" },
+          { status: 404 }
+        );
+      }
+      
+      if (userError || !user) {
+        console.error(`❌ User not found: ${userId}`);
+        return NextResponse.json(
+          { success: false, error: "User not found" },
+          { status: 404 }
+        );
+      }
+      
+      console.log(`✅ User found: ${user.full_name} (${user.email})`);
+      
+      // צור subscription חדש אוטומטית!
+      const nextBillingDate = new Date();
+      nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+      
+      // השתמש ב-plan_id של המשתמש
+      const userPlanId = user.plan_id || null;
+      
+      console.log(`📋 User's plan_id: ${userPlanId || 'none'}`);
+      
+      const { data: newSubscription, error: createError } = await supabase
+        .from("subscriptions")
+        .insert({
+          user_id: user.id,
+          plan_id: userPlanId,
+          status: 'active',
+          billing_cycle: 'monthly',
+          amount: webhookData.amount,
+          currency: 'ILS',
+          payment_provider: 'payplus',
+          provider_customer_id: customerUid,
+          provider_subscription_id: recurringUid,
+          next_billing_date: nextBillingDate.toISOString().split('T')[0],
+          started_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+      
+      if (createError || !newSubscription) {
+        console.error("❌ Failed to create subscription:", createError);
+        return NextResponse.json(
+          { success: false, error: "Failed to create subscription" },
+          { status: 500 }
+        );
+      }
+      
+      subscription = newSubscription;
+      console.log(`🎉 Created new subscription automatically: ${subscription.id}`);
+      console.log(`   User: ${user.full_name}`);
+      console.log(`   Amount: ${webhookData.amount} ILS/month`);
+    } else {
+      console.log("📋 Found existing subscription:", subscription.id);
     }
-
-    console.log("📋 Found subscription:", subscription.id);
 
     // שלב 4: שמור את החיוב בטבלת subscription_charges
     const chargeStatus = webhookData.status === 'completed' ? 'success' : 'failed';

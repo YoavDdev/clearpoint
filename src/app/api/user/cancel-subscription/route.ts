@@ -112,8 +112,25 @@ export async function POST(req: NextRequest) {
 
     console.log(`✅ Subscription cancelled with grace period until: ${gracePeriodEnd.toISOString()}`);
 
-    // שלב 4: שלח אימייל ללקוח (אופציונלי)
-    // await sendCancellationEmail(user.email, gracePeriodEnd);
+    // שלב 4: שלח מייל לאדמין לביטול ההוראת קבע ב-PayPlus
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/send-cancellation-alert`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userName: user.full_name,
+          userEmail: user.email,
+          subscriptionId: subscription.id,
+          recurringUid: subscription.recurring_uid || subscription.provider_subscription_id,
+          reason: reason,
+          gracePeriodEnd: gracePeriodEnd.toISOString(),
+        }),
+      });
+      console.log('📧 Cancellation alert sent to admin');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send admin alert:', emailError);
+      // לא נכשל את הביטול אם המייל נכשל
+    }
 
     return NextResponse.json({
       success: true,
