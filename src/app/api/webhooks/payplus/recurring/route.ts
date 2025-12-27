@@ -240,45 +240,58 @@ export async function POST(req: NextRequest) {
       
       console.log(`✅ User found: ${user.full_name} (${user.email})`);
       
-      // צור subscription חדש אוטומטית!
-      const nextBillingDate = new Date();
-      nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
-      
-      // השתמש ב-plan_id של המשתמש
-      const userPlanId = user.plan_id || null;
-      
-      console.log(`📋 User's plan_id: ${userPlanId || 'none'}`);
-      
-      const { data: newSubscription, error: createError } = await supabase
+      // בדוק אם למשתמש כבר יש subscription פעיל
+      const { data: existingSubscription } = await supabase
         .from("subscriptions")
-        .insert({
-          user_id: user.id,
-          plan_id: userPlanId,
-          status: 'active',
-          billing_cycle: 'monthly',
-          amount: webhookData.amount,
-          currency: 'ILS',
-          payment_provider: 'payplus',
-          provider_customer_id: customerUid,
-          provider_subscription_id: recurringUid,
-          next_billing_date: nextBillingDate.toISOString().split('T')[0],
-          started_at: new Date().toISOString(),
-        })
-        .select()
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "active")
         .single();
       
-      if (createError || !newSubscription) {
-        console.error("❌ Failed to create subscription:", createError);
-        return NextResponse.json(
-          { success: false, error: "Failed to create subscription" },
-          { status: 500 }
-        );
+      if (existingSubscription) {
+        console.log(`📋 User already has active subscription: ${existingSubscription.id}`);
+        subscription = existingSubscription;
+      } else {
+        // צור subscription חדש אוטומטית!
+        const nextBillingDate = new Date();
+        nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+        
+        // השתמש ב-plan_id של המשתמש
+        const userPlanId = user.plan_id || null;
+        
+        console.log(`📋 User's plan_id: ${userPlanId || 'none'}`);
+        
+        const { data: newSubscription, error: createError } = await supabase
+          .from("subscriptions")
+          .insert({
+            user_id: user.id,
+            plan_id: userPlanId,
+            status: 'active',
+            billing_cycle: 'monthly',
+            amount: webhookData.amount,
+            currency: 'ILS',
+            payment_provider: 'payplus',
+            provider_customer_id: customerUid,
+            provider_subscription_id: recurringUid,
+            next_billing_date: nextBillingDate.toISOString().split('T')[0],
+            started_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+        
+        if (createError || !newSubscription) {
+          console.error("❌ Failed to create subscription:", createError);
+          return NextResponse.json(
+            { success: false, error: "Failed to create subscription" },
+            { status: 500 }
+          );
+        }
+        
+        subscription = newSubscription;
+        console.log(`🎉 Created new subscription automatically: ${subscription.id}`);
+        console.log(`   User: ${user.full_name}`);
+        console.log(`   Amount: ${webhookData.amount} ILS/month`);
       }
-      
-      subscription = newSubscription;
-      console.log(`🎉 Created new subscription automatically: ${subscription.id}`);
-      console.log(`   User: ${user.full_name}`);
-      console.log(`   Amount: ${webhookData.amount} ILS/month`);
     } else {
       console.log("📋 Found existing subscription:", subscription.id);
     }
