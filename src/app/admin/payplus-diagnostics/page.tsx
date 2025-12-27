@@ -287,6 +287,8 @@ export default function PayPlusDiagnosticsPage() {
       recurring_uid: `rec-test-${Date.now()}`,
       amount: 1,
       status_code: "000",
+      transaction_date: new Date().toISOString(),
+      customer_email: "yoavdrasteam@gmail.com",
       more_info: `${testUserId}|recurring|monthly`,
     };
 
