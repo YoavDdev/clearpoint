@@ -297,7 +297,8 @@ export async function POST(req: NextRequest) {
     }
 
     // שלב 4: שמור את החיוב בטבלת subscription_charges
-    const chargeStatus = webhookData.status === 'completed' ? 'success' : 'failed';
+    // בדיקה גם לפי status_code (000 = הצלחה)
+    const chargeStatus = (webhookData.status === 'completed' || payload.status_code === '000') ? 'success' : 'failed';
     
     const { data: charge, error: chargeError } = await supabase
       .from("subscription_charges")
