@@ -371,14 +371,8 @@ export async function POST(req: NextRequest) {
               total_amount: webhookData.amount,
               currency: subscription.currency || "ILS",
               paid_at: new Date(webhookData.paymentDate),
-              notes: `חיוב חודשי אוטומטי - מנוי Clearpoint Security`,
+              notes: `חיוב חודשי אוטומטי - מנוי Clearpoint Security (Charge: ${charge.id}, Transaction: ${webhookData.transactionId})`,
               has_subscription: true,
-              metadata: {
-                charge_id: charge.id,
-                transaction_id: webhookData.transactionId,
-                subscription_id: subscription.id,
-                auto_generated: true,
-              },
             })
             .select()
             .single();
