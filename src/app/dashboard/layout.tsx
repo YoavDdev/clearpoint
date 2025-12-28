@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { hasActiveSubscription } from "@/middleware/checkSubscription";
+import { headers } from 'next/headers';
 
 export default async function DashboardLayout({
   children,
@@ -13,8 +14,14 @@ export default async function DashboardLayout({
   // @ts-ignore
   const isAdmin = session?.user?.role === "admin";
   
+  // קבלת pathname מה-headers
+  const headersList = await headers();
+  const pathname = headersList.get('x-pathname') || headersList.get('referer') || '';
+  const isNoSubscriptionPage = pathname.includes('/dashboard/no-subscription');
+  
   // בדיקת subscription רק עבור משתמשים רגילים (לא אדמינים)
-  if (!isAdmin && session?.user?.email) {
+  // אבל לא לדף no-subscription עצמו (כדי למנוע redirect loop)
+  if (!isAdmin && session?.user?.email && !isNoSubscriptionPage) {
     const { data: user } = await fetch(
       `${process.env.NEXT_PUBLIC_BASE_URL}/api/user/check-subscription`,
       {
