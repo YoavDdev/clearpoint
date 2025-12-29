@@ -51,6 +51,8 @@ export class PayPlusClient {
   async getRecurringStatus(recurringUid: string): Promise<PayPlusRecurringStatus | null> {
     try {
       console.log(`🔍 Checking PayPlus status for recurring: ${recurringUid}`);
+      console.log(`🔑 API Key configured: ${!!this.apiKey}`);
+      console.log(`🔑 Secret Key configured: ${!!this.secretKey}`);
 
       const response = await fetch(
         `${this.baseUrl}/RecurringPayments/ViewRecurring/${recurringUid}`,
@@ -67,7 +69,9 @@ export class PayPlusClient {
       );
 
       if (!response.ok) {
+        const errorText = await response.text();
         console.error(`❌ PayPlus API error: ${response.status} ${response.statusText}`);
+        console.error(`❌ PayPlus error body:`, errorText);
         return null;
       }
 
