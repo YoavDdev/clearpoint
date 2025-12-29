@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-import { hasActiveSubscription } from "@/lib/subscription-check";
+import { validateSubscriptionAccess } from "@/lib/subscriptionValidator";
 
 export const dynamic = 'force-dynamic';
 
@@ -39,10 +39,14 @@ export async function GET() {
 
   const connectionType = (subscription as any)?.plans?.connection_type || null;
 
-  // Step 1.7: בדיקת מנוי פעיל (בדיקה אמיתית!)
-  const isSubscriptionActive = await hasActiveSubscription(user.id);
+  // Step 1.7: בדיקת מנוי פעיל עם PayPlus sync (Hybrid Strategy!)
+  const validationResult = await validateSubscriptionAccess(user.id);
+  const isSubscriptionActive = validationResult.hasAccess;
   
-  console.log(`🔍 User ${user.id} subscription check:`, isSubscriptionActive);
+  console.log(`🔍 User ${user.id} subscription validation:`, {
+    hasAccess: validationResult.hasAccess,
+    reason: validationResult.reason,
+  });
 
   // Step 2: Get active cameras for the user (מצלמות זמינות תמיד ל-live view!)
   const { data: cameras, error: cameraError } = await supabase

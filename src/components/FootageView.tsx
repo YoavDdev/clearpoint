@@ -27,14 +27,22 @@ export default function FootageView({ cameras }: FootageViewProps) {
   const [hasSubscription, setHasSubscription] = useState<boolean>(true);
   const [checkingSubscription, setCheckingSubscription] = useState(true);
 
-  // Check subscription status
+  // Check subscription status (initial + polling every 6 hours)
   useEffect(() => {
     async function checkSubscription() {
       try {
         const res = await fetch('/api/user-cameras');
         const result = await res.json();
         if (result.success) {
-          setHasSubscription(result.subscription_status === 'active');
+          const isActive = result.subscription_status === 'active';
+          setHasSubscription(isActive);
+          
+          // If subscription became inactive, redirect
+          if (!isActive && !checkingSubscription) {
+            console.warn('⚠️ Subscription no longer active - redirecting');
+            window.location.href = '/dashboard/no-subscription';
+          }
+          
           if (result.plan_duration_days) {
             setRetentionDays(result.plan_duration_days);
           }
@@ -45,8 +53,18 @@ export default function FootageView({ cameras }: FootageViewProps) {
         setCheckingSubscription(false);
       }
     }
+    
+    // Initial check
     checkSubscription();
-  }, []);
+    
+    // Poll every 6 hours (even if page stays open)
+    interval = setInterval(() => {
+      console.log('🔄 Periodic subscription check (6h polling)');
+      checkSubscription();
+    }, 6 * 60 * 60 * 1000); // 6 hours
+    
+    return () => clearInterval(interval);
+  }, [checkingSubscription]);
 
   // Load recordings for selected date
   useEffect(() => {
