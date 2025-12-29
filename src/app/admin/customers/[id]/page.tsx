@@ -146,11 +146,6 @@ export default async function CustomerViewPage({ params }: { params: { id: strin
           </div>
 
           <div className="p-8">
-            <div className="hidden">
-              <div className="text-right">
-                <h2 className="text-xl font-semibold text-slate-800">{user.full_name || user.email}</h2>
-                <p className="text-slate-600 mt-1">מזהה לקוח: {user.id}</p>
-              </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Left Column - Contact Info */}
               <div className="space-y-6">
