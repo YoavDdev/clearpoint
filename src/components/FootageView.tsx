@@ -24,21 +24,28 @@ export default function FootageView({ cameras }: FootageViewProps) {
   const [allCameraClips, setAllCameraClips] = useState<{[cameraId: string]: VodClip[]}>({});
   const [retentionDays, setRetentionDays] = useState<number>(14);
   const [loading, setLoading] = useState(true);
+  const [hasSubscription, setHasSubscription] = useState<boolean>(true);
+  const [checkingSubscription, setCheckingSubscription] = useState(true);
 
-  // Load retention days from user plan
+  // Check subscription status
   useEffect(() => {
-    async function loadPlanInfo() {
+    async function checkSubscription() {
       try {
         const res = await fetch('/api/user-cameras');
         const result = await res.json();
-        if (result.success && result.plan_duration_days) {
-          setRetentionDays(result.plan_duration_days);
+        if (result.success) {
+          setHasSubscription(result.subscription_status === 'active');
+          if (result.plan_duration_days) {
+            setRetentionDays(result.plan_duration_days);
+          }
         }
       } catch (error) {
-        console.error('Error loading plan info:', error);
+        console.error('Error checking subscription:', error);
+      } finally {
+        setCheckingSubscription(false);
       }
     }
-    loadPlanInfo();
+    checkSubscription();
   }, []);
 
   // Load recordings for selected date
@@ -79,6 +86,69 @@ export default function FootageView({ cameras }: FootageViewProps) {
 
   const selectedCamera = cameras.find(c => c.id === selectedCameraId);
   const currentClips = allCameraClips[selectedCameraId] || [];
+
+  // Show message if no subscription
+  if (!checkingSubscription && !hasSubscription) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6 flex items-center justify-center" dir="rtl">
+        <div className="max-w-2xl w-full">
+          <div className="bg-white rounded-2xl shadow-xl border border-blue-200 p-12 text-center">
+            <div className="text-8xl mb-6">🔒</div>
+            
+            <h1 className="text-3xl font-bold text-slate-900 mb-4">
+              נדרש מנוי פעיל
+            </h1>
+            
+            <p className="text-lg text-slate-600 mb-8">
+              כדי לצפות בהקלטות, נדרש מנוי פעיל למערכת Clearpoint Security.
+              <br />
+              צפייה חיה במצלמות זמינה גם ללא מנוי.
+            </p>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8 text-right">
+              <h3 className="font-bold text-blue-900 mb-3 text-lg">💡 מה כולל המנוי?</h3>
+              <ul className="space-y-2 text-sm text-blue-800">
+                <li className="flex items-start gap-2">
+                  <span>✅</span>
+                  <span>גישה להקלטות עד 14 ימים אחורה</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span>✅</span>
+                  <span>יכולת לגזור ולהוריד קטעי וידאו</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span>✅</span>
+                  <span>צפייה חיה ללא הגבלה</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span>✅</span>
+                  <span>תמיכה טכנית מלאה</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="space-y-4">
+              <a
+                href="mailto:support@clearpoint.co.il"
+                className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-l from-blue-600 to-cyan-600 text-white rounded-xl font-bold text-lg hover:scale-105 transition-all shadow-lg"
+              >
+                📧 צור קשר לרכישת מנוי
+              </a>
+              
+              <div>
+                <a
+                  href="/dashboard"
+                  className="text-slate-600 hover:text-slate-900 font-medium text-sm"
+                >
+                  ← חזור לצפייה חיה
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (cameras.length === 0) {
     return (

@@ -1,9 +1,6 @@
 import DashboardSidebar from "@/components/DashboardSidebar";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { redirect } from "next/navigation";
-import { hasActiveSubscription } from "@/middleware/checkSubscription";
-import { headers } from 'next/headers';
 
 export default async function DashboardLayout({
   children,
@@ -13,31 +10,6 @@ export default async function DashboardLayout({
   const session = await getServerSession(authOptions);
   // @ts-ignore
   const isAdmin = session?.user?.role === "admin";
-  
-  // קבלת pathname מה-headers
-  const headersList = await headers();
-  const pathname = headersList.get('x-pathname') || headersList.get('referer') || '';
-  const isNoSubscriptionPage = pathname.includes('/dashboard/no-subscription');
-  
-  // בדיקת subscription רק עבור משתמשים רגילים (לא אדמינים)
-  // אבל לא לדף no-subscription עצמו (כדי למנוע redirect loop)
-  if (!isAdmin && session?.user?.email && !isNoSubscriptionPage) {
-    const { data: user } = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/user/check-subscription`,
-      {
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-user-email': session.user.email 
-        },
-        cache: 'no-store'
-      }
-    ).then(res => res.json()).catch(() => ({ data: null }));
-    
-    // אם אין subscription פעיל - הפנה לדף מיוחד
-    if (!user?.hasActiveSubscription) {
-      redirect('/dashboard/no-subscription');
-    }
-  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
