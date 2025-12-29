@@ -60,10 +60,8 @@ export class PayPlusClient {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': JSON.stringify({
-              api_key: this.apiKey,
-              secret_key: this.secretKey,
-            }),
+            'api-key': this.apiKey,
+            'secret-key': this.secretKey,
           },
         }
       );
@@ -127,10 +125,8 @@ export class PayPlusClient {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': JSON.stringify({
-              api_key: this.apiKey,
-              secret_key: this.secretKey,
-            }),
+            'api-key': this.apiKey,
+            'secret-key': this.secretKey,
           },
         }
       );
