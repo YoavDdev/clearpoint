@@ -192,53 +192,89 @@ export async function POST(req: NextRequest) {
       console.log("⚠️ Subscription not found - attempting to create automatically");
       console.log(`Identifiers: recurring_uid=${recurringUid}, user_id=${userIdFromMoreInfo}, customer_uid=${customerUid}`);
       
-      // חפש משתמש - תחילה לפי מייל (הכי פשוט!), אחר כך לפי user_id
+      // נסה למצוא את המשתמש - 3 אפשרויות זיהוי
       let user = null;
       let userError = null;
       
-      // אם יש מייל, חפש לפי מייל (פשוט ומדויק!)
+      // אפשרות 1: זיהוי לפי customer_email
       if (customerEmail) {
-        console.log(`🔍 Searching user by email: ${customerEmail}`);
+        console.log(`🔍 [1/3] Searching user by email: ${customerEmail}`);
         const result = await supabase
           .from("users")
-          .select("id, full_name, email, plan_id")
+          .select("id, full_name, email, plan_id, customer_uid")
           .eq("email", customerEmail)
           .single();
         user = result.data;
         userError = result.error;
+        
+        if (user) {
+          console.log(`✅ User found by email: ${user.full_name}`);
+          
+          // שמור את customer_uid אם עדיין לא שמור
+          if (customerUid && !user.customer_uid) {
+            console.log(`💾 Saving customer_uid for future webhooks: ${customerUid}`);
+            await supabase
+              .from("users")
+              .update({ customer_uid: customerUid })
+              .eq("id", user.id);
+          }
+        }
       }
       
-      // אם לא מצאנו לפי מייל, נסה לפי user_id (fallback)
-      const userId = userIdFromMoreInfo || customerUid;
-      if (!user && userId) {
-        console.log(`🔍 Email not found, trying by user_id: ${userId}`);
+      // אפשרות 2: זיהוי לפי customer_uid (PayPlus)
+      if (!user && customerUid) {
+        console.log(`🔍 [2/3] Email not found, searching by customer_uid: ${customerUid}`);
         const result = await supabase
           .from("users")
-          .select("id, full_name, email, plan_id")
-          .eq("id", userId)
+          .select("id, full_name, email, plan_id, customer_uid")
+          .eq("customer_uid", customerUid)
           .single();
         user = result.data;
         userError = result.error;
+        
+        if (user) {
+          console.log(`✅ User found by customer_uid: ${user.full_name}`);
+        }
+      }
+      
+      // אפשרות 3: זיהוי לפי user_id מתוך more_info
+      if (!user && userIdFromMoreInfo) {
+        console.log(`🔍 [3/3] Searching by user_id from more_info: ${userIdFromMoreInfo}`);
+        const result = await supabase
+          .from("users")
+          .select("id, full_name, email, plan_id, customer_uid")
+          .eq("id", userIdFromMoreInfo)
+          .single();
+        user = result.data;
+        userError = result.error;
+        
+        if (user) {
+          console.log(`✅ User found by more_info user_id: ${user.full_name}`);
+          
+          // שמור את customer_uid לפעם הבאה
+          if (customerUid && !user.customer_uid) {
+            console.log(`💾 Saving customer_uid for future webhooks: ${customerUid}`);
+            await supabase
+              .from("users")
+              .update({ customer_uid: customerUid })
+              .eq("id", user.id);
+          }
+        }
       }
       
       // אם לא מצאנו בכלל - שגיאה
-      if (!user) {
-        console.error(`❌ User not found by email (${customerEmail}) or user_id (${userId})`);
+      if (!user || userError) {
+        console.error(`❌ User not found by any method:`);
+        console.error(`   - customer_email: ${customerEmail || 'N/A'}`);
+        console.error(`   - customer_uid: ${customerUid || 'N/A'}`);
+        console.error(`   - user_id (more_info): ${userIdFromMoreInfo || 'N/A'}`);
         return NextResponse.json(
           { success: false, error: "User not found" },
           { status: 404 }
         );
       }
       
-      if (userError || !user) {
-        console.error(`❌ User not found: ${userId}`);
-        return NextResponse.json(
-          { success: false, error: "User not found" },
-          { status: 404 }
-        );
-      }
-      
-      console.log(`✅ User found: ${user.full_name} (${user.email})`);
+      console.log(`✅ User identified: ${user.full_name} (${user.email})`);
       
       // בדוק אם למשתמש כבר יש subscription פעיל
       const { data: existingSubscription } = await supabase
