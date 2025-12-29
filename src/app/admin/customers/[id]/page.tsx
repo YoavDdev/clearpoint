@@ -5,6 +5,7 @@ import InvoiceCreator from "@/components/InvoiceCreator";
 import SubscriptionManager from "@/components/SubscriptionManager";
 import EditMonthlyPrice from "@/components/EditMonthlyPrice";
 import CustomerInvoicesList from "@/components/CustomerInvoicesList";
+import CopyButton from "@/components/CopyButton";
 import {
   User,
   Mail,
@@ -18,6 +19,9 @@ import {
   Wifi,
   Smartphone,
   Receipt,
+  Copy,
+  Check,
+  Key,
 } from "lucide-react";
 
 export default async function CustomerViewPage({ params }: { params: { id: string } }) {
@@ -93,26 +97,48 @@ export default async function CustomerViewPage({ params }: { params: { id: strin
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 border-b border-slate-200">
-            <div className="flex items-center justify-between">
-              <div className="text-right">
-                <h2 className="text-xl font-semibold text-slate-800">{user.full_name || user.email}</h2>
-                <p className="text-slate-600 mt-1">מזהה לקוח: {user.id}</p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="text-right">
+                  <h2 className="text-xl font-semibold text-slate-800">{user.full_name || user.email}</h2>
+                </div>
+                <div className="flex items-center gap-3">
+                  {user.plan?.connection_type === 'SIM' ? (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-700 rounded-lg text-sm font-medium">
+                      <Smartphone size={16} />
+                      <span>SIM/4G</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium">
+                      <Wifi size={16} />
+                      <span>Wi-Fi Cloud</span>
+                    </div>
+                  )}
+                  {user.needs_support && (
+                    <div className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-medium">
+                      זקוק לתמיכה
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                {user.plan?.connection_type === 'SIM' ? (
-                  <div className="flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-700 rounded-lg text-sm font-medium">
-                    <Smartphone size={16} />
-                    <span>SIM/4G</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium">
-                    <Wifi size={16} />
-                    <span>Wi-Fi Cloud</span>
-                  </div>
-                )}
-                {user.needs_support && (
-                  <div className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-medium">
-                    זקוק לתמיכה
+
+              {/* IDs Section with Copy Buttons */}
+              <div className="bg-white/50 rounded-lg p-4 space-y-3 border border-slate-200">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-2 justify-end">
+                    <span>User ID (ל-PayPlus more_info)</span>
+                    <Key size={14} className="text-blue-600" />
+                  </label>
+                  <CopyButton text={user.id} label="User ID" />
+                </div>
+
+                {user.customer_uid && (
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-700 flex items-center gap-2 justify-end">
+                      <span>Customer UID (PayPlus)</span>
+                      <Key size={14} className="text-purple-600" />
+                    </label>
+                    <CopyButton text={user.customer_uid} label="Customer UID" />
                   </div>
                 )}
               </div>
@@ -120,6 +146,11 @@ export default async function CustomerViewPage({ params }: { params: { id: strin
           </div>
 
           <div className="p-8">
+            <div className="hidden">
+              <div className="text-right">
+                <h2 className="text-xl font-semibold text-slate-800">{user.full_name || user.email}</h2>
+                <p className="text-slate-600 mt-1">מזהה לקוח: {user.id}</p>
+              </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Left Column - Contact Info */}
               <div className="space-y-6">
