@@ -58,7 +58,7 @@ export default function FootageView({ cameras }: FootageViewProps) {
     checkSubscription();
     
     // Poll every 6 hours (even if page stays open)
-    interval = setInterval(() => {
+    const interval = setInterval(() => {
       console.log('🔄 Periodic subscription check (6h polling)');
       checkSubscription();
     }, 6 * 60 * 60 * 1000); // 6 hours
