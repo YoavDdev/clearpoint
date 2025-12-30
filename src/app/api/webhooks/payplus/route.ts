@@ -33,18 +33,24 @@ export async function POST(req: NextRequest) {
     console.log("📦 Webhook payload:", JSON.stringify(payload, null, 2));
 
     // ✅ אימות חתימה (חשוב מאוד!)
-    const receivedHash = req.headers.get('hash') || '';
-    const userAgent = req.headers.get('user-agent') || '';
+    // דילוג על אימות עבור Zapier (שלא שולח signature)
+    const isFromZapier = payload.source === 'zapier';
+    
+    if (!isFromZapier) {
+      const receivedHash = req.headers.get('hash') || '';
+      const userAgent = req.headers.get('user-agent') || '';
 
-    if (!verifyWebhookSignature(payload, receivedHash, userAgent)) {
-      console.error("❌ Invalid webhook signature!");
-      return NextResponse.json(
-        { success: false, error: "Invalid signature" },
-        { status: 401 }
-      );
+      if (!verifyWebhookSignature(payload, receivedHash, userAgent)) {
+        console.error("❌ Invalid webhook signature!");
+        return NextResponse.json(
+          { success: false, error: "Invalid signature" },
+          { status: 401 }
+        );
+      }
+      console.log("✅ Webhook signature verified");
+    } else {
+      console.log("⚡ Zapier webhook - skipping signature verification");
     }
-
-    console.log("✅ Webhook signature verified");
 
     // יצירת Supabase client
     const supabase = createClient(
