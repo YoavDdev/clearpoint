@@ -77,8 +77,14 @@ export class PayPlusClient {
       
       console.log('📦 PayPlus API Response:', JSON.stringify(data, null, 2));
 
-      if (!data.results?.status) {
-        console.error('❌ PayPlus API returned unsuccessful status');
+      // Check if PayPlus returned an error
+      if (data.results?.status === 'error') {
+        console.error(`❌ PayPlus API error: ${data.results.description} (code: ${data.results.code})`);
+        return null;
+      }
+
+      if (!data.results?.status || !data.results.data) {
+        console.error('❌ PayPlus API returned unsuccessful status or missing data');
         return null;
       }
 
