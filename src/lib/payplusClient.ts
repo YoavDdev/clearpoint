@@ -16,8 +16,10 @@ interface PayPlusRecurringStatus {
 
 interface PayPlusAPIResponse {
   results: {
-    status: boolean;
-    data: {
+    status: boolean | 'error';
+    code?: number;
+    description?: string;
+    data?: {
       status_code: string;
       recurring_status?: string;
       customer_uid: string;
@@ -28,6 +30,7 @@ interface PayPlusAPIResponse {
       payment_failures?: number;
     };
   };
+  data?: any;
 }
 
 export class PayPlusClient {
