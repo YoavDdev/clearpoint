@@ -74,6 +74,8 @@ export class PayPlusClient {
       }
 
       const data: PayPlusAPIResponse = await response.json();
+      
+      console.log('📦 PayPlus API Response:', JSON.stringify(data, null, 2));
 
       if (!data.results?.status) {
         console.error('❌ PayPlus API returned unsuccessful status');
@@ -81,6 +83,7 @@ export class PayPlusClient {
       }
 
       const recurringData = data.results.data;
+      console.log('📊 Recurring Data:', JSON.stringify(recurringData, null, 2));
 
       // Map PayPlus status codes to our status
       let status: 'active' | 'cancelled' | 'suspended' | 'expired' = 'active';
