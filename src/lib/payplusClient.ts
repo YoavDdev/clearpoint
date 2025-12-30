@@ -55,7 +55,7 @@ export class PayPlusClient {
       console.log(`🔑 Secret Key configured: ${!!this.secretKey}`);
 
       const response = await fetch(
-        `${this.baseUrl}/RecurringPayments/ViewRecurring/${recurringUid}`,
+        `${this.baseUrl}/RecurringPayments/${recurringUid}/ViewRecurring`,
         {
           method: 'GET',
           headers: {
