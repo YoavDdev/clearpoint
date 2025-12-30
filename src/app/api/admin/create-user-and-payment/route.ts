@@ -146,6 +146,9 @@ export async function POST(req: NextRequest) {
       ],
       success_url: returnUrl,
       cancel_url: cancelUrl,
+      custom_fields: {
+        cField1: newUser.id, // שמירת user_id ל-webhook
+      },
     });
 
     if (payplusResponse.status !== '1' || !payplusResponse.data) {
