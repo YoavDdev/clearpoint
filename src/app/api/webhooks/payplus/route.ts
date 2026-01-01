@@ -65,11 +65,13 @@ export async function POST(req: NextRequest) {
     console.log("🆔 Transaction ID:", parsedData.transactionId);
     console.log("💰 Amount:", parsedData.amount);
     console.log("🔄 Is Recurring:", parsedData.isRecurring);
+    console.log("👤 Customer UID:", parsedData.customerUid || 'N/A');
 
     // קבלת payment ID מה-metadata (more_info)
     const paymentId = parsedData.customFields.cField1;
     const userId = parsedData.customFields.cField2;
     const planId = parsedData.customFields.cField3;
+    const customerUid = parsedData.customerUid;
 
     // ===== עדכון רשומת התשלום ב-payments =====
     // אם אין payment ID ישיר, ננסה למצוא לפי transaction ID
@@ -134,6 +136,21 @@ export async function POST(req: NextRequest) {
         console.error("❌ Failed to update payment:", paymentError);
       } else {
         console.log("✅ Payment updated successfully");
+        
+        // ⚡ שמירת customer_uid על המשתמש אם יש (חשוב לעתיד!)
+        if (parsedData.status === 'completed' && customerUid && payment.user_id) {
+          console.log("💾 Saving customer_uid to user:", payment.user_id);
+          const { error: userUpdateError } = await supabase
+            .from("users")
+            .update({ customer_uid: customerUid })
+            .eq("id", payment.user_id);
+          
+          if (userUpdateError) {
+            console.error("⚠️ Failed to update user customer_uid:", userUpdateError);
+          } else {
+            console.log("✅ customer_uid saved on user");
+          }
+        }
         
         // אם התשלום הושלם ויש חשבונית מקושרת - נעדכן גם אותה
         if (parsedData.status === 'completed' && payment.invoice_id) {
