@@ -335,7 +335,7 @@ export async function POST(req: NextRequest) {
           const { data: newPayment } = await supabase
             .from("payments")
             .insert({
-              user_id: userId,
+              user_id: foundUserId,
               amount: subscription.custom_price || subscription.amount,
               currency: "ILS",
               status: "completed",
@@ -361,7 +361,7 @@ export async function POST(req: NextRequest) {
               const { data: newInvoice, error: invoiceError } = await supabase
                 .from("invoices")
                 .insert({
-                  user_id: userId,
+                  user_id: foundUserId,
                   invoice_number: invoiceNumber || `INV-${Date.now()}`,
                   status: "paid",
                   total_amount: subscription.custom_price || subscription.amount,
@@ -397,7 +397,7 @@ export async function POST(req: NextRequest) {
                   const { data: user } = await supabase
                     .from("users")
                     .select("full_name, email")
-                    .eq("id", userId)
+                    .eq("id", foundUserId)
                     .single();
 
                   if (user) {
