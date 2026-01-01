@@ -573,6 +573,7 @@ export function parseWebhookData(payload: any) {
     payerName: data.customer_name || payload.customer_name || '',
     payerEmail: data.customer_email || payload.customer_email || payload.email || '',
     payerPhone: data.customer_phone || payload.customer_phone || payload.phone || '',
+    customerUid: payload.customer_uid || data.customer_uid || '',
     paymentDate: transaction.date || payload.transaction_date || payload.created || new Date().toISOString(),
     cardDetails: {
       suffix: cardInfo.four_digits || payload.four_digits || '',
