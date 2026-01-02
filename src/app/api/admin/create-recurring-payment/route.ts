@@ -96,10 +96,10 @@ export async function POST(req: NextRequest) {
 
     console.log("✅ PayPlus recurring payment created:", recurringResponse.data);
 
-    // שמירת pending subscription ב-DB (יושלם אחרי שהלקוח יאשר)
+    // שמירת/עדכון pending subscription ב-DB (יושלם אחרי שהלקוח יאשר)
     const { data: subscription, error: subError } = await supabase
       .from("subscriptions")
-      .insert({
+      .upsert({
         user_id: userId,
         plan_id: user.plan_id || 'monthly-service',
         status: 'pending', // ממתין לאישור לקוח
@@ -113,6 +113,8 @@ export async function POST(req: NextRequest) {
           payplus_response: recurringResponse.data,
           payment_link: recurringResponse.data.pageUrl,
         },
+      }, {
+        onConflict: 'user_id' // ✅ אם המשתמש כבר יש מנוי, נעדכן אותו
       })
       .select()
       .single();
