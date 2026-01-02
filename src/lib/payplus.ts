@@ -388,8 +388,8 @@ export async function createRecurringSubscription(
       send_failure_callback: true,
       
       refURL_callback: request.notify_url || `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhooks/payplus/recurring`,
-      refURL_success: `${process.env.NEXT_PUBLIC_BASE_URL}/payment/success`,
-      refURL_failure: `${process.env.NEXT_PUBLIC_BASE_URL}/payment/cancel`,
+      refURL_success: `${process.env.NEXT_PUBLIC_BASE_URL}/payment-success`,
+      refURL_failure: `${process.env.NEXT_PUBLIC_BASE_URL}/payment-cancelled`,
       
       customer: {
         customer_name: request.customer_name,

@@ -96,6 +96,32 @@ export async function POST(req: NextRequest) {
 
     console.log("✅ PayPlus recurring payment created:", recurringResponse.data);
 
+    // ✅ יצירת payment record כדי ש-webhook יוכל למצוא אותו
+    const { data: payment, error: paymentError } = await supabase
+      .from("payments")
+      .insert({
+        user_id: userId,
+        amount: monthlyPrice,
+        currency: 'ILS',
+        status: 'pending',
+        payment_method: 'payplus',
+        transaction_id: recurringResponse.data.transactionId || recurringResponse.data.processId || 'pending',
+        metadata: {
+          payment_link: recurringResponse.data.pageUrl,
+          create_recurring: true,
+          monthly_amount: monthlyPrice,
+        },
+      })
+      .select()
+      .single();
+
+    if (paymentError) {
+      console.error("⚠️ Failed to create payment record:", paymentError);
+      // ממשיכים - לא קריטי
+    } else {
+      console.log("✅ Payment record created:", payment.id);
+    }
+
     // שמירת/עדכון pending subscription ב-DB (יושלם אחרי שהלקוח יאשר)
     const { data: subscription, error: subError } = await supabase
       .from("subscriptions")
