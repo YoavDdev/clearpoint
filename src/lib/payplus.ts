@@ -334,7 +334,7 @@ export async function createRecurringSubscription(
       recurring_type: 2, // סוג מנוי: 2 = תעריף קבוע (FIXED_RATE)
       recurring_range: 1, // טווח: 1 = חוזר (RECURRING)
       number_of_charges: 9999, // מספר חיובים: אין הגבלה (עד ביטול)
-      instant_first_payment: true, // ✅ חייב תשלום ראשון כדי לקבל פרטי כרטיס למנוי
+      instant_first_payment: false, // ✅ לא צריך תשלום ראשוני - תומך ב-trial!
       
       charge_method: 'Regular', // סוג חיוב קבוע
       charge_frequency: request.billing_cycle === 'monthly' ? 'Monthly' : 'Yearly',
