@@ -409,7 +409,7 @@ export async function createRecurringSubscription(
         number_of_charges: 9999,
         instant_first_payment: false,
         charge_frequency: request.billing_cycle === 'monthly' ? 'Monthly' : 'Yearly',
-        start_date: Math.floor(new Date(request.start_date || new Date().toISOString().split('T')[0]).getTime() / 1000), // ✅ Unix timestamp!
+        start_date: parseInt((request.start_date || new Date().toISOString().split('T')[0]).replace(/-/g, '')), // ✅ YYYYMMDD as integer: 20260202
       },
       
       more_info: `${request.customer_id}|recurring|${request.billing_cycle}`,
