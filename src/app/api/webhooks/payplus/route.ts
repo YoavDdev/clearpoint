@@ -233,6 +233,55 @@ export async function POST(req: NextRequest) {
       }
     } else {
       console.warn("⚠️ Could not find payment to update");
+      
+      // אם אין payment record אבל יש customer_uid - נשמור אותו בכל זאת
+      if (parsedData.status === 'completed' && customerUid) {
+        console.log("💾 No payment found, but saving customer_uid anyway");
+        
+        // ננסה למצוא משתמש לפי email או customer_uid
+        let targetUserId = null;
+        
+        if (parsedData.payerEmail) {
+          const { data: userByEmail } = await supabase
+            .from("users")
+            .select("id")
+            .eq("email", parsedData.payerEmail)
+            .single();
+          
+          if (userByEmail) {
+            targetUserId = userByEmail.id;
+          }
+        }
+        
+        // אם לא מצאנו לפי email, ננסה לפי customer_uid קיים
+        if (!targetUserId) {
+          const { data: userByCustomerUid } = await supabase
+            .from("users")
+            .select("id")
+            .eq("customer_uid", customerUid)
+            .single();
+          
+          if (userByCustomerUid) {
+            targetUserId = userByCustomerUid.id;
+          }
+        }
+        
+        if (targetUserId) {
+          console.log("✅ Found user to update:", targetUserId);
+          const { error: userUpdateError } = await supabase
+            .from("users")
+            .update({ customer_uid: customerUid })
+            .eq("id", targetUserId);
+          
+          if (userUpdateError) {
+            console.error("⚠️ Failed to update user customer_uid:", userUpdateError);
+          } else {
+            console.log("✅ customer_uid saved on user (no payment record)");
+          }
+        } else {
+          console.warn("⚠️ Could not identify user to save customer_uid");
+        }
+      }
     }
 
     // ===== אם זה תשלום חוזר (מנוי), נעדכן את המנוי =====
