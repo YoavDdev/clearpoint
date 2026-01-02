@@ -72,12 +72,6 @@ const navigation = [
     description: "בדיקות מערכת"
   },
   {
-    name: "אבחון PayPlus",
-    href: "/admin/payplus-diagnostics",
-    icon: RefreshCw,
-    description: "בדיקת חיבור PayPlus + Zapier"
-  },
-  {
     name: "תמיכה",
     href: "/admin/support",
     icon: Bell,

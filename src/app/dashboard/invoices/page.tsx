@@ -26,26 +26,16 @@ interface Invoice {
   } | null;
 }
 
-interface SubscriptionCharge {
-  id: string;
-  transaction_id: string;
-  amount: number;
-  status: string;
-  charged_at: string;
-  created_at: string;
-}
-
 function InvoicesContent() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [subscriptionCharges, setSubscriptionCharges] = useState<SubscriptionCharge[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchInvoices();
-    fetchSubscriptionCharges();
   }, []);
 
   const fetchInvoices = async () => {
+    setLoading(true);
     try {
       const response = await fetch("/api/user/invoices");
       const data = await response.json();
@@ -55,20 +45,6 @@ function InvoicesContent() {
       }
     } catch (error) {
       console.error("Error fetching invoices:", error);
-    }
-  };
-
-  const fetchSubscriptionCharges = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch("/api/user/subscription-charges");
-      const data = await response.json();
-
-      if (data.success) {
-        setSubscriptionCharges(data.charges || []);
-      }
-    } catch (error) {
-      console.error("Error fetching subscription charges:", error);
     } finally {
       setLoading(false);
     }
@@ -261,74 +237,6 @@ function InvoicesContent() {
           </div>
         )}
 
-        {/* Subscription Charges from Zapier Webhook */}
-        {subscriptionCharges.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <span className="text-xl">🔄</span>
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-slate-800">חיובים חודשיים (הוראת קבע)</h2>
-                <p className="text-sm text-slate-600">תשלומים אוטומטיים מהכרטיס שלך</p>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl shadow-lg border border-purple-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-purple-50">
-                    <tr>
-                      <th className="px-6 py-4 text-right text-sm font-bold text-purple-900">תאריך</th>
-                      <th className="px-6 py-4 text-right text-sm font-bold text-purple-900">מזהה עסקה</th>
-                      <th className="px-6 py-4 text-right text-sm font-bold text-purple-900">סכום</th>
-                      <th className="px-6 py-4 text-center text-sm font-bold text-purple-900">סטטוס</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {subscriptionCharges.map((charge) => (
-                      <tr key={charge.id} className="hover:bg-purple-50/50 transition-colors">
-                        <td className="px-6 py-4 text-sm text-slate-700">
-                          {new Date(charge.charged_at).toLocaleDateString("he-IL", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric"
-                          })}
-                        </td>
-                        <td className="px-6 py-4 text-xs font-mono text-slate-600">
-                          {charge.transaction_id.substring(0, 8)}...
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-lg font-bold text-purple-700">₪{charge.amount.toFixed(2)}</span>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          {charge.status === 'success' ? (
-                            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                              <span>✅</span>
-                              <span>הצליח</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                              <span>❌</span>
-                              <span>נכשל</span>
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="bg-purple-50 px-6 py-4 border-t border-purple-200">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-purple-700 font-medium">סה"כ חיובים חודשיים:</span>
-                  <span className="text-xl font-bold text-purple-900">
-                    ₪{subscriptionCharges.filter(c => c.status === 'success').reduce((sum, c) => sum + c.amount, 0).toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Subscription Invoices Section (old style invoices) */}
         {subscriptionInvoices.length > 0 && (

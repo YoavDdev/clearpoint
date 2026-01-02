@@ -3,7 +3,19 @@
 -- ✅ שומר את טבלת plans (sim-cloud-plan, wifi-cloud-plan)
 
 -- ===================================
--- שלב 1: מחיקת כל הנתונים
+-- שלב 1: ניקוי foreign keys ב-users
+-- ===================================
+
+-- ניקוי כל ההפניות מ-users ל-subscriptions
+UPDATE users 
+SET 
+  subscription_id = NULL,
+  subscription_active = false,
+  subscription_status = NULL
+WHERE subscription_id IS NOT NULL;
+
+-- ===================================
+-- שלב 2: מחיקת כל רשומות המנויים
 -- ===================================
 
 -- מחיקת כל המנויים
@@ -13,7 +25,7 @@ DELETE FROM subscriptions;
 -- DELETE FROM payments WHERE payment_type = 'recurring';
 
 -- ===================================
--- שלב 2: מחיקת טבלת subscriptions לגמרי
+-- שלב 3: מחיקת טבלת subscriptions לגמרי
 -- ===================================
 
 DROP TABLE IF EXISTS subscriptions CASCADE;
