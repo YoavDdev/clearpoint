@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { verifyWebhookSignature, parseWebhookData } from "@/lib/payplus";
+import { verifyWebhookSignature, parseWebhookData, createRecurringSubscription } from "@/lib/payplus";
 import { enableFeaturesAfterPayment, disableFeaturesDueToNoSubscription } from "@/lib/subscription-check";
 
 export const dynamic = 'force-dynamic';
@@ -170,13 +170,13 @@ export async function POST(req: NextRequest) {
             console.log("✅ Invoice status updated to paid");
             
             // 🎯 יצירת הוראת קבע אוטומטית אחרי תשלום התקנה
-            if (payment.metadata?.create_recurring && parsedData.cardToken) {
-              console.log("🔄 Creating automatic recurring payment with card_token...");
+            if (payment.metadata?.create_recurring && customerUid) {
+              console.log("🔄 Creating automatic recurring payment with customer_uid...");
               
               try {
                 const { data: user } = await supabase
                   .from("users")
-                  .select("id, full_name, email, phone")
+                  .select("id, full_name, email, phone, customer_uid")
                   .eq("id", payment.user_id)
                   .single();
                 
@@ -186,7 +186,7 @@ export async function POST(req: NextRequest) {
                   startDate.setMonth(startDate.getMonth() + 1);
                   
                   const recurringResponse = await createRecurringSubscription({
-                    customer_id: user.id,
+                    customer_id: customerUid, // 🔑 שימוש ב-customer_uid מ-PayPlus!
                     amount: payment.metadata.monthly_amount || 150,
                     currency: "ILS",
                     description: `מנוי חודשי Clearpoint Security - ${user.full_name}`,
@@ -196,7 +196,6 @@ export async function POST(req: NextRequest) {
                     billing_cycle: "monthly",
                     start_date: startDate.toISOString().split('T')[0],
                     notify_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhooks/payplus/recurring`,
-                    card_token: parsedData.cardToken, // 🔑 שימוש בכרטיס מהתשלום הראשון!
                   });
                   
                   if (recurringResponse.status === "1" && recurringResponse.data) {
