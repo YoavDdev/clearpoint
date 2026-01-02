@@ -1,13 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { ArrowRight, Copy, Check, Loader2, CreditCard } from "lucide-react";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 interface User {
   id: string;
@@ -33,16 +27,17 @@ export default function CreateSubscriptionPage() {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
-        .from("users")
-        .select("id, full_name, email, phone")
-        .order("created_at", { ascending: false });
+      const response = await fetch("/api/admin/users");
+      const data = await response.json();
 
-      if (error) throw error;
-      setUsers(data || []);
-    } catch (err) {
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to fetch users");
+      }
+
+      setUsers(data.users || []);
+    } catch (err: any) {
       console.error("Error fetching users:", err);
-      setError("שגיאה בטעינת רשימת לקוחות");
+      setError("שגיאה בטעינת רשימת לקוחות: " + err.message);
     } finally {
       setLoadingUsers(false);
     }
