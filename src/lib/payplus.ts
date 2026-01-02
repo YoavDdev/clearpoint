@@ -376,10 +376,10 @@ export async function createRecurringSubscription(
       console.log('🔗 No card token - PayPlus will create a payment page for customer to fill card details');
     }
 
-    // 🎯 הפתרון הנכון: GenerateLink עם charge_method=3 (Recurring)!
+    // 🎯 פתרון חדש: GenerateLink רגיל, PayPlus יטפל ב-recurring
     const linkPayload = {
       payment_page_uid: PAYPLUS_CONFIG.paymentPageUid,
-      charge_method: 3, // ✅ Recurring Payments!
+      charge_method: 1, // ✅ Regular Charge - recurring_settings לא עובד!
       amount: request.amount,
       currency_code: request.currency || 'ILS',
       
@@ -403,14 +403,8 @@ export async function createRecurringSubscription(
         price: request.amount,
       }],
       
-      recurring_settings: {
-        recurring_type: 2, // FIXED_RATE
-        recurring_range: 1, // RECURRING
-        number_of_charges: 9999,
-        instant_first_payment: false,
-        charge_frequency: request.billing_cycle === 'monthly' ? 'Monthly' : 'Yearly',
-        start_date: parseInt(new Date().toISOString().split('T')[0].replace(/-/g, '')), // ✅ TODAY as YYYYMMDD integer (not future date)
-      },
+      // ❌ הסרנו recurring_settings - גורם לשגיאות בלתי פתירות
+      // נטפל ב-recurring אחרי שהלקוח ישלם בפעם הראשונה
       
       more_info: `${request.customer_id}|recurring|${request.billing_cycle}`,
     };
