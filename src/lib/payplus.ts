@@ -267,21 +267,8 @@ export async function createOneTimePayment(
 }
 
 // ❌ createRecurringSubscription - DELETED
-// ❌ cancelSubscription - DELETED
+// ❌ cancelSubscription - DELETED  
 // אין יותר מערכת מנויים חוזרים - רק תשלומים חד-פעמיים
-    
-    if (success) {
-      console.log('✅ Subscription cancelled successfully in PayPlus');
-    } else {
-      console.error('❌ PayPlus returned failure:', data.results?.description);
-    }
-
-    return success;
-  } catch (error) {
-    console.error('❌ PayPlus subscription cancellation error:', error);
-    return false;
-  }
-}
 
 /**
  * אימות webhook signature

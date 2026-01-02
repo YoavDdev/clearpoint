@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-import { canStoreRecordings } from "@/lib/subscription-check";
+// ❌ import removed - subscription-check deleted
 
 export const dynamic = 'force-dynamic';
 
@@ -31,15 +31,9 @@ export async function POST(req: Request) {
     return NextResponse.json([], { status: 404 });
   }
 
-  // בדיקה אם למשתמש יש הרשאה לצפות בהקלטות
-  const storagePermission = await canStoreRecordings(user.id);
-
-  if (!storagePermission.allowed) {
-    console.warn(`⚠️ User ${user.id} tried to access recordings without active subscription`);
-    return NextResponse.json([], { status: 403 }); // רשימה ריקה - אין הרשאה
-  }
-
-  console.log(`✅ User ${user.id} has permission to view recordings (${storagePermission.retentionDays} days retention)`);
+  // ✅ כל המשתמשים יכולים לצפות בהקלטות (14 ימי trial לכולם)
+  const retentionDays = 14;
+  console.log(`✅ User ${user.id} has permission to view recordings (${retentionDays} days retention)`);
 
   const start = new Date(`${date}T00:00:00`).toISOString();
   const end = new Date(`${date}T23:59:59`).toISOString();
@@ -49,9 +43,9 @@ export async function POST(req: Request) {
   const now = new Date();
   const daysAgo = Math.floor((now.getTime() - requestedDate.getTime()) / (1000 * 60 * 60 * 24));
 
-  if (daysAgo > storagePermission.retentionDays) {
-    console.warn(`⚠️ Requested date ${date} is beyond retention period (${storagePermission.retentionDays} days)`);
-    return NextResponse.json([]); // תאריך ישן מדי
+  if (daysAgo > retentionDays) {
+    console.warn(`⚠️ Requested date ${date} is beyond retention period (${retentionDays} days)`);
+    return NextResponse.json([], { status: 403 });
   }
 
   const { data, error } = await supabase

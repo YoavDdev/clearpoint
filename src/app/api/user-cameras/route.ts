@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-import { validateSubscriptionAccess } from "@/lib/subscriptionValidator";
+// ❌ subscription validator deleted - all users have access
 
 export const dynamic = 'force-dynamic';
 
@@ -39,13 +39,12 @@ export async function GET() {
 
   const connectionType = (subscription as any)?.plans?.connection_type || null;
 
-  // Step 1.7: בדיקת מנוי פעיל עם PayPlus sync (Hybrid Strategy!)
-  const validationResult = await validateSubscriptionAccess(user.id);
-  const isSubscriptionActive = validationResult.hasAccess;
+  // ✅ כל המשתמשים יש להם גישה (14 ימי trial לכולם)
+  const isSubscriptionActive = true;
   
   console.log(`🔍 User ${user.id} subscription validation:`, {
-    hasAccess: validationResult.hasAccess,
-    reason: validationResult.reason,
+    hasAccess: true,
+    reason: '14 days trial for all users',
   });
 
   // Step 2: Get active cameras for the user (מצלמות זמינות תמיד ל-live view!)
