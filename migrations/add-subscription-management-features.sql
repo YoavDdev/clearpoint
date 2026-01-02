@@ -70,6 +70,7 @@ CREATE INDEX IF NOT EXISTS idx_subscriptions_status_active ON subscriptions(stat
   WHERE status IN ('trial', 'active');
 
 -- 4. פונקציה למציאת trials שמסתיימים
+DROP FUNCTION IF EXISTS find_expiring_trials();
 CREATE OR REPLACE FUNCTION find_expiring_trials()
 RETURNS TABLE (
   subscription_id UUID,
@@ -94,6 +95,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 5. פונקציה למציאת מנויים לחידוש מהקפאה
+DROP FUNCTION IF EXISTS find_paused_to_resume();
 CREATE OR REPLACE FUNCTION find_paused_to_resume()
 RETURNS TABLE (
   subscription_id UUID,
@@ -116,6 +118,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 6. פונקציה למציאת מנויים לביטול
+DROP FUNCTION IF EXISTS find_subscriptions_to_cancel();
 CREATE OR REPLACE FUNCTION find_subscriptions_to_cancel()
 RETURNS TABLE (
   subscription_id UUID,
@@ -138,6 +141,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 7. פונקציה לבדיקת גישה למנוי
+DROP FUNCTION IF EXISTS check_subscription_access(UUID);
 CREATE OR REPLACE FUNCTION check_subscription_access(p_user_id UUID)
 RETURNS JSONB AS $$
 DECLARE
@@ -239,7 +243,7 @@ WHERE proname IN (
 -- 10. הצגת סטטוסים אפשריים
 SELECT 
   'Available statuses:' as info,
-  unnest(enum_range(NULL::text)) as status
+  status
 FROM (
   VALUES 
     ('trial'),
@@ -249,7 +253,7 @@ FROM (
     ('expired'),
     ('pending'),
     ('suspended')
-) AS statuses(enum_range);
+) AS statuses(status);
 
 COMMENT ON COLUMN subscriptions.trial_ends_at IS 'תאריך סיום תקופת ניסיון (30 יום חינם)';
 COMMENT ON COLUMN subscriptions.paused_at IS 'תאריך הקפאת מנוי (רק אדמין)';
