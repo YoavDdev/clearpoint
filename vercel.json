@@ -4,8 +4,20 @@
   "regions": ["iad1"],
   "crons": [
     {
-      "path": "/api/cron/daily-subscription-sync",
+      "path": "/api/cron/process-trials",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/process-cancellations",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/resume-paused",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/daily-subscription-sync",
+      "schedule": "0 4 * * *"
     }
   ]
 }

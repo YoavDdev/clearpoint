@@ -32,22 +32,74 @@ export async function POST(req: NextRequest) {
       0
     );
 
-    // יצירת מספר חשבונית
-    const { data: invoiceNumber } = await supabase.rpc("generate_invoice_number");
-
-    // יצירת חשבונית
-    const { data: invoice, error: invoiceError } = await supabase
+    // חישוב מספר חשבונית ייחודי (YYYYMMDD + sequential number)
+    const today = new Date();
+    const datePrefix = today.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+    
+    // מציאת המספר האחרון עבור היום
+    const { data: lastInvoice } = await supabase
       .from("invoices")
-      .insert({
-        user_id: userId,
-        invoice_number: invoiceNumber || `INV-${Date.now()}`,
-        status: "draft",
-        total_amount: totalAmount,
-        currency: "ILS",
-        notes: notes || null,
-      })
-      .select()
+      .select("invoice_number")
+      .like("invoice_number", `${datePrefix}%`)
+      .order("invoice_number", { ascending: false })
+      .limit(1)
       .single();
+
+    let invoiceNumber: string;
+    if (lastInvoice?.invoice_number) {
+      // קיימת חשבונית מהיום - הגדל את המספר
+      const lastNumber = parseInt(lastInvoice.invoice_number.slice(-2));
+      const nextNumber = (lastNumber + 1).toString().padStart(2, '0');
+      invoiceNumber = `${datePrefix}${nextNumber}`;
+    } else {
+      // אין חשבונית מהיום - התחל מ-01
+      invoiceNumber = `${datePrefix}01`;
+    }
+
+    // יצירת חשבונית עם retry logic למקרה של race condition
+    let invoice = null;
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (!invoice && attempts < maxAttempts) {
+      attempts++;
+
+      const { data, error } = await supabase
+        .from("invoices")
+        .insert({
+          user_id: userId,
+          invoice_number: invoiceNumber,
+          status: "draft",
+          total_amount: totalAmount,
+          currency: "ILS",
+          notes: notes || null,
+        })
+        .select()
+        .single();
+
+      if (!error) {
+        invoice = data;
+        break;
+      }
+
+      // אם זו שגיאת duplicate - נסה עם מספר הבא
+      if (error.code === '23505') {
+        console.log(`Invoice number ${invoiceNumber} already exists, trying next number...`);
+        const currentNumber = parseInt(invoiceNumber.slice(-2));
+        const nextNumber = (currentNumber + 1).toString().padStart(2, '0');
+        invoiceNumber = `${datePrefix}${nextNumber}`;
+        continue;
+      }
+
+      // שגיאה אחרת - עצור
+      console.error("Error creating invoice:", error);
+      return NextResponse.json(
+        { success: false, error: "Failed to create invoice" },
+        { status: 500 }
+      );
+    }
+
+    const invoiceError = !invoice;
 
     if (invoiceError || !invoice) {
       console.error("Error creating invoice:", invoiceError);
@@ -138,7 +190,7 @@ export async function POST(req: NextRequest) {
       success_url: returnUrl,
       cancel_url: cancelUrl,
       custom_fields: {
-        cField1: userId, // שמירת user_id ל-webhook
+        cField1: payment.id, // שמירת payment_id ל-webhook
       },
     });
 
