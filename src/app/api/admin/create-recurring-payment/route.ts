@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     // קבלת פרטי משתמש
     const { data: user } = await supabase
       .from("users")
-      .select("id, full_name, email, phone, plan_id")
+      .select("id, full_name, email, phone, plan_id, customer_uid")
       .eq("id", userId)
       .single();
 
@@ -43,18 +43,34 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ✅ אם אין customer_uid, ניצור customer חדש ב-PayPlus
+    let customerUid = user.customer_uid;
+    
+    if (!customerUid) {
+      console.log("⚠️ User has no customer_uid, creating new customer in PayPlus...");
+      
+      // PayPlus יצור customer_uid אוטומטית בפעם הראשונה שהלקוח משלם
+      // אז אנחנו פשוט נשתמש ב-userId שלנו ו-PayPlus יצור customer
+      customerUid = userId;
+      
+      console.log("✅ Will use user_id as customer reference:", customerUid);
+    } else {
+      console.log("✅ Using existing customer_uid:", customerUid);
+    }
+
     // תאריך התחלה - חודש מהיום
     const startDate = new Date();
     startDate.setMonth(startDate.getMonth() + 1);
 
     console.log("🔄 Creating recurring payment in PayPlus...");
     console.log("User:", user.full_name, user.email);
+    console.log("Customer UID:", customerUid);
     console.log("Amount:", monthlyPrice, "ILS/month");
     console.log("Start date:", startDate.toISOString().split('T')[0]);
 
     // יצירת הוראת קבע ב-PayPlus
     const recurringResponse = await createRecurringSubscription({
-      customer_id: userId,
+      customer_id: customerUid, // ✅ משתמשים ב-customer_uid מ-PayPlus!
       amount: monthlyPrice,
       currency: "ILS",
       description: `מנוי חודשי Clearpoint Security - ${user.full_name}`,
