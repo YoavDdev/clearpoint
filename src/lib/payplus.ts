@@ -409,7 +409,7 @@ export async function createRecurringSubscription(
         number_of_charges: 9999,
         instant_first_payment: false,
         charge_frequency: request.billing_cycle === 'monthly' ? 'Monthly' : 'Yearly',
-        // ❌ start_date גורם לשגיאה - PayPlus לא מקבל תאריך התחלה עתידי ב-recurring_settings
+        start_date: request.start_date || new Date().toISOString().split('T')[0], // ✅ ISO string format: "2026-02-02"
       },
       
       more_info: `${request.customer_id}|recurring|${request.billing_cycle}`,
