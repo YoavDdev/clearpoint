@@ -376,21 +376,60 @@ export async function createRecurringSubscription(
       console.log('🔗 No card token - PayPlus will create a payment page for customer to fill card details');
     }
 
-    console.log('📤 Sending to Payplus Recurring API:', JSON.stringify({
-      ...payload,
+    // 🎯 הפתרון הנכון: GenerateLink עם charge_method=3 (Recurring)!
+    const linkPayload = {
+      payment_page_uid: PAYPLUS_CONFIG.paymentPageUid,
+      charge_method: 3, // ✅ Recurring Payments!
+      amount: request.amount,
+      currency_code: request.currency || 'ILS',
+      
+      sendEmailApproval: false,
+      sendEmailFailure: false,
+      send_failure_callback: true,
+      
+      refURL_callback: request.notify_url || `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhooks/payplus/recurring`,
+      refURL_success: `${process.env.NEXT_PUBLIC_BASE_URL}/payment/success`,
+      refURL_failure: `${process.env.NEXT_PUBLIC_BASE_URL}/payment/cancel`,
+      
+      customer: {
+        customer_name: request.customer_name,
+        email: request.customer_email,
+        phone: request.customer_phone || '',
+      },
+      
+      items: [{
+        name: request.description,
+        quantity: 1,
+        price: request.amount,
+      }],
+      
+      recurring_settings: {
+        recurring_type: 2, // FIXED_RATE
+        recurring_range: 1, // RECURRING
+        number_of_charges: 9999,
+        instant_first_payment: false,
+        charge_frequency: request.billing_cycle === 'monthly' ? 'Monthly' : 'Yearly',
+        start_date: request.start_date || new Date().toISOString().split('T')[0],
+      },
+      
+      more_info: `${request.customer_id}|recurring|${request.billing_cycle}`,
+    };
+
+    console.log('📤 Sending to Payplus GenerateLink API:', JSON.stringify({
+      ...linkPayload,
       payment_page_uid: '***HIDDEN***',
     }, null, 2));
     
-    console.log('🔗 Using endpoint:', `${getBaseUrl()}/RecurringPayments/Add`);
+    console.log('🔗 Using endpoint:', `${getBaseUrl()}/PaymentPages/GenerateLink`);
 
-    const response = await fetch(`${getBaseUrl()}/RecurringPayments/Add`, {
+    const response = await fetch(`${getBaseUrl()}/PaymentPages/GenerateLink`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'api-key': PAYPLUS_CONFIG.apiKey,
         'secret-key': PAYPLUS_CONFIG.secretKey,
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(linkPayload),
     });
 
     if (!response.ok) {
