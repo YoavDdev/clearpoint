@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createOneTimePayment, createRecurringSubscription } from "@/lib/payplus";
+import { createOneTimePayment } from "@/lib/payplus";
 
 export const dynamic = 'force-dynamic';
 
@@ -12,8 +12,10 @@ export async function POST(req: NextRequest) {
       notes, 
       customerName, 
       customerEmail,
-      createRecurring = false, // האם ליצור מנוי חודשי אחרי התשלום?
-      monthlyAmount = 0 // סכום חודשי למנוי
+      customerPhone,
+      customerAddress,
+      customerCity,
+      customerIdNumber,
     } = await req.json();
 
     if (!userId || !items || items.length === 0) {
@@ -160,8 +162,6 @@ export async function POST(req: NextRequest) {
         metadata: {
           invoice_id: invoice.id,
           invoice_number: invoice.invoice_number,
-          create_recurring: createRecurring,
-          monthly_amount: monthlyAmount,
         },
       })
       .select()
@@ -184,7 +184,10 @@ export async function POST(req: NextRequest) {
       description: `חשבונית התקנה #${invoice.invoice_number} - ${customerName}`,
       customer_name: customerName,
       customer_email: customerEmail,
-      customer_phone: "", // נוסיף אם יש
+      customer_phone: customerPhone || "",
+      customer_address: customerAddress || "",
+      customer_city: customerCity || "",
+      customer_id_number: customerIdNumber || "",
       items: items.map((item: any) => ({
         name: item.item_name,
         quantity: item.quantity,

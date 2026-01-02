@@ -17,6 +17,9 @@ export interface PayplusPaymentRequest {
   customer_name: string;
   customer_email: string;
   customer_phone: string;
+  customer_address?: string;      // ✅ כתובת מלאה
+  customer_city?: string;          // ✅ עיר
+  customer_id_number?: string;     // ✅ ת.ז / ע.מ
   custom_fields?: {
     cField1?: string;
     cField2?: string;
@@ -69,20 +72,7 @@ export interface PayplusWebhookPayload {
   transaction_date?: string;
 }
 
-export interface PayplusSubscriptionRequest {
-  customer_id: string;
-  amount: number;
-  currency?: 'ILS' | 'USD' | 'EUR';
-  description: string;
-  customer_name: string;
-  customer_email: string;
-  customer_phone: string;
-  billing_cycle: 'monthly' | 'yearly';
-  start_date?: string; // YYYY-MM-DD
-  notify_url?: string;
-  recurring_amount?: number; // סכום החיוב החודשי (אם שונה מהתשלום הראשון)
-  card_token?: string; // טוקן כרטיס אשראי קיים
-}
+// ❌ PayplusSubscriptionRequest - DELETED (אין מנויים)
 
 // =====================================================
 // Configuration
@@ -173,11 +163,14 @@ export async function createOneTimePayment(
       amount: request.sum,
       currency_code: request.currency || 'ILS',
       
-      // פרטי לקוח
+      // פרטי לקוח - כמה שיותר מידע ל-PayPlus
       customer: {
         customer_name: request.customer_name,
         email: request.customer_email,
-        phone: request.customer_phone,
+        phone: request.customer_phone || '',
+        address: request.customer_address || '',
+        city: request.customer_city || '',
+        identification_number: request.customer_id_number || '',
       },
       
       // Callbacks & Redirects
@@ -273,253 +266,9 @@ export async function createOneTimePayment(
   }
 }
 
-/**
- * יצירת מנוי חוזר
- */
-export async function createRecurringSubscription(
-  request: PayplusSubscriptionRequest
-): Promise<PayplusPaymentResponse> {
-  try {
-    // 🧪 Mock mode
-    if (PAYPLUS_CONFIG.useMock) {
-      console.log('🧪 Using Mock Payplus API for Recurring');
-      const mockPayload = {
-        amount: request.amount,
-        customer_name: request.customer_name,
-        billing_cycle: request.billing_cycle,
-      };
-      
-      const response = await fetch(`${getBaseUrl()}/create-recurring`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(mockPayload),
-      });
-      
-      const data = await response.json();
-      
-      // המרה לפורמט Grow (תאימות עם הקוד הקיים)
-      if (data.results?.status === 'success') {
-        return {
-          status: '1',
-          data: {
-            pageUrl: data.data?.payment_page_link || '',
-            transactionId: data.data?.recurring_uid || '',
-            processId: data.data?.recurring_uid || '',
-            processToken: data.data?.recurring_uid || '',
-          },
-        };
-      } else {
-        return {
-          status: '0',
-          err: data.results?.description || 'Failed to create subscription',
-        };
-      }
-    }
-
-    // ✅ Validate configuration
-    if (!PAYPLUS_CONFIG.apiKey || !PAYPLUS_CONFIG.secretKey || !PAYPLUS_CONFIG.paymentPageUid) {
-      throw new Error('Payplus API configuration is missing');
-    }
-
-    const payload: any = {
-      payment_page_uid: PAYPLUS_CONFIG.paymentPageUid,
-      terminal_uid: PAYPLUS_CONFIG.terminalUid,
-      cashier_uid: PAYPLUS_CONFIG.cashierUid,
-      customer_uid: request.customer_id, // ✅ PayPlus דורש את זה תמיד!
-      
-      amount: request.amount,
-      currency_code: request.currency || 'ILS',
-      
-      // הגדרות Recurring - חובה
-      recurring_type: 2, // סוג מנוי: 2 = תעריף קבוע (FIXED_RATE)
-      recurring_range: 1, // טווח: 1 = חוזר (RECURRING)
-      number_of_charges: 9999, // מספר חיובים: אין הגבלה (עד ביטול)
-      instant_first_payment: false, // ✅ לא צריך תשלום ראשוני - תומך ב-trial!
-      
-      charge_method: 'Regular', // סוג חיוב קבוע
-      charge_frequency: request.billing_cycle === 'monthly' ? 'Monthly' : 'Yearly',
-      start_date: request.start_date || new Date().toISOString().split('T')[0],
-      end_date: null, // אין תאריך סיום (עד לביטול)
-      
-      // פרטי לקוח
-      customer: {
-        customer_name: request.customer_name,
-        email: request.customer_email,
-        phone: request.customer_phone || '',
-      },
-      
-      // פריטים - חובה
-      items: [
-        {
-          name: request.description,
-          quantity: 1,
-          price: request.amount,
-          vat_type: 0, // ללא מע"מ (או 1 עם מע"מ)
-        }
-      ],
-      
-      // תיאור
-      description: request.description,
-      
-      // Callback
-      callback_url: request.notify_url || `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhooks/payplus/recurring`,
-      
-      // Metadata
-      more_info: `${request.customer_id}|recurring|${request.billing_cycle}`,
-    };
-
-    // 💳 אם יש card_token, נוסיף אותו (מאפשר מנוי אוטומטי אחרי תשלום)
-    if (request.card_token) {
-      payload.card_token = request.card_token;
-      console.log('💳 Using existing card token for automatic subscription');
-    } else {
-      console.log('🔗 No card token - PayPlus will create a payment page for customer to fill card details');
-    }
-
-    // 🎯 פתרון חדש: GenerateLink רגיל, PayPlus יטפל ב-recurring
-    const linkPayload = {
-      payment_page_uid: PAYPLUS_CONFIG.paymentPageUid,
-      charge_method: 1, // ✅ Regular Charge - recurring_settings לא עובד!
-      amount: request.amount,
-      currency_code: request.currency || 'ILS',
-      
-      sendEmailApproval: false,
-      sendEmailFailure: false,
-      send_failure_callback: true,
-      
-      refURL_callback: request.notify_url || `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhooks/payplus/recurring`,
-      refURL_success: `${process.env.NEXT_PUBLIC_BASE_URL}/payment-success`,
-      refURL_failure: `${process.env.NEXT_PUBLIC_BASE_URL}/payment-cancelled`,
-      
-      customer: {
-        customer_name: request.customer_name,
-        email: request.customer_email,
-        phone: request.customer_phone || '',
-      },
-      
-      items: [{
-        name: request.description,
-        quantity: 1,
-        price: request.amount,
-      }],
-      
-      // ❌ הסרנו recurring_settings - גורם לשגיאות בלתי פתירות
-      // נטפל ב-recurring אחרי שהלקוח ישלם בפעם הראשונה
-      
-      more_info: `${request.customer_id}|recurring|${request.billing_cycle}`,
-    };
-
-    console.log('📤 Sending to Payplus GenerateLink API:', JSON.stringify({
-      ...linkPayload,
-      payment_page_uid: '***HIDDEN***',
-    }, null, 2));
-    
-    console.log('🔗 Using endpoint:', `${getBaseUrl()}/PaymentPages/GenerateLink`);
-
-    const response = await fetch(`${getBaseUrl()}/PaymentPages/GenerateLink`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': PAYPLUS_CONFIG.apiKey,
-        'secret-key': PAYPLUS_CONFIG.secretKey,
-      },
-      body: JSON.stringify(linkPayload),
-    });
-
-    if (!response.ok) {
-      let errorBody = '';
-      try {
-        errorBody = await response.text();
-        console.error('📥 Error response body:', errorBody);
-      } catch (e) {
-        console.error('Could not read error body');
-      }
-      throw new Error(`Payplus API error: ${response.status} ${response.statusText}${errorBody ? `\nDetails: ${errorBody}` : ''}`);
-    }
-
-    const data = await response.json();
-    
-    console.log('📥 Received from Payplus Recurring API:', JSON.stringify(data, null, 2));
-
-    // המרה לפורמט Grow (תאימות עם הקוד הקיים)
-    if (data.results?.status === 'success') {
-      return {
-        status: '1',
-        data: {
-          pageUrl: data.data?.payment_page_link || '',
-          transactionId: data.data?.recurring_uid || '',
-          processId: data.data?.recurring_uid || '',
-          processToken: data.data?.recurring_uid || '',
-        },
-      };
-    } else {
-      console.error('❌ Payplus API Error:', data.results?.description);
-      return {
-        status: '0',
-        err: data.results?.description || 'Failed to create subscription',
-      };
-    }
-  } catch (error) {
-    console.error('Payplus subscription creation error:', error);
-    throw error;
-  }
-}
-
-/**
- * ביטול מנוי חוזר ב-PayPlus
- * @param recurringUid - ה-UID של המנוי החוזר (provider_subscription_id)
- * @returns true אם הביטול הצליח, false אחרת
- */
-export async function cancelSubscription(recurringUid: string): Promise<boolean> {
-  try {
-    if (!recurringUid) {
-      console.error('❌ cancelSubscription: Missing recurringUid');
-      return false;
-    }
-
-    console.log(`🚫 Cancelling PayPlus subscription: ${recurringUid}`);
-
-    if (PAYPLUS_CONFIG.useMock) {
-      console.log('🧪 Mock: Subscription cancelled successfully');
-      return true;
-    }
-
-    // ✅ Validate configuration
-    if (!PAYPLUS_CONFIG.apiKey || !PAYPLUS_CONFIG.secretKey) {
-      throw new Error('PayPlus API configuration is missing');
-    }
-
-    const apiUrl = `${getBaseUrl()}/RecurringPayments/DeleteRecurring/${recurringUid}`;
-    
-    console.log('📤 Sending cancellation request to PayPlus:');
-    console.log('   URL:', apiUrl);
-
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': PAYPLUS_CONFIG.apiKey,
-        'secret-key': PAYPLUS_CONFIG.secretKey,
-      },
-    });
-
-    console.log('📥 Response status:', response.status, response.statusText);
-
-    if (!response.ok) {
-      let errorBody = '';
-      try {
-        errorBody = await response.text();
-        console.error('📥 Error response body:', errorBody);
-      } catch (e) {
-        console.error('Could not read error body');
-      }
-      throw new Error(`PayPlus API error: ${response.status} ${response.statusText}${errorBody ? `\nDetails: ${errorBody}` : ''}`);
-    }
-
-    const data = await response.json();
-    console.log('📥 PayPlus cancellation response:', JSON.stringify(data, null, 2));
-
-    const success = data.results?.status === 'success';
+// ❌ createRecurringSubscription - DELETED
+// ❌ cancelSubscription - DELETED
+// אין יותר מערכת מנויים חוזרים - רק תשלומים חד-פעמיים
     
     if (success) {
       console.log('✅ Subscription cancelled successfully in PayPlus');
@@ -685,8 +434,6 @@ export function formatAmount(amount: number, currency: string = 'ILS'): string {
 
 export default {
   createOneTimePayment,
-  createRecurringSubscription,
-  cancelSubscription,
   verifyWebhookSignature,
   parseWebhookData,
   getPaymentStatus,
