@@ -323,9 +323,9 @@ export async function createRecurringSubscription(
 
     const payload: any = {
       payment_page_uid: PAYPLUS_CONFIG.paymentPageUid,
-      terminal_uid: PAYPLUS_CONFIG.terminalUid, // ✅ חובה
-      cashier_uid: PAYPLUS_CONFIG.cashierUid, // ✅ חובה
-      customer_uid: request.customer_id, // ✅ חובה
+      terminal_uid: PAYPLUS_CONFIG.terminalUid,
+      cashier_uid: PAYPLUS_CONFIG.cashierUid,
+      // ❌ לא שולחים customer_uid - נותנים ל-PayPlus ליצור לינק למילוי פרטים!
       
       amount: request.amount,
       currency_code: request.currency || 'ILS',
@@ -368,10 +368,13 @@ export async function createRecurringSubscription(
       more_info: `${request.customer_id}|recurring|${request.billing_cycle}`,
     };
 
-    // 💳 אם יש card_token, נוסיף אותו (מאפשר מנוי אוטומטי אחרי תשלום)
+    // 💳 אם יש card_token, נוסיף אותו + customer_uid (מאפשר מנוי אוטומטי אחרי תשלום)
     if (request.card_token) {
       payload.card_token = request.card_token;
+      payload.customer_uid = request.customer_id; // רק אם יש token!
       console.log('💳 Using existing card token for automatic subscription');
+    } else {
+      console.log('🔗 No card token - PayPlus will create a payment page for customer to fill card details');
     }
 
     console.log('📤 Sending to Payplus Recurring API:', JSON.stringify({
