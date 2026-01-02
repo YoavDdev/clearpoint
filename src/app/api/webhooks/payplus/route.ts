@@ -169,6 +169,77 @@ export async function POST(req: NextRequest) {
           } else {
             console.log("✅ Invoice status updated to paid");
             
+            // 🎯 יצירת הוראת קבע אוטומטית אחרי תשלום התקנה
+            if (payment.metadata?.create_recurring && parsedData.cardToken) {
+              console.log("🔄 Creating automatic recurring payment with card_token...");
+              
+              try {
+                const { data: user } = await supabase
+                  .from("users")
+                  .select("id, full_name, email, phone")
+                  .eq("id", payment.user_id)
+                  .single();
+                
+                if (user) {
+                  // תאריך התחלה - חודש מהיום (trial period)
+                  const startDate = new Date();
+                  startDate.setMonth(startDate.getMonth() + 1);
+                  
+                  const recurringResponse = await createRecurringSubscription({
+                    customer_id: user.id,
+                    amount: payment.metadata.monthly_amount || 150,
+                    currency: "ILS",
+                    description: `מנוי חודשי Clearpoint Security - ${user.full_name}`,
+                    customer_name: user.full_name,
+                    customer_email: user.email,
+                    customer_phone: user.phone || "",
+                    billing_cycle: "monthly",
+                    start_date: startDate.toISOString().split('T')[0],
+                    notify_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhooks/payplus/recurring`,
+                    card_token: parsedData.cardToken, // 🔑 שימוש בכרטיס מהתשלום הראשון!
+                  });
+                  
+                  if (recurringResponse.status === "1" && recurringResponse.data) {
+                    console.log("✅ Recurring payment created:", recurringResponse.data.processId);
+                    
+                    // יצירת רשומת מנוי ב-DB
+                    const { data: subscription, error: subError } = await supabase
+                      .from("subscriptions")
+                      .insert({
+                        user_id: user.id,
+                        plan_id: 'monthly-service',
+                        status: 'trial',
+                        trial_ends_at: startDate.toISOString(),
+                        trial_days: 30,
+                        billing_cycle: 'monthly',
+                        amount: payment.metadata.monthly_amount || 150,
+                        currency: 'ILS',
+                        next_billing_date: startDate.toISOString().split('T')[0],
+                        current_period_start: new Date().toISOString().split('T')[0],
+                        current_period_end: startDate.toISOString().split('T')[0],
+                        started_at: new Date().toISOString(),
+                        payment_provider: 'payplus',
+                        provider_subscription_id: recurringResponse.data.processId,
+                        provider_customer_id: customerUid,
+                        payment_method: 'credit_card',
+                      })
+                      .select()
+                      .single();
+                    
+                    if (!subError && subscription) {
+                      console.log("✅ Subscription record created:", subscription.id);
+                    } else {
+                      console.error("❌ Failed to create subscription record:", subError);
+                    }
+                  } else {
+                    console.error("❌ Failed to create recurring payment:", recurringResponse.err);
+                  }
+                }
+              } catch (recurringError) {
+                console.error("❌ Error creating recurring payment:", recurringError);
+              }
+            }
+            
             // 🔄 זיהוי תשלום מנוי והפעלת הוראת קבע
             if (payment.payment_type === 'recurring' && payment.metadata?.subscription_first_payment) {
               console.log("🎯 Subscription first payment detected - creating subscription record");

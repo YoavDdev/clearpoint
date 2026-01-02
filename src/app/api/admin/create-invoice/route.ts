@@ -11,7 +11,9 @@ export async function POST(req: NextRequest) {
       items, 
       notes, 
       customerName, 
-      customerEmail
+      customerEmail,
+      createRecurring = false, // האם ליצור מנוי חודשי אחרי התשלום?
+      monthlyAmount = 0 // סכום חודשי למנוי
     } = await req.json();
 
     if (!userId || !items || items.length === 0) {
@@ -158,6 +160,8 @@ export async function POST(req: NextRequest) {
         metadata: {
           invoice_id: invoice.id,
           invoice_number: invoice.invoice_number,
+          create_recurring: createRecurring,
+          monthly_amount: monthlyAmount,
         },
       })
       .select()
