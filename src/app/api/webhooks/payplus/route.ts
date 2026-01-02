@@ -117,6 +117,7 @@ export async function POST(req: NextRequest) {
           provider_payment_id: parsedData.transactionId,
           provider_transaction_id: parsedData.transactionId,
           metadata: {
+            ...(payment.metadata || {}), // 🔑 שמור metadata קיים!
             approval_num: parsedData.asmachta,
             card_suffix: parsedData.cardDetails.suffix,
             card_type: parsedData.cardDetails.type,
