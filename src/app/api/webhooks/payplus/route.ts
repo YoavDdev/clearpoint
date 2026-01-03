@@ -86,14 +86,9 @@ export async function POST(req: NextRequest) {
       updated_at: new Date().toISOString(),
     };
 
-    // שמירת פרטי תשלום נוספים אם הצליח
+    // אם התשלום הצליח, שמור תאריך תשלום
     if (parsedData.status === 'completed') {
-      updateData.payment_details = {
-        transaction_id: parsedData.transactionId,
-        card_suffix: parsedData.cardDetails.suffix,
-        payment_date: parsedData.paymentDate,
-        approval_number: parsedData.asmachta,
-      };
+      updateData.paid_at = new Date().toISOString();
     }
 
     const { error: updateError } = await supabase
