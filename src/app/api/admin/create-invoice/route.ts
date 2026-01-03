@@ -215,7 +215,6 @@ export async function POST(req: NextRequest) {
       .update({
         provider_transaction_id: payplusResponse.data.processId,
         provider_payment_url: payplusResponse.data.pageUrl,
-        provider_response: payplusResponse.data,
       })
       .eq("id", payment.id);
 

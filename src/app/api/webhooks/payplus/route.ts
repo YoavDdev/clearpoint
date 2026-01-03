@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     // עדכון payment status
     const updateData: any = {
       status: parsedData.status === 'approved' ? 'completed' : 'failed',
-      provider_response: parsedData,
+      provider_transaction_id: parsedData.transactionId,
       updated_at: new Date().toISOString(),
     };
 
@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
         transaction_id: parsedData.transactionId,
         card_suffix: parsedData.cardDetails.suffix,
         payment_date: parsedData.paymentDate,
+        approval_number: parsedData.asmachta,
       };
     }
 
@@ -116,23 +117,7 @@ export async function POST(req: NextRequest) {
       console.log("✅ customer_uid saved on user:", payment.user_id);
     }
 
-    // עדכון חשבונית אם יש
-    if (payment.invoice_id && parsedData.status === 'approved') {
-      const { error: invoiceError } = await supabase
-        .from("invoices")
-        .update({
-          status: 'paid',
-          paid_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", payment.invoice_id);
-
-      if (invoiceError) {
-        console.error("❌ Failed to update invoice:", invoiceError);
-      } else {
-        console.log("✅ Invoice status updated to paid");
-      }
-    }
+    // החשבונית תישאר "ממתין לתשלום" - אדמין יעדכן ידנית לאחר אישור
 
     return NextResponse.json({
       success: true,
