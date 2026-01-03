@@ -112,7 +112,23 @@ export async function POST(req: NextRequest) {
       console.log("✅ customer_uid saved on user:", payment.user_id);
     }
 
-    // החשבונית תישאר "ממתין לתשלום" - אדמין יעדכן ידנית לאחר אישור
+    // עדכון סטטוס החשבונית - אוטומטי לפי תוצאת התשלום
+    if (payment.invoice_id) {
+      if (parsedData.status === 'completed') {
+        // תשלום הצליח → החשבונית שולמה
+        await supabase
+          .from("invoices")
+          .update({ 
+            status: 'paid',
+            paid_at: new Date().toISOString() 
+          })
+          .eq("id", payment.invoice_id);
+        console.log("✅ Invoice marked as paid:", payment.invoice_id);
+      } else {
+        // תשלום נכשל → החשבונית נשארת ממתין לתשלום
+        console.log("⚠️ Payment failed - invoice remains pending:", payment.invoice_id);
+      }
+    }
 
     return NextResponse.json({
       success: true,
