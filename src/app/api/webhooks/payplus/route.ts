@@ -81,13 +81,13 @@ export async function POST(req: NextRequest) {
 
     // עדכון payment status
     const updateData: any = {
-      status: parsedData.status === 'approved' ? 'completed' : 'failed',
+      status: parsedData.status, // 'completed' או 'failed' ישירות מ-parseWebhookData
       provider_transaction_id: parsedData.transactionId,
       updated_at: new Date().toISOString(),
     };
 
     // שמירת פרטי תשלום נוספים אם הצליח
-    if (parsedData.status === 'approved') {
+    if (parsedData.status === 'completed') {
       updateData.payment_details = {
         transaction_id: parsedData.transactionId,
         card_suffix: parsedData.cardDetails.suffix,
