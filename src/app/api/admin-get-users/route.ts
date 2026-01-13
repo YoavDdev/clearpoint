@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { listAllRecurringPayments } from '@/lib/payplus';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,14 +42,28 @@ export async function GET() {
 
   const activeSupportUsers = new Set(requests?.map((r) => r.user_id));
 
-  // Step 3: Fetch subscriptions for all users
-  const { data: subscriptions } = await supabase
-    .from("subscriptions")
-    .select("user_id, status, amount, next_billing_date, last_billing_date, billing_cycle");
-
-  const subscriptionMap = new Map(
-    subscriptions?.map((sub) => [sub.user_id, sub]) || []
-  );
+  // Step 3: Fetch subscriptions from PayPlus (Source of Truth)
+  let subscriptionMap = new Map();
+  try {
+    const result = await listAllRecurringPayments();
+    if (result.status === 'success' && result.data) {
+      // Create map by email (PayPlus uses email, not user_id)
+      result.data.forEach((payment: any) => {
+        if (payment.customer_email && payment.status === 'active') {
+          subscriptionMap.set(payment.customer_email.toLowerCase(), {
+            status: payment.status,
+            amount: payment.amount,
+            next_billing_date: payment.next_charge_date,
+            last_billing_date: payment.last_charge_date || null,
+            billing_cycle: payment.recurring_type || 'monthly',
+          });
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Failed to fetch PayPlus subscriptions:', error);
+    // Continue without subscription data
+  }
 
   // Step 4: Fetch latest payment for each user
   const { data: latestPayments } = await supabase
@@ -66,7 +81,8 @@ export async function GET() {
 
   // Step 5: Enrich each user with camera count + support flag + subscription + payment info
   const enriched = users.map((user) => {
-    const subscription = subscriptionMap.get(user.id);
+    // Look up subscription by email (PayPlus uses email as key)
+    const subscription = subscriptionMap.get(user.email?.toLowerCase());
     const latestPayment = paymentMap.get(user.id);
     
     return {

@@ -18,7 +18,8 @@ import {
   Home,
   Menu,
   X,
-  RefreshCw
+  RefreshCw,
+  CreditCard
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -40,6 +41,12 @@ const navigation = [
     href: "/admin/invoices",
     icon: FileText,
     description: "ניהול חשבוניות ותשלומים"
+  },
+  {
+    name: "מנויים חוזרים",
+    href: "/admin/recurring-payments",
+    icon: CreditCard,
+    description: "ניהול מנויים חוזרים מ-PayPlus"
   },
   {
     name: "סנכרון מנויים",

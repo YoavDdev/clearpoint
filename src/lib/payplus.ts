@@ -266,9 +266,189 @@ export async function createOneTimePayment(
   }
 }
 
-// ❌ createRecurringSubscription - DELETED
-// ❌ cancelSubscription - DELETED  
-// אין יותר מערכת מנויים חוזרים - רק תשלומים חד-פעמיים
+/**
+ * קבלת פרטי מנוי חוזר
+ */
+export async function viewRecurringPayment(uid: string) {
+  try {
+    if (PAYPLUS_CONFIG.useMock) {
+      // Mock data for testing
+      return {
+        status: 'success',
+        data: {
+          uid,
+          customer_name: 'Mock Customer',
+          amount: 100,
+          currency: 'ILS',
+          status: 'active',
+          next_charge_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          created_at: new Date().toISOString(),
+        },
+      };
+    }
+
+    const apiUrl = `${getBaseUrl()}/RecurringPayments/${uid}/ViewRecurring`;
+    
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': PAYPLUS_CONFIG.apiKey,
+        'secret-key': PAYPLUS_CONFIG.secretKey,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`PayPlus API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('ViewRecurring error:', error);
+    throw error;
+  }
+}
+
+/**
+ * קבלת רשימת כל המנויים החוזרים
+ */
+export async function listAllRecurringPayments() {
+  try {
+    console.log('🔵 listAllRecurringPayments - Starting...');
+    console.log('🔵 Mock mode:', PAYPLUS_CONFIG.useMock);
+    
+    if (PAYPLUS_CONFIG.useMock) {
+      console.log('✅ Using mock data');
+      // Mock data for testing
+      return {
+        status: 'success',
+        data: [
+          {
+            uid: 'rec_001',
+            customer_name: 'יוסי כהן',
+            customer_email: 'yossi@example.com',
+            customer_phone: '0501234567',
+            amount: 150,
+            currency: 'ILS',
+            status: 'active',
+            next_charge_date: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+            created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+            total_charges: 2,
+          },
+          {
+            uid: 'rec_002',
+            customer_name: 'דנה לוי',
+            customer_email: 'dana@example.com',
+            customer_phone: '0527654321',
+            amount: 200,
+            currency: 'ILS',
+            status: 'active',
+            next_charge_date: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString(),
+            created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+            total_charges: 3,
+          },
+        ],
+      };
+    }
+
+    console.log('🔵 Using real PayPlus API');
+    
+    const apiUrl = `${getBaseUrl()}/RecurringPayments/View?terminal_uid=${PAYPLUS_CONFIG.terminalUid}`;
+    console.log('🔵 API URL:', apiUrl);
+    console.log('🔵 API Key:', PAYPLUS_CONFIG.apiKey ? '✅ Set' : '❌ Missing');
+    console.log('🔵 Secret Key:', PAYPLUS_CONFIG.secretKey ? '✅ Set' : '❌ Missing');
+    console.log('🔵 Terminal UID:', PAYPLUS_CONFIG.terminalUid ? '✅ Set' : '❌ Missing');
+    
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': PAYPLUS_CONFIG.apiKey,
+        'secret-key': PAYPLUS_CONFIG.secretKey,
+      },
+    });
+
+    console.log('🔵 Response status:', response.status);
+    console.log('🔵 Response statusText:', response.statusText);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ PayPlus API error response:', errorText);
+      console.error('❌ This usually means:');
+      console.error('   1. The endpoint does not exist');
+      console.error('   2. Your account is not authorized for Recurring Payments');
+      console.error('   3. Missing required permissions');
+      console.error('💡 Suggestion: Set PAYPLUS_USE_MOCK=true for development');
+      throw new Error(`PayPlus API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ PayPlus response:', data);
+    
+    // התאמה לפורמט שלנו - נורמליזציה של הנתונים
+    const normalizedData = (data.data || []).map((item: any) => ({
+      uid: item.uid,
+      customer_name: item.customer_name,
+      customer_email: item.customer_email,
+      customer_phone: item.customer_phone || 'לא זמין',
+      amount: item.each_payment_amount, // המרה מ-each_payment_amount ל-amount
+      currency: item.currency_code || 'ILS',
+      status: item.valid ? 'active' : 'cancelled',
+      next_charge_date: item.start_date || item.first_charge_date,
+      created_at: item.created_at,
+      total_charges: item.already_charged_transfers || 0,
+      // שדות נוספים
+      card_number: item.card_number,
+      card_expiry: item.card_expiry,
+      recurring_type: item.recurring_type,
+      number_of_charges: item.number_of_charges,
+    }));
+    
+    return {
+      status: 'success',
+      data: normalizedData,
+    };
+  } catch (error) {
+    console.error('❌ ListRecurringPayments error:', error);
+    throw error;
+  }
+}
+
+/**
+ * ביטול מנוי חוזר
+ */
+export async function cancelRecurringPayment(uid: string) {
+  try {
+    if (PAYPLUS_CONFIG.useMock) {
+      return {
+        status: 'success',
+        message: 'Recurring payment cancelled successfully',
+      };
+    }
+
+    const apiUrl = `${getBaseUrl()}/RecurringPayments/${uid}/Cancel`;
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': PAYPLUS_CONFIG.apiKey,
+        'secret-key': PAYPLUS_CONFIG.secretKey,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`PayPlus API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('CancelRecurring error:', error);
+    throw error;
+  }
+}
 
 /**
  * אימות webhook signature
@@ -421,6 +601,9 @@ export function formatAmount(amount: number, currency: string = 'ILS'): string {
 
 export default {
   createOneTimePayment,
+  viewRecurringPayment,
+  listAllRecurringPayments,
+  cancelRecurringPayment,
   verifyWebhookSignature,
   parseWebhookData,
   getPaymentStatus,
