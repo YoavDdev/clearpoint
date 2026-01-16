@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { createPayPlusCustomer } from "@/lib/payplus";
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +30,12 @@ export async function POST(req: Request) {
     plan_id,
     plan_duration_days,
     custom_price,
-    tunnel_name
+    tunnel_name,
+    // Business fields
+    vat_number,
+    business_city,
+    business_postal_code,
+    communication_email,
   } = body;
 
   // 1. Create user in Supabase Auth (no password yet)
@@ -44,7 +50,30 @@ export async function POST(req: Request) {
 
   const userId = authUser.user.id;
 
-  // 2. Add to users table (now includes tunnel_name)
+  // 2. Create PayPlus customer first
+  console.log('🔵 Creating PayPlus customer for:', email);
+  const payplusResult = await createPayPlusCustomer({
+    email,
+    customer_name: full_name || email,
+    phone: phone || '',
+    business_address: address || '',
+    business_city: business_city || '',
+    business_postal_code: business_postal_code || '',
+    notes: notes || '',
+    customer_number: userId,
+    vat_number: vat_number || '',
+    communication_email: communication_email || email,
+  });
+
+  let customer_uid = null;
+  if (payplusResult.success && payplusResult.customer_uid) {
+    console.log('✅ PayPlus customer created:', payplusResult.customer_uid);
+    customer_uid = payplusResult.customer_uid;
+  } else {
+    console.warn('⚠️ Failed to create PayPlus customer:', payplusResult.error);
+  }
+
+  // 3. Add to users table (now includes business fields and customer_uid)
   const { error: dbError } = await supabaseAdmin.from("users").insert({
     id: userId,
     email,
@@ -57,13 +86,19 @@ export async function POST(req: Request) {
     custom_price: custom_price ?? null,
     tunnel_name: tunnel_name || null,
     subscription_status: "active",
+    // Business fields
+    vat_number: vat_number || null,
+    business_city: business_city || null,
+    business_postal_code: business_postal_code || null,
+    communication_email: communication_email || null,
+    customer_uid: customer_uid,
   });
 
   if (dbError) {
     return NextResponse.json({ success: false, error: dbError.message }, { status: 400 });
   }
 
-  // 3. Generate invite link with proper callback flow
+  // 4. Generate invite link with proper callback flow
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://clearpoint.co.il';
   const result = await supabaseAdmin.auth.admin.generateLink({
     type: "invite",

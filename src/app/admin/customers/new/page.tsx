@@ -18,6 +18,9 @@ import {
   CheckCircle,
   AlertCircle,
   ArrowLeft,
+  Building2,
+  Hash,
+  MapPinned,
 } from "lucide-react";
 
 interface Plan {
@@ -41,6 +44,12 @@ function NewCustomerForm() {
   const [notes, setNotes] = useState("");
   const [tunnelName, setTunnelName] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // Business fields
+  const [vatNumber, setVatNumber] = useState("");
+  const [businessCity, setBusinessCity] = useState("");
+  const [businessPostalCode, setBusinessPostalCode] = useState("");
+  const [communicationEmail, setCommunicationEmail] = useState("");
 
   const searchParams = useSearchParams();
 
@@ -101,6 +110,11 @@ function NewCustomerForm() {
         plan_duration_days: selectedPlan.retention_days,
         custom_price: customPrice,
         tunnel_name: tunnelName,
+        // Business fields
+        vat_number: vatNumber || null,
+        business_city: businessCity || null,
+        business_postal_code: businessPostalCode || null,
+        communication_email: communicationEmail || null,
       }),
     });
 
@@ -122,6 +136,11 @@ function NewCustomerForm() {
     setAddress("");
     setNotes("");
     setTunnelName("");
+    // Reset business fields
+    setVatNumber("");
+    setBusinessCity("");
+    setBusinessPostalCode("");
+    setCommunicationEmail("");
     setLoading(false);
   };
 
@@ -219,17 +238,90 @@ function NewCustomerForm() {
                     onChange={(e) => setAddress(e.target.value)}
                   />
                 </div>
+
+                {/* Communication Email */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
+                    <span>אימייל תקשורת (אופציונלי)</span>
+                    <Mail size={16} className="text-slate-400" />
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="אימייל נפרד לתקשורת (אם שונה)"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    value={communicationEmail}
+                    onChange={(e) => setCommunicationEmail(e.target.value)}
+                  />
+                </div>
               </div>
 
-              {/* Right Column - Technical & Plan Info */}
+              {/* Right Column - Business Info */}
               <div className="space-y-6">
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2 justify-end">
-                    <span>הגדרות טכניות ומנוי</span>
-                    <CreditCard className="text-purple-600" size={20} />
+                    <span>פרטים עסקיים</span>
+                    <Building2 className="text-orange-600" size={20} />
                   </h3>
                 </div>
 
+                {/* VAT Number */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
+                    <span>ח.פ / ע.מ</span>
+                    <Hash size={16} className="text-slate-400" />
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="הזן מספר ח.פ או ע.מ"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                    value={vatNumber}
+                    onChange={(e) => setVatNumber(e.target.value)}
+                  />
+                </div>
+
+                {/* Business City */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
+                    <span>עיר</span>
+                    <MapPinned size={16} className="text-slate-400" />
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="הזן עיר"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                    value={businessCity}
+                    onChange={(e) => setBusinessCity(e.target.value)}
+                  />
+                </div>
+
+                {/* Business Postal Code */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
+                    <span>מיקוד</span>
+                    <Hash size={16} className="text-slate-400" />
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="הזן מיקוד"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                    value={businessPostalCode}
+                    onChange={(e) => setBusinessPostalCode(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Subscription & Technical Section */}
+            <div className="mt-8 pt-8 border-t border-slate-200">
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2 justify-end">
+                  <span>הגדרות טכניות ומנוי</span>
+                  <CreditCard className="text-purple-600" size={20} />
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-6">
                 {/* Tunnel Name */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
@@ -244,7 +336,10 @@ function NewCustomerForm() {
                     onChange={(e) => setTunnelName(e.target.value)}
                   />
                 </div>
+              </div>
 
+              {/* Right Column - Plan Selection */}
+              <div className="space-y-6">
                 {/* Plan Selection */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
@@ -366,6 +461,7 @@ function NewCustomerForm() {
               <div className="mt-4 flex items-center gap-2 justify-end text-sm text-slate-600">
                 <span>שדות חובה מסומנים ב-*</span>
                 <AlertCircle size={16} className="text-slate-400" />
+              </div>
               </div>
             </div>
           </div>

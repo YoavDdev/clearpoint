@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
                 quantity: 1,
                 price: subscription.custom_price || subscription.amount,
               }],
-              invoiceUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/invoice/${newInvoice.id}`,
+              invoiceUrl: `${process.env.NODE_ENV === 'production' ? 'https://www.clearpoint.co.il' : (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000')}/invoice/${newInvoice.id}`,
               isMonthlyRecurring: true,
             });
             console.log('📧 Monthly invoice email sent to customer');

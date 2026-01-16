@@ -450,6 +450,214 @@ export async function cancelRecurringPayment(uid: string) {
   }
 }
 
+// =====================================================
+// Customer Management Functions
+// =====================================================
+
+export interface PayPlusCustomerRequest {
+  email: string;
+  customer_name: string;
+  vat_number?: string;
+  customer_number?: string;
+  notes?: string;
+  phone?: string;
+  business_address?: string;
+  business_city?: string;
+  business_postal_code?: string;
+  business_country_iso?: string;
+  subject_code?: string;
+  communication_email?: string;
+}
+
+/**
+ * יצירת לקוח חדש ב-PayPlus
+ */
+export async function createPayPlusCustomer(
+  request: PayPlusCustomerRequest
+): Promise<{ success: boolean; customer_uid?: string; error?: string }> {
+  try {
+    console.log('🔵 Creating PayPlus customer:', request.customer_name);
+
+    if (PAYPLUS_CONFIG.useMock) {
+      console.log('🧪 Using Mock - customer created');
+      return {
+        success: true,
+        customer_uid: `mock_customer_${Date.now()}`,
+      };
+    }
+
+    const apiUrl = `${getBaseUrl()}/Customers/Add`;
+    
+    // Build payload with only defined values
+    const payload: any = {
+      email: request.email,
+      customer_name: request.customer_name,
+    };
+
+    // Add optional fields only if they have values
+    if (request.vat_number) payload.vat_number = request.vat_number;
+    if (request.customer_number) payload.customer_number = request.customer_number;
+    if (request.notes) payload.notes = request.notes;
+    if (request.phone) payload.phone = request.phone;
+    if (request.business_address) payload.business_address = request.business_address;
+    if (request.business_city) payload.business_city = request.business_city;
+    if (request.business_postal_code) payload.business_postal_code = request.business_postal_code;
+    if (request.business_country_iso) payload.business_country_iso = request.business_country_iso;
+    if (request.subject_code) payload.subject_code = request.subject_code;
+    if (request.communication_email) payload.communication_email = request.communication_email;
+
+    console.log('📤 Sending to PayPlus Customers/Add:', payload);
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': PAYPLUS_CONFIG.apiKey,
+        'secret-key': PAYPLUS_CONFIG.secretKey,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    console.log('📥 PayPlus response:', data);
+
+    if (!response.ok || data.results?.status !== 'success') {
+      console.error('❌ Failed to create PayPlus customer:', data);
+      return {
+        success: false,
+        error: data.results?.description || 'Failed to create customer',
+      };
+    }
+
+    return {
+      success: true,
+      customer_uid: data.data?.customer_uid,
+    };
+  } catch (error) {
+    console.error('❌ createPayPlusCustomer error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
+ * עדכון לקוח קיים ב-PayPlus
+ */
+export async function updatePayPlusCustomer(
+  customer_uid: string,
+  request: PayPlusCustomerRequest
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    console.log('🔵 Updating PayPlus customer:', customer_uid);
+
+    if (PAYPLUS_CONFIG.useMock) {
+      console.log('🧪 Using Mock - customer updated');
+      return { success: true };
+    }
+
+    const apiUrl = `${getBaseUrl()}/Customers/Update/${customer_uid}`;
+    
+    // Build payload with only defined values
+    const payload: any = {
+      email: request.email,
+      customer_name: request.customer_name,
+    };
+
+    // Add optional fields only if they have values
+    if (request.vat_number) payload.vat_number = request.vat_number;
+    if (request.customer_number) payload.customer_number = request.customer_number;
+    if (request.notes) payload.notes = request.notes;
+    if (request.phone) payload.phone = request.phone;
+    if (request.business_address) payload.business_address = request.business_address;
+    if (request.business_city) payload.business_city = request.business_city;
+    if (request.business_postal_code) payload.business_postal_code = request.business_postal_code;
+    if (request.business_country_iso) payload.business_country_iso = request.business_country_iso;
+    if (request.subject_code) payload.subject_code = request.subject_code;
+    if (request.communication_email) payload.communication_email = request.communication_email;
+
+    console.log('📤 Sending to PayPlus Customers/Update:', payload);
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': PAYPLUS_CONFIG.apiKey,
+        'secret-key': PAYPLUS_CONFIG.secretKey,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    console.log('📥 PayPlus response:', data);
+
+    if (!response.ok || data.results?.status !== 'success') {
+      console.error('❌ Failed to update PayPlus customer:', data);
+      return {
+        success: false,
+        error: data.results?.description || 'Failed to update customer',
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('❌ updatePayPlusCustomer error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
+ * מחיקת לקוח מ-PayPlus
+ */
+export async function removePayPlusCustomer(
+  customer_uid: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    console.log('🔵 Removing PayPlus customer:', customer_uid);
+
+    if (PAYPLUS_CONFIG.useMock) {
+      console.log('🧪 Using Mock - customer removed');
+      return { success: true };
+    }
+
+    const apiUrl = `${getBaseUrl()}/Customers/Remove/${customer_uid}`;
+    
+    console.log('📤 Sending to PayPlus Customers/Remove');
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': PAYPLUS_CONFIG.apiKey,
+        'secret-key': PAYPLUS_CONFIG.secretKey,
+      },
+    });
+
+    const data = await response.json();
+    console.log('📥 PayPlus response:', data);
+
+    if (!response.ok || data.results?.status !== 'success') {
+      console.error('❌ Failed to remove PayPlus customer:', data);
+      return {
+        success: false,
+        error: data.results?.description || 'Failed to remove customer',
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('❌ removePayPlusCustomer error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
 /**
  * אימות webhook signature
  * Payplus שולח hash ב-headers שצריך לאמת
@@ -565,6 +773,325 @@ export async function getPaymentStatus(transactionUid: string) {
 }
 
 // =====================================================
+// Recurring Payments - Additional Types & Functions
+// =====================================================
+
+export interface RecurringPaymentItem {
+  name: string;
+  quantity: number;
+  price: number;
+  vat_type?: number;
+}
+
+export interface CreateRecurringPaymentRequest {
+  terminal_uid: string;
+  customer_uid: string;
+  card_token: string;
+  cashier_uid: string;
+  currency_code: 'ILS' | 'USD' | 'EUR' | 'GPB';
+  recurring_type: 0 | 1 | 2; // 0=daily, 1=weekly, 2=monthly
+  recurring_range: number;
+  number_of_charges: number;
+  start_date: string;
+  end_date?: string;
+  items: RecurringPaymentItem[];
+  extra_info?: string;
+}
+
+export interface UpdateRecurringPaymentRequest extends CreateRecurringPaymentRequest {}
+
+export interface RecurringPaymentResponse {
+  results: {
+    status: string;
+    code: number;
+    description: string;
+  };
+  data: {
+    recurring_uid?: string;
+    customer_uid?: string;
+    [key: string]: any;
+  };
+}
+
+/**
+ * יצירת מנוי חוזר חדש
+ */
+export async function createRecurringPayment(
+  request: CreateRecurringPaymentRequest
+): Promise<RecurringPaymentResponse> {
+  try {
+    console.log('🔵 Creating PayPlus recurring payment');
+
+    if (PAYPLUS_CONFIG.useMock) {
+      console.log('🧪 Mock: Recurring payment created');
+      return {
+        results: { status: 'success', code: 0, description: 'OK' },
+        data: { recurring_uid: `mock_recurring_${Date.now()}` },
+      };
+    }
+
+    const apiUrl = `${getBaseUrl()}/RecurringPayments/Add`;
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': PAYPLUS_CONFIG.apiKey,
+        'secret-key': PAYPLUS_CONFIG.secretKey,
+      },
+      body: JSON.stringify(request),
+    });
+
+    const data = await response.json();
+    console.log('📥 PayPlus recurring response:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ Create recurring payment error:', error);
+    throw error;
+  }
+}
+
+/**
+ * עדכון מנוי חוזר
+ */
+export async function updateRecurringPayment(
+  recurringUid: string,
+  request: UpdateRecurringPaymentRequest
+): Promise<RecurringPaymentResponse> {
+  try {
+    console.log('🔵 Updating PayPlus recurring payment:', recurringUid);
+
+    if (PAYPLUS_CONFIG.useMock) {
+      console.log('🧪 Mock: Recurring payment updated');
+      return {
+        results: { status: 'success', code: 0, description: 'OK' },
+        data: { recurring_uid: recurringUid },
+      };
+    }
+
+    const apiUrl = `${getBaseUrl()}/RecurringPayments/Update/${recurringUid}`;
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': PAYPLUS_CONFIG.apiKey,
+        'secret-key': PAYPLUS_CONFIG.secretKey,
+      },
+      body: JSON.stringify(request),
+    });
+
+    const data = await response.json();
+    console.log('📥 PayPlus update response:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ Update recurring payment error:', error);
+    throw error;
+  }
+}
+
+/**
+ * מחיקת מנוי חוזר
+ */
+export async function deleteRecurringPayment(
+  recurringUid: string
+): Promise<RecurringPaymentResponse> {
+  try {
+    console.log('🔵 Deleting PayPlus recurring payment:', recurringUid);
+
+    if (PAYPLUS_CONFIG.useMock) {
+      console.log('🧪 Mock: Recurring payment deleted');
+      return {
+        results: { status: 'success', code: 0, description: 'OK' },
+        data: {},
+      };
+    }
+
+    const apiUrl = `${getBaseUrl()}/RecurringPayments/DeleteRecurring/${recurringUid}`;
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': PAYPLUS_CONFIG.apiKey,
+        'secret-key': PAYPLUS_CONFIG.secretKey,
+      },
+      body: JSON.stringify({
+        terminal_uid: PAYPLUS_CONFIG.terminalUid,
+      }),
+    });
+
+    const data = await response.json();
+    console.log('📥 PayPlus delete response:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ Delete recurring payment error:', error);
+    throw error;
+  }
+}
+
+/**
+ * השעיה/הפעלה של מנוי חוזר
+ */
+export async function toggleRecurringValid(
+  recurringUid: string,
+  valid: boolean
+): Promise<RecurringPaymentResponse> {
+  try {
+    console.log(`🔵 ${valid ? 'Activating' : 'Pausing'} recurring payment:`, recurringUid);
+
+    if (PAYPLUS_CONFIG.useMock) {
+      console.log('🧪 Mock: Recurring payment validity toggled');
+      return {
+        results: { status: 'success', code: 0, description: 'OK' },
+        data: { recurring_uid: recurringUid, valid },
+      };
+    }
+
+    const apiUrl = `${getBaseUrl()}/RecurringPayments/${recurringUid}/Valid`;
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': PAYPLUS_CONFIG.apiKey,
+        'secret-key': PAYPLUS_CONFIG.secretKey,
+      },
+      body: JSON.stringify({
+        terminal_uid: PAYPLUS_CONFIG.terminalUid,
+        valid,
+      }),
+    });
+
+    const data = await response.json();
+    console.log('📥 PayPlus valid toggle response:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ Toggle recurring valid error:', error);
+    throw error;
+  }
+}
+
+/**
+ * קבלת פרטי מנוי חוזר ספציפי
+ */
+export async function getRecurringPaymentDetails(
+  recurringUid: string
+): Promise<any> {
+  try {
+    console.log('🔵 Fetching recurring payment details:', recurringUid);
+
+    if (PAYPLUS_CONFIG.useMock) {
+      console.log('🧪 Mock: Returning recurring payment details');
+      return {
+        results: { status: 'success', code: 0, description: 'OK' },
+        data: {
+          recurring_uid: recurringUid,
+          customer_uid: 'mock_customer',
+          amount: 99,
+          status: 'active',
+        },
+      };
+    }
+
+    const apiUrl = `${getBaseUrl()}/RecurringPayments/${recurringUid}/ViewRecurring`;
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'api-key': PAYPLUS_CONFIG.apiKey,
+        'secret-key': PAYPLUS_CONFIG.secretKey,
+        'terminal_uid': PAYPLUS_CONFIG.terminalUid,
+      },
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('❌ Get recurring payment details error:', error);
+    throw error;
+  }
+}
+
+/**
+ * קבלת רשימת חיובים של מנוי
+ */
+export async function getRecurringCharges(
+  recurringUid: string,
+  skip: number = 0,
+  take: number = 50
+): Promise<any> {
+  try {
+    console.log('🔵 Fetching recurring charges for:', recurringUid);
+
+    if (PAYPLUS_CONFIG.useMock) {
+      console.log('🧪 Mock: Returning charges list');
+      return {
+        results: { status: 'success', code: 0, description: 'OK' },
+        data: { items: [] },
+      };
+    }
+
+    const params = new URLSearchParams({
+      terminal_uid: PAYPLUS_CONFIG.terminalUid,
+      skip: skip.toString(),
+      take: take.toString(),
+    });
+
+    const apiUrl = `${getBaseUrl()}/RecurringPayments/${recurringUid}/ViewRecurringCharge?${params.toString()}`;
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'api-key': PAYPLUS_CONFIG.apiKey,
+        'secret-key': PAYPLUS_CONFIG.secretKey,
+      },
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('❌ Get recurring charges error:', error);
+    throw error;
+  }
+}
+
+/**
+ * שליחת התראה לחידוש כרטיס אשראי
+ */
+export async function sendCardRenewalNotification(
+  recurringUid: string,
+  disableSendEmail: boolean = false
+): Promise<any> {
+  try {
+    console.log('🔵 Sending card renewal notification for:', recurringUid);
+
+    if (PAYPLUS_CONFIG.useMock) {
+      console.log('🧪 Mock: Card renewal notification sent');
+      return {
+        results: { status: 'success', code: 0, description: 'OK' },
+        data: { payment_page_url: 'https://mock.payment.page' },
+      };
+    }
+
+    const apiUrl = `${getBaseUrl()}/RecurringPayments/CreditCardRenewal/${recurringUid}`;
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': PAYPLUS_CONFIG.apiKey,
+        'secret-key': PAYPLUS_CONFIG.secretKey,
+      },
+      body: JSON.stringify({
+        terminal_uid: PAYPLUS_CONFIG.terminalUid,
+        disable_send_email: disableSendEmail,
+      }),
+    });
+
+    const data = await response.json();
+    console.log('📥 Card renewal response:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ Send card renewal notification error:', error);
+    throw error;
+  }
+}
+
+// =====================================================
 // Helper Functions
 // =====================================================
 
@@ -604,6 +1131,13 @@ export default {
   viewRecurringPayment,
   listAllRecurringPayments,
   cancelRecurringPayment,
+  createRecurringPayment,
+  updateRecurringPayment,
+  deleteRecurringPayment,
+  toggleRecurringValid,
+  getRecurringPaymentDetails,
+  getRecurringCharges,
+  sendCardRenewalNotification,
   verifyWebhookSignature,
   parseWebhookData,
   getPaymentStatus,

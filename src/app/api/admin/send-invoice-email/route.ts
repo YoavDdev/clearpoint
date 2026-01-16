@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         quantity: item.quantity,
         price: item.unit_price,
       })) || [],
-      invoiceUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/invoice/${invoice.id}`,
+      invoiceUrl: `${process.env.NODE_ENV === 'production' ? 'https://www.clearpoint.co.il' : (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000')}/invoice/${invoice.id}`,
       isMonthlyRecurring,
     };
 

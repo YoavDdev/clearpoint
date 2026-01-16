@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createOneTimePayment } from "@/lib/payplus";
+import { createOneTimePayment, createPayPlusCustomer } from "@/lib/payplus";
 
 export const dynamic = 'force-dynamic';
 
@@ -87,6 +87,32 @@ export async function POST(req: NextRequest) {
         { success: false, error: "Failed to create user", details: userError },
         { status: 500 }
       );
+    }
+
+    // 4.5. יצירת לקוח ב-PayPlus
+    console.log('🔵 Creating PayPlus customer for:', newUser.email);
+    const payplusCustomerResult = await createPayPlusCustomer({
+      email: newUser.email,
+      customer_name: newUser.full_name || newUser.email,
+      phone: newUser.phone || '',
+      business_address: newUser.address || '',
+      notes: `Customer created from subscription request ${requestId}`,
+      customer_number: newUser.id, // שימוש ב-user_id כמספר לקוח פנימי
+    });
+
+    if (payplusCustomerResult.success && payplusCustomerResult.customer_uid) {
+      console.log('✅ PayPlus customer created:', payplusCustomerResult.customer_uid);
+      // עדכון המשתמש עם customer_uid
+      await supabase
+        .from("users")
+        .update({ customer_uid: payplusCustomerResult.customer_uid })
+        .eq("id", newUser.id);
+      
+      // עדכון המשתנה המקומי
+      newUser.customer_uid = payplusCustomerResult.customer_uid;
+    } else {
+      console.warn('⚠️ Failed to create PayPlus customer:', payplusCustomerResult.error);
+      // לא עוצרים - ממשיכים בלי customer_uid
     }
 
     // 5. יצירת רשומת תשלום ב-DB

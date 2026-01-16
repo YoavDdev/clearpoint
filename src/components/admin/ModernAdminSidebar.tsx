@@ -49,12 +49,6 @@ const navigation = [
     description: "ניהול מנויים חוזרים מ-PayPlus"
   },
   {
-    name: "סנכרון מנויים",
-    href: "/admin/subscriptions-sync",
-    icon: RefreshCw,
-    description: "סנכרון אוטומטי וידני מ-PayPlus"
-  },
-  {
     name: "מצלמות",
     href: "/admin/cameras",
     icon: Camera,

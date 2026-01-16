@@ -16,6 +16,9 @@ import {
   Wifi,
   Smartphone,
   DollarSign,
+  Building2,
+  Hash,
+  MapPinned,
 } from "lucide-react";
 
 interface Plan {
@@ -36,6 +39,10 @@ interface Props {
     plan_id: string | null;
     plan_duration_days: number | null;
     custom_price: number | null;
+    vat_number?: string | null;
+    business_city?: string | null;
+    business_postal_code?: string | null;
+    communication_email?: string | null;
   };
 }
 
@@ -51,6 +58,12 @@ export default function EditCustomerForm({ user }: Props) {
   const [planId, setPlanId] = useState(user.plan_id || "");
   const [customPrice, setCustomPrice] = useState(user.custom_price?.toString() || "");
   const [retention, setRetention] = useState(user.plan_duration_days || 7);
+  
+  // Business fields
+  const [vatNumber, setVatNumber] = useState(user.vat_number || "");
+  const [businessCity, setBusinessCity] = useState(user.business_city || "");
+  const [businessPostalCode, setBusinessPostalCode] = useState(user.business_postal_code || "");
+  const [communicationEmail, setCommunicationEmail] = useState(user.communication_email || "");
 
   useEffect(() => {
     fetch("/api/plans")
@@ -83,6 +96,11 @@ export default function EditCustomerForm({ user }: Props) {
         plan_id: planId,
         plan_duration_days: retention,
         custom_price: customPrice ? Number(customPrice) : null,
+        // Business fields
+        vat_number: vatNumber || null,
+        business_city: businessCity || null,
+        business_postal_code: businessPostalCode || null,
+        communication_email: communicationEmail || null,
       }),
     });
 
@@ -199,6 +217,21 @@ export default function EditCustomerForm({ user }: Props) {
                   />
                 </div>
 
+                {/* Communication Email */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
+                    <span>אימייל תקשורת (אופציונלי)</span>
+                    <Mail size={16} className="text-slate-400" />
+                  </label>
+                  <input
+                    type="email"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    value={communicationEmail}
+                    onChange={(e) => setCommunicationEmail(e.target.value)}
+                    placeholder="אימייל נפרד לתקשורת (אם שונה)"
+                  />
+                </div>
+
                 {/* Notes */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
@@ -215,15 +248,73 @@ export default function EditCustomerForm({ user }: Props) {
                 </div>
               </div>
 
-              {/* Right Column - Plan & Billing */}
+              {/* Right Column - Business & Billing Info */}
               <div className="space-y-6">
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2 justify-end">
-                    <span>מנוי ותשלומים</span>
-                    <CreditCard className="text-purple-600" size={20} />
+                    <span>פרטים עסקיים</span>
+                    <Building2 className="text-orange-600" size={20} />
                   </h3>
                 </div>
 
+                {/* VAT Number */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
+                    <span>ח.פ / ע.מ</span>
+                    <Hash size={16} className="text-slate-400" />
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                    value={vatNumber}
+                    onChange={(e) => setVatNumber(e.target.value)}
+                    placeholder="הזן מספר ח.פ או ע.מ"
+                  />
+                </div>
+
+                {/* Business City */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
+                    <span>עיר</span>
+                    <MapPinned size={16} className="text-slate-400" />
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                    value={businessCity}
+                    onChange={(e) => setBusinessCity(e.target.value)}
+                    placeholder="הזן עיר"
+                  />
+                </div>
+
+                {/* Business Postal Code */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
+                    <span>מיקוד</span>
+                    <Hash size={16} className="text-slate-400" />
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                    value={businessPostalCode}
+                    onChange={(e) => setBusinessPostalCode(e.target.value)}
+                    placeholder="הזן מיקוד"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Subscription & Pricing Section */}
+            <div className="mt-8 pt-8 border-t border-slate-200">
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2 justify-end">
+                  <span>מנוי ותשלומים</span>
+                  <CreditCard className="text-purple-600" size={20} />
+                </h3>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-6">
                 {/* Plan Selection */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700 text-right flex items-center gap-2 justify-end">
@@ -313,6 +404,7 @@ export default function EditCustomerForm({ user }: Props) {
                     השאר ריק כדי להשתמש במחיר הבסיסי של המסלול
                   </p>
                 </div>
+              </div>
               </div>
             </div>
 

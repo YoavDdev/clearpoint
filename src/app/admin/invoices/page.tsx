@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileText, User, Calendar, DollarSign, Eye, Printer, Search, Filter, Trash2 } from "lucide-react";
+import { FileText, User, Calendar, DollarSign, Eye, Printer, Search, Filter, Trash2, X } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 
 interface Invoice {
   id: string;
@@ -31,19 +32,25 @@ interface Invoice {
 }
 
 export default function AdminInvoicesPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const userIdFilter = searchParams.get("user_id");
 
   useEffect(() => {
     fetchInvoices();
-  }, [statusFilter]);
+  }, [statusFilter, userIdFilter]);
 
   const fetchInvoices = async () => {
     setLoading(true);
     try {
-      const url = `/api/admin/invoices?status=${statusFilter}`;
+      let url = `/api/admin/invoices?status=${statusFilter}`;
+      if (userIdFilter) {
+        url += `&user_id=${userIdFilter}`;
+      }
       const response = await fetch(url);
       const data = await response.json();
 
@@ -55,6 +62,10 @@ export default function AdminInvoicesPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const clearUserFilter = () => {
+    router.push('/admin/invoices');
   };
 
   const handleDeleteInvoice = async (invoiceId: string, invoiceNumber: string) => {
@@ -141,15 +152,44 @@ export default function AdminInvoicesPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <FileText size={32} className="text-white" />
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <FileText size={32} className="text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold text-slate-800">ניהול חשבוניות</h1>
+                <p className="text-slate-600">כל החשבוניות במערכת</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-4xl font-bold text-slate-800">ניהול חשבוניות</h1>
-              <p className="text-slate-600">כל החשבוניות במערכת</p>
-            </div>
+            <Link
+              href="/admin/invoices/create"
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg font-medium"
+            >
+              <FileText size={20} />
+              <span>צור חשבונית חדשה</span>
+            </Link>
           </div>
+
+          {/* User Filter Banner */}
+          {userIdFilter && invoices.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <User size={20} className="text-blue-600" />
+                <div>
+                  <p className="text-sm font-medium text-blue-900">מציג חשבוניות של: {invoices[0]?.user?.full_name || invoices[0]?.user?.email}</p>
+                  <p className="text-xs text-blue-700">נמצאו {invoices.length} חשבוניות</p>
+                </div>
+              </div>
+              <button
+                onClick={clearUserFilter}
+                className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                <X size={16} />
+                <span>הצג הכל</span>
+              </button>
+            </div>
+          )}
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

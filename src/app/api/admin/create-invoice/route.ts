@@ -232,7 +232,11 @@ export async function POST(req: NextRequest) {
     // הוסר: יצירת מנוי חודשי - מטופל בנפרד דרך SubscriptionManager
 
     // לינק לדף החשבונית שלנו (לא ישר ל-PayPlus)
-    const invoiceUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/invoice/${invoice.id}`;
+    // תמיד להשתמש ב-domain הראשי בפרודקשן
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://www.clearpoint.co.il' 
+      : (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000');
+    const invoiceUrl = `${baseUrl}/invoice/${invoice.id}`;
 
     return NextResponse.json({
       success: true,
