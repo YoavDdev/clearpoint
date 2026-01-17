@@ -267,6 +267,124 @@ export async function createOneTimePayment(
 }
 
 /**
+ * יצירת Payment Page למנוי חודשי חוזר
+ * הלקוח יזין את הכרטיס שלו ב-Payment Page והמנוי ייווצר אוטומטית
+ */
+export async function createRecurringPaymentPage(request: {
+  customer_uid: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone?: string;
+  amount: number;
+  plan_name: string;
+  start_date: string; // DD/MM/YYYY
+  recurring_type?: number; // 2 = monthly
+  recurring_range?: number; // 1 = every month
+  number_of_charges?: number; // 0 = unlimited
+  success_url?: string;
+  cancel_url?: string;
+  custom_fields?: any;
+}): Promise<PayplusPaymentResponse> {
+  try {
+    console.log('🔵 Creating recurring payment page for customer:', request.customer_name);
+
+    if (PAYPLUS_CONFIG.useMock) {
+      console.log('🧪 Mock: Recurring payment page created');
+      return {
+        status: '1',
+        data: {
+          pageUrl: `http://localhost:3000/mock-recurring-payment?customer=${request.customer_uid}`,
+          transactionId: `mock_recurring_${Date.now()}`,
+          processId: `mock_recurring_${Date.now()}`,
+          processToken: `mock_token_${Date.now()}`,
+        },
+      };
+    }
+
+    // PayPlus Payment Page with recurring parameters
+    const payload: any = {
+      payment_page_uid: PAYPLUS_CONFIG.paymentPageUid,
+      amount: request.amount,
+      currency_code: 'ILS',
+      
+      customer: {
+        customer_uid: request.customer_uid,
+        customer_name: request.customer_name,
+        email: request.customer_email,
+        phone: request.customer_phone || '',
+      },
+      
+      // Recurring parameters - correct field names for PayPlus
+      charge_method: 4, // 4 = Create recurring payment
+      recurring_type: request.recurring_type || 2, // 2 = monthly
+      recurring_range: request.recurring_range || 1, // every 1 month
+      number_of_payments: request.number_of_charges || 0, // 0 = unlimited
+      start_date: request.start_date, // DD/MM/YYYY
+      charge_default: 0, // 0 = Don't charge now, only create recurring
+      
+      // Callbacks
+      refURL_callback: `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhooks/payplus`,
+      refURL_success: request.success_url || `${process.env.NEXT_PUBLIC_BASE_URL}/recurring-payment-success`,
+      refURL_failure: request.cancel_url || `${process.env.NEXT_PUBLIC_BASE_URL}/payment-cancelled`,
+      
+      sendEmailApproval: false,
+      sendEmailFailure: false,
+      send_failure_callback: true,
+      
+      more_info: request.custom_fields 
+        ? `${request.custom_fields.cField1 || ''}|${request.custom_fields.cField2 || ''}|${request.custom_fields.cField3 || ''}`
+        : undefined,
+      
+      items: [{
+        name: request.plan_name,
+        quantity: 1,
+        price: request.amount,
+        vat_type: 0,
+      }],
+    };
+
+    console.log('📤 Creating PayPlus Payment Page for recurring:', payload);
+
+    const apiUrl = `${getBaseUrl()}/PaymentPages/generateLink`;
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': PAYPLUS_CONFIG.apiKey,
+        'secret-key': PAYPLUS_CONFIG.secretKey,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    console.log('📥 PayPlus Payment Page response:', data);
+
+    if (data.results?.status === 'success' && data.data?.payment_page_link) {
+      return {
+        status: '1',
+        data: {
+          pageUrl: data.data.payment_page_link,
+          transactionId: data.data.page_request_uid || '',
+          processId: data.data.page_request_uid || '',
+          processToken: data.data.page_request_uid || '',
+        },
+      };
+    } else {
+      return {
+        status: '0',
+        err: data.results?.description || 'Failed to create payment page',
+      };
+    }
+  } catch (error) {
+    console.error('❌ Create recurring payment page error:', error);
+    return {
+      status: '0',
+      err: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
  * קבלת פרטי מנוי חוזר
  */
 export async function viewRecurringPayment(uid: string) {
@@ -786,7 +904,7 @@ export interface RecurringPaymentItem {
 export interface CreateRecurringPaymentRequest {
   terminal_uid: string;
   customer_uid: string;
-  card_token: string;
+  card_token?: string | null;
   cashier_uid: string;
   currency_code: 'ILS' | 'USD' | 'EUR' | 'GPB';
   recurring_type: 0 | 1 | 2; // 0=daily, 1=weekly, 2=monthly
@@ -794,6 +912,7 @@ export interface CreateRecurringPaymentRequest {
   number_of_charges: number;
   start_date: string;
   end_date?: string;
+  instant_first_payment?: boolean; // Whether to charge immediately or wait for start_date
   items: RecurringPaymentItem[];
   extra_info?: string;
 }
@@ -924,6 +1043,67 @@ export async function deleteRecurringPayment(
   } catch (error) {
     console.error('❌ Delete recurring payment error:', error);
     throw error;
+  }
+}
+
+/**
+ * שליפת כרטיסי אשראי שמורים של לקוח
+ * מחלץ מידע על כרטיסים ממנויים חוזרים קיימים
+ */
+export async function getCustomerCards(customerUid: string): Promise<any> {
+  try {
+    console.log('🔵 Fetching saved cards from recurring payments for customer:', customerUid);
+
+    if (PAYPLUS_CONFIG.useMock) {
+      console.log('🧪 Mock: No saved cards');
+      return { results: { status: 'success', code: 0, description: 'OK' }, data: [] };
+    }
+
+    // Get all recurring payments for this terminal
+    const apiUrl = `${getBaseUrl()}/RecurringPayments/View?terminal_uid=${PAYPLUS_CONFIG.terminalUid}`;
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': PAYPLUS_CONFIG.apiKey,
+        'secret-key': PAYPLUS_CONFIG.secretKey,
+      },
+    });
+
+    const data = await response.json();
+    console.log('📥 RecurringPayments/View response:', data);
+    
+    // Filter recurring payments by customer_uid
+    if (data.data && Array.isArray(data.data)) {
+      const customerRecurringPayments = data.data.filter((rp: any) => rp.customer_uid === customerUid);
+      
+      if (customerRecurringPayments.length > 0) {
+        const firstRecurring = customerRecurringPayments[0];
+        console.log('✅ Found recurring payment with saved card:', {
+          recurring_uid: firstRecurring.uid,
+          card_number: firstRecurring.card_number,
+          card_expiry: firstRecurring.card_expiry,
+        });
+        
+        // Return card info extracted from recurring payment
+        // Note: card_uid might be in card_token or token field
+        return {
+          results: { status: 'success', code: 0, description: 'OK' },
+          data: [{
+            uid: firstRecurring.card_token || firstRecurring.token || firstRecurring.uid, // Try different possible fields
+            card_number: firstRecurring.card_number,
+            card_expiry: firstRecurring.card_expiry,
+            recurring_uid: firstRecurring.uid, // Keep for reference
+          }]
+        };
+      }
+    }
+    
+    console.log('⚠️ No recurring payments with saved cards found for customer');
+    return { results: { status: 'success', code: 0, description: 'OK' }, data: [] };
+  } catch (error) {
+    console.error('❌ Get customer cards error:', error);
+    return { results: { status: 'error', code: 1, description: 'Error' }, data: [] };
   }
 }
 
@@ -1128,6 +1308,7 @@ export function formatAmount(amount: number, currency: string = 'ILS'): string {
 
 export default {
   createOneTimePayment,
+  createRecurringPaymentPage,
   viewRecurringPayment,
   listAllRecurringPayments,
   cancelRecurringPayment,
@@ -1135,6 +1316,7 @@ export default {
   updateRecurringPayment,
   deleteRecurringPayment,
   toggleRecurringValid,
+  getCustomerCards,
   getRecurringPaymentDetails,
   getRecurringCharges,
   sendCardRenewalNotification,
