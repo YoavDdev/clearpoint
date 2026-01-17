@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -62,7 +62,7 @@ interface RecurringPayment {
   };
 }
 
-export default function RecurringPaymentsPage() {
+function RecurringPaymentsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const userIdFilter = searchParams.get('user_id');
@@ -834,5 +834,20 @@ export default function RecurringPaymentsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function RecurringPaymentsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-slate-600">טוען מנויים...</p>
+        </div>
+      </div>
+    }>
+      <RecurringPaymentsContent />
+    </Suspense>
   );
 }

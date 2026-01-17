@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { FileText, User, Calendar, DollarSign, Eye, Printer, Search, Filter, Trash2, X } from "lucide-react";
+import { useState, useEffect, Suspense } from "react";
+import { FileText, User, Calendar, DollarSign, Eye, Printer, Search, Filter, Trash2, X, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 
@@ -31,7 +31,7 @@ interface Invoice {
   } | null;
 }
 
-export default function AdminInvoicesPage() {
+function AdminInvoicesContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -336,5 +336,20 @@ export default function AdminInvoicesPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AdminInvoicesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-slate-600">טוען חשבוניות...</p>
+        </div>
+      </div>
+    }>
+      <AdminInvoicesContent />
+    </Suspense>
   );
 }
