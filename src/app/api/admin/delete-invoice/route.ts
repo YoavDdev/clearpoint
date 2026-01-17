@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     // Get invoice details first to check status
     const { data: invoice, error: fetchError } = await supabase
       .from("invoices")
-      .select("id, status")
+      .select("id, status, document_type")
       .eq("id", invoiceId)
       .single();
 
@@ -31,10 +31,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Only allow deletion of invoices with 'sent' status (pending payment)
-    if (invoice.status !== "sent") {
+    // לא ניתן למחוק מסמכים ששולמו או הצעות מחיר שאושרו
+    const protectedStatuses = ["paid", "quote_approved"];
+    if (protectedStatuses.includes(invoice.status)) {
+      const docType = invoice.document_type === 'quote' ? 'הצעות מחיר שאושרו' : 'חשבוניות ששולמו';
       return NextResponse.json(
-        { success: false, error: "ניתן למחוק רק חשבוניות בסטטוס ממתין" },
+        { success: false, error: `לא ניתן למחוק ${docType}` },
         { status: 400 }
       );
     }
