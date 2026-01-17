@@ -31,14 +31,34 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // לא ניתן למחוק מסמכים ששולמו או הצעות מחיר שאושרו
-    const protectedStatuses = ["paid", "quote_approved"];
-    if (protectedStatuses.includes(invoice.status)) {
-      const docType = invoice.document_type === 'quote' ? 'הצעות מחיר שאושרו' : 'חשבוניות ששולמו';
+    // לא ניתן למחוק מסמכים ששולמו
+    if (invoice.status === "paid") {
       return NextResponse.json(
-        { success: false, error: `לא ניתן למחוק ${docType}` },
+        { success: false, error: "לא ניתן למחוק חשבוניות ששולמו" },
         { status: 400 }
       );
+    }
+
+    // אם זו חשבונית שנוצרה מהצעת מחיר - נעדכן את הצעת המחיר המקורית
+    if (invoice.document_type === 'invoice') {
+      // חיפוש הצעת מחיר שמצביעה לחשבונית זו
+      const { data: originalQuote } = await supabase
+        .from("invoices")
+        .select("id")
+        .eq("converted_to_invoice_id", invoiceId)
+        .single();
+
+      if (originalQuote) {
+        // עדכון הצעת המחיר - הסרת הקישור והחזרת הסטטוס ל-quote_sent
+        await supabase
+          .from("invoices")
+          .update({
+            converted_to_invoice_id: null,
+            status: "quote_sent",
+            approved_at: null,
+          })
+          .eq("id", originalQuote.id);
+      }
     }
 
     // Delete the invoice
