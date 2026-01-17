@@ -8,11 +8,12 @@ export default function ConditionalNavbar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   
-  // Hide navbar on dashboard, admin, invoices, and auth pages for clean interface
+  // Hide navbar on dashboard, admin, invoices, quotes, and auth pages for clean interface
   const hiddenRoutes = [
     '/dashboard', 
     '/admin',
     '/invoice',
+    '/quote',
     '/login',
     '/forgot-password',
     '/reset-password',

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, X, Send, Calculator, Trash2, FileText } from "lucide-react";
+import { Plus, X, Send, Calculator, Trash2, FileText, Calendar } from "lucide-react";
 
 interface InvoiceItem {
   id: string;
@@ -27,9 +27,10 @@ interface InvoiceCreatorProps {
   userId: string;
   customerName: string;
   customerEmail: string;
+  defaultDocumentType?: 'quote' | 'invoice';
 }
 
-export default function InvoiceCreator({ userId, customerName, customerEmail }: InvoiceCreatorProps) {
+export default function InvoiceCreator({ userId, customerName, customerEmail, defaultDocumentType = 'invoice' }: InvoiceCreatorProps) {
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [templates, setTemplates] = useState<ItemTemplate[]>([]);
   const [notes, setNotes] = useState("");
@@ -37,6 +38,8 @@ export default function InvoiceCreator({ userId, customerName, customerEmail }: 
   const [showTemplates, setShowTemplates] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [invoiceLink, setInvoiceLink] = useState("");
+  const [documentType, setDocumentType] = useState<'quote' | 'invoice'>(defaultDocumentType);
+  const [validUntil, setValidUntil] = useState("");
   
   // הוסר: מנוי חודשי מטופל בנפרד דרך SubscriptionManager
 
@@ -100,7 +103,12 @@ export default function InvoiceCreator({ userId, customerName, customerEmail }: 
 
   async function createInvoice() {
     if (items.length === 0) {
-      alert("❌ נא להוסיף לפחות פריט אחד לחשבונית");
+      alert(documentType === 'quote' ? "❌ נא להוסיף לפחות פריט אחד להצעת המחיר" : "❌ נא להוסיף לפחות פריט אחד לחשבונית");
+      return;
+    }
+
+    if (documentType === 'quote' && !validUntil) {
+      alert("❌ נא לבחור תאריך תוקף להצעת המחיר");
       return;
     }
 
@@ -115,20 +123,22 @@ export default function InvoiceCreator({ userId, customerName, customerEmail }: 
           notes,
           customerName,
           customerEmail,
+          documentType,
+          validUntil: documentType === 'quote' ? validUntil : null,
         }),
       });
 
       const data = await res.json();
 
       if (data.success) {
-        setInvoiceLink(data.invoiceUrl);
+        setInvoiceLink(data.invoiceUrl || data.quoteUrl);
         setShowSuccess(true);
       } else {
         alert("❌ שגיאה: " + data.error);
       }
     } catch (error) {
       console.error("Error creating invoice:", error);
-      alert("❌ שגיאה ביצירת חשבונית");
+      alert(documentType === 'quote' ? "❌ שגיאה ביצירת הצעת מחיר" : "❌ שגיאה ביצירת חשבונית");
     } finally {
       setLoading(false);
     }
@@ -149,17 +159,18 @@ export default function InvoiceCreator({ userId, customerName, customerEmail }: 
   };
 
   if (showSuccess) {
+    const isQuote = documentType === 'quote';
     return (
       <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8">
         <div className="text-center">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Send size={32} className="text-green-600" />
           </div>
-          <h3 className="text-2xl font-bold text-slate-800 mb-2">✅ חשבונית נוצרה בהצלחה!</h3>
-          <p className="text-slate-600 mb-6">לינק לחשבונית מוכן לשליחה ללקוח</p>
+          <h3 className="text-2xl font-bold text-slate-800 mb-2">✅ {isQuote ? 'הצעת מחיר נוצרה בהצלחה!' : 'חשבונית נוצרה בהצלחה!'}</h3>
+          <p className="text-slate-600 mb-6">{isQuote ? 'לינק להצעת המחיר מוכן לשליחה ללקוח' : 'לינק לחשבונית מוכן לשליחה ללקוח'}</p>
           
           <div className="bg-blue-50 rounded-lg p-4 mb-6">
-            <p className="text-sm text-slate-600 mb-2">לינק לחשבונית:</p>
+            <p className="text-sm text-slate-600 mb-2">{isQuote ? 'לינק להצעת המחיר:' : 'לינק לחשבונית:'}</p>
             <div className="flex items-center gap-2">
               <input
                 type="text"
@@ -183,7 +194,7 @@ export default function InvoiceCreator({ userId, customerName, customerEmail }: 
               rel="noopener noreferrer"
               className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
             >
-              צפה בחשבונית
+              {isQuote ? 'צפה בהצעת מחיר' : 'צפה בחשבונית'}
             </a>
             <button
               onClick={() => {
@@ -194,7 +205,7 @@ export default function InvoiceCreator({ userId, customerName, customerEmail }: 
               }}
               className="px-6 py-3 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors font-medium"
             >
-              צור חשבונית נוספת
+              {isQuote ? 'צור הצעת מחיר נוספת' : 'צור חשבונית נוספת'}
             </button>
           </div>
         </div>
@@ -208,14 +219,62 @@ export default function InvoiceCreator({ userId, customerName, customerEmail }: 
       <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-6 border-b border-slate-200">
         <div className="flex items-center justify-between">
           <div className="text-right">
-            <h3 className="text-xl font-bold text-slate-800 mb-1">💰 צור חשבונית ושלח לתשלום</h3>
-            <p className="text-slate-600 text-sm">הוסף פריטים, חשב סה"כ ושלח לינק ללקוח</p>
+            <h3 className="text-xl font-bold text-slate-800 mb-1">{documentType === 'quote' ? '📋 צור הצעת מחיר' : '💰 צור חשבונית ושלח לתשלום'}</h3>
+            <p className="text-slate-600 text-sm">{documentType === 'quote' ? 'הוסף פריטים ושלח הצעת מחיר ללקוח לאישור' : 'הוסף פריטים, חשב סה"כ ושלח לינק ללקוח'}</p>
           </div>
           <FileText size={32} className="text-purple-600" />
         </div>
       </div>
 
       <div className="p-6">
+        {/* Document Type Selection */}
+        <div className="mb-6 bg-blue-50 rounded-lg p-4 border border-blue-200">
+          <label className="text-sm font-medium text-slate-700 mb-3 block text-right">סוג מסמך</label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setDocumentType('quote')}
+              className={`p-4 rounded-lg border-2 transition-all text-right ${
+                documentType === 'quote'
+                  ? 'border-blue-600 bg-blue-100 text-blue-800'
+                  : 'border-slate-300 bg-white text-slate-700 hover:border-blue-400'
+              }`}
+            >
+              <div className="font-bold mb-1">📋 הצעת מחיר</div>
+              <div className="text-xs">ללא תשלום, לאישור לקוח</div>
+            </button>
+            <button
+              onClick={() => setDocumentType('invoice')}
+              className={`p-4 rounded-lg border-2 transition-all text-right ${
+                documentType === 'invoice'
+                  ? 'border-green-600 bg-green-100 text-green-800'
+                  : 'border-slate-300 bg-white text-slate-700 hover:border-green-400'
+              }`}
+            >
+              <div className="font-bold mb-1">💰 חשבונית</div>
+              <div className="text-xs">עם לינק תשלום מיידי</div>
+            </button>
+          </div>
+        </div>
+
+        {/* Valid Until (for quotes only) */}
+        {documentType === 'quote' && (
+          <div className="mb-6">
+            <label className="text-sm font-medium text-slate-700 mb-2 text-right flex items-center gap-2 justify-end">
+              <span>תוקף הצעת המחיר</span>
+              <Calendar size={16} className="text-slate-400" />
+            </label>
+            <input
+              type="date"
+              value={validUntil}
+              onChange={(e) => setValidUntil(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right"
+              required
+            />
+            <p className="text-xs text-slate-500 mt-1 text-right">עד מתי ההצעה תקפה?</p>
+          </div>
+        )}
+
         {/* Items List */}
         {items.length > 0 && (
           <div className="mb-6 space-y-3">
@@ -337,7 +396,7 @@ export default function InvoiceCreator({ userId, customerName, customerEmail }: 
 
         {/* Notes */}
         <div className="mb-6">
-          <label className="text-sm font-medium text-slate-700 mb-2 block text-right">הערות לחשבונית</label>
+          <label className="text-sm font-medium text-slate-700 mb-2 block text-right">{documentType === 'quote' ? 'הערות להצעת המחיר' : 'הערות לחשבונית'}</label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -355,9 +414,9 @@ export default function InvoiceCreator({ userId, customerName, customerEmail }: 
           <div className="mb-4 text-right">
             <div className="flex justify-between items-center">
               <div className="text-right">
-                <div className="text-sm text-slate-600 mb-1">סה"כ לתשלום התקנה</div>
+                <div className="text-sm text-slate-600 mb-1">{documentType === 'quote' ? 'סה"כ הצעת מחיר' : 'סה"כ לתשלום התקנה'}</div>
                 <div className="text-4xl font-bold text-green-700">₪{getTotalAmount().toFixed(2)}</div>
-                <div className="text-xs text-slate-600 mt-1">אפשרות לעד 12 תשלומים</div>
+                {documentType === 'invoice' && <div className="text-xs text-slate-600 mt-1">אפשרות לעד 12 תשלומים</div>}
               </div>
               <Calculator size={40} className="text-green-600" />
             </div>
@@ -372,6 +431,11 @@ export default function InvoiceCreator({ userId, customerName, customerEmail }: 
               <>
                 <div className="animate-spin w-5 h-5 border-3 border-white border-t-transparent rounded-full" />
                 <span>יוצר חשבונית...</span>
+              </>
+            ) : documentType === 'quote' ? (
+              <>
+                <Send size={24} />
+                <span>שלח הצעת מחיר ללקוח</span>
               </>
             ) : (
               <>

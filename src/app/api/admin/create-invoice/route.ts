@@ -16,6 +16,8 @@ export async function POST(req: NextRequest) {
       customerAddress,
       customerCity,
       customerIdNumber,
+      documentType = 'invoice',
+      validUntil,
     } = await req.json();
 
     if (!userId || !items || items.length === 0) {
@@ -36,7 +38,9 @@ export async function POST(req: NextRequest) {
       0
     );
 
-    // חישוב מספר חשבונית ייחודי (YYYYMMDD + sequential number)
+    const isQuote = documentType === 'quote';
+
+    // חישוב מספר מסמך ייחודי (YYYYMMDD + sequential number)
     const today = new Date();
     const datePrefix = today.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
     
@@ -73,10 +77,12 @@ export async function POST(req: NextRequest) {
         .insert({
           user_id: userId,
           invoice_number: invoiceNumber,
-          status: "draft",
+          document_type: documentType,
+          status: isQuote ? "quote_draft" : "draft",
           total_amount: totalAmount,
           currency: "ILS",
           notes: notes || null,
+          quote_valid_until: isQuote && validUntil ? validUntil : null,
         })
         .select()
         .single();
@@ -140,7 +146,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // יצירת רשומת תשלום
+    // אם זו הצעת מחיר - עדכון סטטוס ל-quote_sent וזהו
+    if (isQuote) {
+      await supabase
+        .from("invoices")
+        .update({
+          status: "quote_sent",
+          sent_at: new Date().toISOString(),
+        })
+        .eq("id", invoice.id);
+
+      // תמיד להשתמש בדומיין הייצור ללינקים ללקוחות
+      const quoteUrl = `https://www.clearpoint.co.il/quote/${invoice.id}`;
+
+      return NextResponse.json({
+        success: true,
+        quote: {
+          id: invoice.id,
+          invoice_number: invoice.invoice_number,
+          total_amount: totalAmount,
+          valid_until: validUntil,
+        },
+        quoteUrl: quoteUrl,
+      });
+    }
+
+    // אם זו חשבונית - יצירת רשומת תשלום ולינק PayPlus
     const { data: payment, error: paymentError } = await supabase
       .from("payments")
       .insert({

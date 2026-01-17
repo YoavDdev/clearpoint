@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("user_id");
     const status = searchParams.get("status");
+    const documentType = searchParams.get("document_type");
 
     let query = supabase
       .from("invoices")
@@ -39,6 +40,11 @@ export async function GET(req: NextRequest) {
     // פילטר לפי לקוח
     if (userId) {
       query = query.eq("user_id", userId);
+    }
+
+    // פילטר לפי סוג מסמך
+    if (documentType && documentType !== "all") {
+      query = query.eq("document_type", documentType);
     }
 
     // פילטר לפי סטטוס

@@ -8,11 +8,15 @@ import { useSearchParams, useRouter } from "next/navigation";
 interface Invoice {
   id: string;
   invoice_number: string;
+  document_type: 'quote' | 'invoice';
   status: string;
   total_amount: number;
   currency: string;
   created_at: string;
   paid_at: string | null;
+  quote_valid_until?: string | null;
+  approved_at?: string | null;
+  rejected_at?: string | null;
   has_subscription: boolean;
   monthly_price: number | null;
   user: {
@@ -38,16 +42,20 @@ function AdminInvoicesContent() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [documentTypeFilter, setDocumentTypeFilter] = useState("all");
   const userIdFilter = searchParams.get("user_id");
 
   useEffect(() => {
     fetchInvoices();
-  }, [statusFilter, userIdFilter]);
+  }, [statusFilter, documentTypeFilter, userIdFilter]);
 
   const fetchInvoices = async () => {
     setLoading(true);
     try {
       let url = `/api/admin/invoices?status=${statusFilter}`;
+      if (documentTypeFilter !== "all") {
+        url += `&document_type=${documentTypeFilter}`;
+      }
       if (userIdFilter) {
         url += `&user_id=${userIdFilter}`;
       }
@@ -68,8 +76,9 @@ function AdminInvoicesContent() {
     router.push('/admin/invoices');
   };
 
-  const handleDeleteInvoice = async (invoiceId: string, invoiceNumber: string) => {
-    if (!confirm(`האם אתה בטוח שברצונך למחוק את חשבונית #${invoiceNumber}?`)) {
+  const handleDeleteInvoice = async (invoiceId: string, invoiceNumber: string, documentType: 'quote' | 'invoice') => {
+    const docName = documentType === 'quote' ? 'הצעת מחיר' : 'חשבונית';
+    if (!confirm(`האם אתה בטוח שברצונך למחוק את ${docName} #${invoiceNumber}?`)) {
       return;
     }
 
@@ -83,14 +92,16 @@ function AdminInvoicesContent() {
       const result = await response.json();
 
       if (result.success) {
-        alert("החשבונית נמחקה בהצלחה");
+        const docName = documentType === 'quote' ? 'הצעת המחיר' : 'החשבונית';
+        alert(`${docName} נמחקה בהצלחה`);
         fetchInvoices();
       } else {
         alert("שגיאה: " + result.error);
       }
     } catch (error) {
       console.error("Error deleting invoice:", error);
-      alert("שגיאה במחיקת החשבונית");
+      const docName = documentType === 'quote' ? 'הצעת המחיר' : 'החשבונית';
+      alert(`שגיאה במחיקת ${docName}`);
     }
   };
 
@@ -105,6 +116,12 @@ function AdminInvoicesContent() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
+      // הצעות מחיר
+      quote_draft: { label: "טיוטה", color: "bg-gray-100 text-gray-800" },
+      quote_sent: { label: "הצעה נשלחה", color: "bg-blue-100 text-blue-800" },
+      quote_approved: { label: "הצעה אושרה", color: "bg-green-100 text-green-800" },
+      quote_rejected: { label: "הצעה נדחתה", color: "bg-red-100 text-red-800" },
+      // חשבוניות
       draft: { label: "טיוטה", color: "bg-gray-100 text-gray-800" },
       sent: { label: "ממתין לתשלום", color: "bg-blue-100 text-blue-800" },
       paid: { label: "שולם", color: "bg-green-100 text-green-800" },
@@ -140,6 +157,9 @@ function AdminInvoicesContent() {
 
   const stats = {
     total: invoices.length,
+    quotes: invoices.filter((i) => i.document_type === "quote").length,
+    invoices: invoices.filter((i) => i.document_type === "invoice").length,
+    quotesApproved: invoices.filter((i) => i.status === "quote_approved").length,
     paid: invoices.filter((i) => i.status === "paid").length,
     pending: invoices.filter((i) => i.status === "sent").length,
     totalRevenue: invoices
@@ -192,20 +212,28 @@ function AdminInvoicesContent() {
           )}
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
-              <div className="text-slate-600 text-sm mb-2">סה"כ חשבוניות</div>
+              <div className="text-slate-600 text-sm mb-2">סה"כ</div>
               <div className="text-3xl font-bold text-slate-800">{stats.total}</div>
             </div>
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-200">
+              <div className="text-blue-600 text-sm mb-2">הצעות מחיר</div>
+              <div className="text-3xl font-bold text-blue-700">{stats.quotes}</div>
+            </div>
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-200">
+              <div className="text-orange-600 text-sm mb-2">חשבוניות</div>
+              <div className="text-3xl font-bold text-orange-700">{stats.invoices}</div>
+            </div>
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-emerald-200">
+              <div className="text-emerald-600 text-sm mb-2">הצעות אושרו</div>
+              <div className="text-3xl font-bold text-emerald-700">{stats.quotesApproved}</div>
+            </div>
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-green-200">
               <div className="text-green-600 text-sm mb-2">שולמו</div>
               <div className="text-3xl font-bold text-green-700">{stats.paid}</div>
             </div>
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
-              <div className="text-blue-600 text-sm mb-2">ממתינות</div>
-              <div className="text-3xl font-bold text-blue-700">{stats.pending}</div>
-            </div>
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-purple-200">
               <div className="text-purple-600 text-sm mb-2">סה"כ הכנסות</div>
               <div className="text-3xl font-bold text-purple-700">₪{stats.totalRevenue.toFixed(0)}</div>
             </div>
@@ -213,7 +241,7 @@ function AdminInvoicesContent() {
 
           {/* Filters */}
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-3 gap-4">
               {/* Search */}
               <div className="relative">
                 <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
@@ -226,6 +254,20 @@ function AdminInvoicesContent() {
                 />
               </div>
 
+              {/* Document Type Filter */}
+              <div className="flex items-center gap-2">
+                <FileText size={20} className="text-slate-600" />
+                <select
+                  value={documentTypeFilter}
+                  onChange={(e) => setDocumentTypeFilter(e.target.value)}
+                  className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">הכל</option>
+                  <option value="quote">📋 הצעות מחיר</option>
+                  <option value="invoice">💰 חשבוניות</option>
+                </select>
+              </div>
+
               {/* Status Filter */}
               <div className="flex items-center gap-2">
                 <Filter size={20} className="text-slate-600" />
@@ -235,10 +277,17 @@ function AdminInvoicesContent() {
                   className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="all">כל הסטטוסים</option>
-                  <option value="draft">טיוטות</option>
-                  <option value="sent">ממתינות לתשלום</option>
-                  <option value="paid">שולמו</option>
-                  <option value="cancelled">בוטלו</option>
+                  <optgroup label="הצעות מחיר">
+                    <option value="quote_sent">הצעה נשלחה</option>
+                    <option value="quote_approved">הצעה אושרה</option>
+                    <option value="quote_rejected">הצעה נדחתה</option>
+                  </optgroup>
+                  <optgroup label="חשבוניות">
+                    <option value="draft">טיוטות</option>
+                    <option value="sent">ממתינות לתשלום</option>
+                    <option value="paid">שולמו</option>
+                    <option value="cancelled">בוטלו</option>
+                  </optgroup>
                 </select>
               </div>
             </div>
@@ -260,19 +309,28 @@ function AdminInvoicesContent() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr className="text-right">
-                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">מספר חשבונית</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">סוג</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">מספר</th>
                     <th className="px-6 py-4 text-sm font-semibold text-slate-700">לקוח</th>
                     <th className="px-6 py-4 text-sm font-semibold text-slate-700">תאריך</th>
                     <th className="px-6 py-4 text-sm font-semibold text-slate-700">סכום</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">סטטוס חשבונית</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">סטטוס תשלום</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">מנוי</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">סטטוס</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">תשלום</th>
                     <th className="px-6 py-4 text-sm font-semibold text-slate-700">פעולות</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
                   {filteredInvoices.map((invoice) => (
                     <tr key={invoice.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                          invoice.document_type === 'quote' 
+                            ? 'bg-blue-100 text-blue-800' 
+                            : 'bg-orange-100 text-orange-800'
+                        }`}>
+                          {invoice.document_type === 'quote' ? '📋 הצעה' : '💰 חשבונית'}
+                        </span>
+                      </td>
                       <td className="px-6 py-4">
                         <div className="font-bold text-slate-800">#{invoice.invoice_number}</div>
                       </td>
@@ -294,33 +352,27 @@ function AdminInvoicesContent() {
                         <div className="font-bold text-slate-800">₪{invoice.total_amount.toFixed(2)}</div>
                       </td>
                       <td className="px-6 py-4">{getStatusBadge(invoice.status)}</td>
-                      <td className="px-6 py-4">{getPaymentStatusBadge(invoice.payment)}</td>
                       <td className="px-6 py-4">
-                        {invoice.has_subscription ? (
-                          <div className="text-sm">
-                            <div className="text-blue-600 font-medium">✓ כולל מנוי</div>
-                            {invoice.monthly_price && (
-                              <div className="text-slate-600">₪{invoice.monthly_price}/חודש</div>
-                            )}
-                          </div>
-                        ) : (
+                        {invoice.document_type === 'quote' ? (
                           <span className="text-slate-400 text-sm">-</span>
+                        ) : (
+                          getPaymentStatusBadge(invoice.payment)
                         )}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex gap-2">
                           <Link
-                            href={`/admin/invoices/${invoice.id}`}
+                            href={invoice.document_type === 'quote' ? `/quote/${invoice.id}` : `/admin/invoices/${invoice.id}`}
                             className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
-                            title="צפייה והדפסה"
+                            title={invoice.document_type === 'quote' ? 'צפייה בהצעת מחיר' : 'צפייה והדפסה'}
                           >
                             <Eye size={18} />
                           </Link>
-                          {invoice.status === "sent" && (
+                          {(invoice.status !== "paid" && invoice.status !== "quote_approved") && (
                             <button
-                              onClick={() => handleDeleteInvoice(invoice.id, invoice.invoice_number)}
+                              onClick={() => handleDeleteInvoice(invoice.id, invoice.invoice_number, invoice.document_type)}
                               className="p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
-                              title="מחיקת חשבונית"
+                              title={invoice.document_type === 'quote' ? 'מחיקת הצעת מחיר' : 'מחיקת חשבונית'}
                             >
                               <Trash2 size={18} />
                             </button>
