@@ -26,7 +26,7 @@ export default function QuoteView({ quote, items }: QuoteViewProps) {
   };
 
   const handleApprove = async () => {
-    if (!confirm("האם אתה בטוח שברצונך לאשר את הצעת המחיר? תועבר לתשלום.")) {
+    if (!confirm("האם אתה בטוח שברצונך לאשר את הצעת המחיר? תועבר לחשבונית.")) {
       return;
     }
 
@@ -43,9 +43,9 @@ export default function QuoteView({ quote, items }: QuoteViewProps) {
 
       const data = await res.json();
 
-      if (data.success && data.payment?.paymentUrl) {
-        // הפניה לדף תשלום
-        window.location.href = data.payment.paymentUrl;
+      if (data.success && data.invoice?.id) {
+        // הפניה לדף החשבונית (ולא ישר לתשלום)
+        window.location.href = `/invoice/${data.invoice.id}`;
       } else {
         alert("❌ שגיאה באישור הצעת המחיר: " + (data.error || "Unknown error"));
       }
