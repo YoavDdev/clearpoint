@@ -14,6 +14,7 @@ export interface PayplusPaymentRequest {
   sum: number;
   currency?: 'ILS' | 'USD' | 'EUR';
   description: string;
+  customer_uid?: string;           // ✅ אם קיים - משתמש בלקוח קיים ב-PayPlus
   customer_name: string;
   customer_email: string;
   customer_phone: string;
@@ -163,8 +164,10 @@ export async function createOneTimePayment(
       amount: request.sum,
       currency_code: request.currency || 'ILS',
       
-      // פרטי לקוח - כמה שיותר מידע ל-PayPlus
-      customer: {
+      // פרטי לקוח - אם יש customer_uid משתמשים בו, אחרת שולחים פרטים ליצירת לקוח חדש
+      customer: request.customer_uid ? {
+        customer_uid: request.customer_uid, // לקוח קיים - לא יוצר חדש!
+      } : {
         customer_name: request.customer_name,
         email: request.customer_email,
         phone: request.customer_phone || '',

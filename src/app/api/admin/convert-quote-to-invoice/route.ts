@@ -178,6 +178,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // שליפת customer_uid של המשתמש (אם קיים)
+    const { data: userData } = await supabase
+      .from("users")
+      .select("customer_uid")
+      .eq("id", quote.user_id)
+      .single();
+
+    const customerUid = userData?.customer_uid || null;
+
     // יצירת לינק תשלום דרך PayPlus
     const returnUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/invoice-payment-success?invoice_id=${invoice.id}`;
     const cancelUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/payment-cancelled`;
@@ -185,6 +194,7 @@ export async function POST(req: NextRequest) {
     const payplusResponse = await createOneTimePayment({
       sum: quote.total_amount,
       description: `חשבונית #${invoice.invoice_number} - ${quote.user.full_name}`,
+      customer_uid: customerUid || undefined, // ✅ שימוש בלקוח קיים אם יש
       customer_name: quote.user.full_name || "",
       customer_email: quote.user.email || "",
       customer_phone: quote.user.phone || "",

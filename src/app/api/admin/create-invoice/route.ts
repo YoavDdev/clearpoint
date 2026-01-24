@@ -171,6 +171,15 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // שליפת customer_uid של המשתמש (אם קיים)
+    const { data: userData } = await supabase
+      .from("users")
+      .select("customer_uid")
+      .eq("id", userId)
+      .single();
+
+    const customerUid = userData?.customer_uid || null;
+
     // אם זו חשבונית - יצירת רשומת תשלום ולינק PayPlus
     const { data: payment, error: paymentError } = await supabase
       .from("payments")
@@ -213,6 +222,7 @@ export async function POST(req: NextRequest) {
     const payplusResponse = await createOneTimePayment({
       sum: totalAmount,
       description: `חשבונית התקנה #${invoice.invoice_number} - ${customerName}`,
+      customer_uid: customerUid || undefined, // ✅ שימוש בלקוח קיים אם יש
       customer_name: customerName,
       customer_email: customerEmail,
       customer_phone: customerPhone || "",
