@@ -220,7 +220,7 @@ function RecurringPaymentsContent() {
       const result = await response.json();
       
       if (result.success) {
-        alert(`✅ ${result.message}\n\nסונכרן: ${result.synced}\nדולג (כבר קיימים): ${result.skipped}\nשגיאות: ${result.errors}`);
+        alert(`✅ ${result.message}\n\nחדשים: ${result.synced}\nעודכנו: ${result.updated}\nדולגו: ${result.skipped}\nשגיאות: ${result.errors}\nסה"כ: ${result.total}`);
         fetchPayments(true);
       } else {
         throw new Error(result.error || 'Sync failed');

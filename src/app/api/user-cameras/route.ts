@@ -36,12 +36,28 @@ export async function GET() {
     .eq("status", "active")
     .single();
 
-  const connectionType = (activeSubscription as any)?.plans?.connection_type || null;
-  const isSubscriptionActive = !!activeSubscription;
+  // Step 2.5: Check for active recurring payment from PayPlus
+  const { data: activeRecurringPayment } = await supabase
+    .from("recurring_payments")
+    .select("id, is_active, is_valid, plan_id, plans(connection_type)")
+    .eq("user_id", user.id)
+    .eq("is_active", true)
+    .eq("is_valid", true)
+    .single();
+
+  // Get connection type from either subscription or recurring payment
+  const connectionType = 
+    (activeSubscription as any)?.plans?.connection_type || 
+    (activeRecurringPayment as any)?.plans?.connection_type || 
+    null;
+  
+  // User has active subscription if either exists
+  const isSubscriptionActive = !!activeSubscription || !!activeRecurringPayment;
   
   console.log(`🔍 User ${user.id} subscription validation:`, {
     hasActiveSubscription: isSubscriptionActive,
     subscriptionId: activeSubscription?.id || 'none',
+    recurringPaymentId: activeRecurringPayment?.id || 'none',
     connectionType,
   });
 

@@ -50,25 +50,13 @@ export async function POST(request: NextRequest) {
     console.log(`📦 Found ${payplusPayments.length} payments in PayPlus`);
 
     let syncedCount = 0;
+    let updatedCount = 0;
     let skippedCount = 0;
     let errorCount = 0;
 
     for (const payment of payplusPayments) {
       try {
-        // Check if already exists in our DB
-        const { data: existing } = await supabaseAdmin
-          .from('recurring_payments')
-          .select('id')
-          .eq('recurring_uid', payment.uid)
-          .single();
-
-        if (existing) {
-          console.log(`⏭️ Skipping ${payment.uid} - already exists`);
-          skippedCount++;
-          continue;
-        }
-
-        // Try to find matching user by email
+        // Try to find matching user by email first
         let userId = null;
         if (payment.customer_email) {
           const { data: user } = await supabaseAdmin
@@ -109,40 +97,67 @@ export async function POST(request: NextRequest) {
         // Parse number_of_charges
         const numCharges = payment.number_of_charges === 'unlimited' ? 0 : parseInt(payment.number_of_charges) || 0;
 
-        // Insert into our DB
-        const { error: insertError } = await supabaseAdmin
-          .from('recurring_payments')
-          .insert({
-            user_id: userId,
-            plan_id: null,
-            recurring_uid: payment.uid,
-            customer_uid: payment.customer_uid,
-            card_token: null, // PayPlus doesn't return the token
-            recurring_type: recurringType,
-            recurring_range: 1,
-            number_of_charges: numCharges,
-            start_date: startDate.toISOString(),
-            next_charge_date: nextChargeDate.toISOString(),
-            amount: parseFloat(payment.each_payment_amount) || 0,
-            currency_code: 'ILS',
-            items: [{
-              name: 'מנוי חודשי',
-              quantity: 1,
-              price: parseFloat(payment.each_payment_amount) || 0,
-              vat_type: 0,
-            }],
-            is_active: true,
-            is_valid: payment.valid === true,
-            extra_info: JSON.stringify(payment),
-            notes: 'סונכרן מ-PayPlus',
-          });
+        // Prepare data object
+        const paymentData = {
+          user_id: userId,
+          plan_id: null,
+          recurring_uid: payment.uid,
+          customer_uid: payment.customer_uid,
+          card_token: null, // PayPlus doesn't return the token
+          recurring_type: recurringType,
+          recurring_range: 1,
+          number_of_charges: numCharges,
+          start_date: startDate.toISOString(),
+          next_charge_date: nextChargeDate.toISOString(),
+          amount: parseFloat(payment.each_payment_amount) || 0,
+          currency_code: 'ILS',
+          items: [{
+            name: 'מנוי חודשי',
+            quantity: 1,
+            price: parseFloat(payment.each_payment_amount) || 0,
+            vat_type: 0,
+          }],
+          is_active: true,
+          is_valid: payment.valid === true,
+          extra_info: JSON.stringify(payment),
+          notes: 'סונכרן מ-PayPlus',
+          updated_at: new Date().toISOString(),
+        };
 
-        if (insertError) {
-          console.error(`❌ Error inserting ${payment.uid}:`, insertError);
-          errorCount++;
+        // Check if already exists in our DB
+        const { data: existing } = await supabaseAdmin
+          .from('recurring_payments')
+          .select('id')
+          .eq('recurring_uid', payment.uid)
+          .single();
+
+        if (existing) {
+          // Update existing record
+          const { error: updateError } = await supabaseAdmin
+            .from('recurring_payments')
+            .update(paymentData)
+            .eq('id', existing.id);
+
+          if (updateError) {
+            console.error(`❌ Error updating ${payment.uid}:`, updateError);
+            errorCount++;
+          } else {
+            console.log(`🔄 Updated ${payment.uid} for ${payment.customer_name}`);
+            updatedCount++;
+          }
         } else {
-          console.log(`✅ Synced ${payment.uid} for ${payment.customer_name}`);
-          syncedCount++;
+          // Insert new record
+          const { error: insertError } = await supabaseAdmin
+            .from('recurring_payments')
+            .insert(paymentData);
+
+          if (insertError) {
+            console.error(`❌ Error inserting ${payment.uid}:`, insertError);
+            errorCount++;
+          } else {
+            console.log(`✅ Created ${payment.uid} for ${payment.customer_name}`);
+            syncedCount++;
+          }
         }
       } catch (itemError) {
         console.error(`❌ Error processing payment:`, itemError);
@@ -152,8 +167,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `סונכרנו ${syncedCount} מנויים מ-PayPlus`,
+      message: `סונכרנו ${syncedCount} מנויים חדשים, עודכנו ${updatedCount} מנויים קיימים`,
       synced: syncedCount,
+      updated: updatedCount,
       skipped: skippedCount,
       errors: errorCount,
       total: payplusPayments.length,
