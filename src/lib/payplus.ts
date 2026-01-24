@@ -164,9 +164,11 @@ export async function createOneTimePayment(
       amount: request.sum,
       currency_code: request.currency || 'ILS',
       
-      // פרטי לקוח - אם יש customer_uid משתמשים בו, אחרת שולחים פרטים ליצירת לקוח חדש
+      // פרטי לקוח - אם יש customer_uid משתמשים בו + שולחים גם פרטים בסיסיים
       customer: request.customer_uid ? {
-        customer_uid: request.customer_uid, // לקוח קיים - לא יוצר חדש!
+        customer_uid: request.customer_uid, // ✅ לקוח קיים
+        customer_name: request.customer_name, // ✅ שם לזיהוי
+        email: request.customer_email, // ✅ אימייל לזיהוי
       } : {
         customer_name: request.customer_name,
         email: request.customer_email,
