@@ -20,12 +20,36 @@ export async function GET() {
   // Step 1: Get user info
   const { data: user, error: userError } = await supabase
     .from("users")
-    .select("id, tunnel_name, plan_duration_days, full_name")
+    .select("id, tunnel_name, plan_duration_days, full_name, role")
     .eq("email", session.user.email)
     .single();
 
   if (userError) {
     return NextResponse.json({ success: false, error: userError.message }, { status: 500 });
+  }
+
+  // Admin users always have full access
+  const isAdmin = user.role?.toLowerCase() === 'admin';
+  if (isAdmin) {
+    console.log(`👑 Admin user ${user.id} - granting full access without subscription check`);
+    
+    const { data: cameras, error: cameraError } = await supabase
+      .from("cameras")
+      .select("id, name")
+      .eq("user_email", session.user.email)
+      .eq("is_stream_active", true);
+
+    return NextResponse.json({
+      success: true,
+      tunnel_name: user.tunnel_name,
+      user_name: user.full_name,
+      cameras: cameras || [],
+      plan_duration_days: user.plan_duration_days ?? 14,
+      subscription_status: 'active',
+      connection_type: 'admin',
+      subscription_active: true,
+      message: 'גישה מלאה - משתמש אדמין'
+    });
   }
 
   // Step 2: Check for active subscription (real validation)

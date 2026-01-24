@@ -20,15 +20,36 @@ export async function POST(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // קבלת user ID ו-plan_duration_days
+  // קבלת user ID, plan_duration_days, ו-role
   const { data: user } = await supabase
     .from("users")
-    .select("id, plan_duration_days")
+    .select("id, plan_duration_days, role")
     .eq("email", session.user.email)
     .single();
 
   if (!user) {
     return NextResponse.json([], { status: 404 });
+  }
+
+  // Admin users always have footage access
+  const isAdmin = user.role?.toLowerCase() === 'admin';
+  if (isAdmin) {
+    console.log(`👑 Admin user ${user.id} - granting footage access without subscription check`);
+    const retentionDays = user.plan_duration_days ?? 14;
+    
+    const start = new Date(`${date}T00:00:00`).toISOString();
+    const end = new Date(`${date}T23:59:59`).toISOString();
+
+    const { data, error } = await supabase
+      .from("vod_files")
+      .select("url, timestamp, camera_id")
+      .eq("user_email", session.user.email)
+      .eq("camera_id", cameraId)
+      .gte("timestamp", start)
+      .lte("timestamp", end)
+      .order("timestamp");
+
+    return NextResponse.json(data || []);
   }
 
   // בדיקת מנוי פעיל (subscriptions או recurring_payments)
