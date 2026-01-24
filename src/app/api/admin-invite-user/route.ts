@@ -50,35 +50,14 @@ export async function POST(req: Request) {
 
   const userId = authUser.user.id;
 
-  // 2. Create PayPlus customer first
-  console.log('🔵 Creating PayPlus customer for:', email);
-  const payplusResult = await createPayPlusCustomer({
-    email,
-    customer_name: full_name || email,
-    phone: phone || '',
-    business_address: address || '',
-    business_city: business_city || '',
-    business_postal_code: business_postal_code || '',
-    notes: notes || '',
-    customer_number: userId,
-    vat_number: vat_number || '',
-    communication_email: communication_email || email,
-  });
+  // 2. לא יוצרים לקוח ב-PayPlus עדיין - רק במערכת שלנו
+  // PayPlus יוצר לקוח אוטומטית בתשלום הראשון
+  console.log('✅ Skipping PayPlus customer creation - will be created on first payment');
+  
+  const customer_uid = null; // יוגדר אוטומטית בתשלום הראשון
 
-  let customer_uid = null;
-  if (payplusResult.success && payplusResult.customer_uid) {
-    console.log('✅ PayPlus customer created successfully');
-    console.log('🔍 Received customer_uid from PayPlus:', payplusResult.customer_uid);
-    console.log('🔍 Type of customer_uid:', typeof payplusResult.customer_uid);
-    console.log('🔍 Length of customer_uid:', payplusResult.customer_uid?.length);
-    customer_uid = payplusResult.customer_uid;
-    console.log('🔍 Will save to DB:', customer_uid);
-  } else {
-    console.warn('⚠️ Failed to create PayPlus customer:', payplusResult.error);
-  }
-
-  // 3. Add to users table (now includes business fields and customer_uid)
-  console.log('💾 About to insert to DB with customer_uid:', customer_uid);
+  // 3. Add to users table (customer_uid יהיה null בהתחלה)
+  console.log('💾 Creating user in DB without customer_uid (will be set on first payment)');
   
   const { data: insertedUser, error: dbError } = await supabaseAdmin.from("users").insert({
     id: userId,
