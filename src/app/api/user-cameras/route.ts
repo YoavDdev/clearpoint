@@ -2,7 +2,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-// ❌ subscription validator deleted - all users have access
 
 export const dynamic = 'force-dynamic';
 
@@ -18,10 +17,10 @@ export async function GET() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // Step 1: Get user info (with tunnel_name, subscription_status)
+  // Step 1: Get user info
   const { data: user, error: userError } = await supabase
     .from("users")
-    .select("id, tunnel_name, plan_duration_days, subscription_status")
+    .select("id, tunnel_name, plan_duration_days, full_name")
     .eq("email", session.user.email)
     .single();
 
@@ -29,22 +28,21 @@ export async function GET() {
     return NextResponse.json({ success: false, error: userError.message }, { status: 500 });
   }
 
-  // Step 1.5: Get user's plan connection_type from active subscription
-  const { data: subscription } = await supabase
+  // Step 2: Check for active subscription (real validation)
+  const { data: activeSubscription } = await supabase
     .from("subscriptions")
-    .select("plans(connection_type)")
+    .select("id, status, plans(connection_type)")
     .eq("user_id", user.id)
     .eq("status", "active")
     .single();
 
-  const connectionType = (subscription as any)?.plans?.connection_type || null;
-
-  // ✅ כל המשתמשים יש להם גישה (14 ימי trial לכולם)
-  const isSubscriptionActive = true;
+  const connectionType = (activeSubscription as any)?.plans?.connection_type || null;
+  const isSubscriptionActive = !!activeSubscription;
   
   console.log(`🔍 User ${user.id} subscription validation:`, {
-    hasAccess: true,
-    reason: '14 days trial for all users',
+    hasActiveSubscription: isSubscriptionActive,
+    subscriptionId: activeSubscription?.id || 'none',
+    connectionType,
   });
 
   // Step 2: Get active cameras for the user (מצלמות זמינות תמיד ל-live view!)
@@ -55,16 +53,17 @@ export async function GET() {
     .eq("is_stream_active", true);
 
   if (cameraError) {
-    return NextResponse.json({ success: false, error: cameraError.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: cameraError.message, user_name: null }, { status: 500 });
   }
 
-  // אם אין מנוי פעיל אבל יש חיבור SIM - חוסמים גישה (אין אינטרנט ללא מנוי)
+  // אם אין מנוי פעיל אבל חיבור SIM - חוסמים גישה (אין אינטרנט ללא מנוי)
   if (!isSubscriptionActive && connectionType === 'sim') {
     console.warn(`⚠️ User ${user.id} has SIM plan without active subscription - blocking all access (no internet)`);
     
     return NextResponse.json({
       success: true,
       tunnel_name: user.tunnel_name,
+      user_name: user.full_name,
       cameras: [], // רשימה ריקה - אין אינטרנט
       plan_duration_days: 0,
       subscription_status: 'inactive',
@@ -81,6 +80,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       tunnel_name: user.tunnel_name,
+      user_name: user.full_name,
       cameras, // מצלמות זמינות ל-live view
       plan_duration_days: 0,
       subscription_status: 'inactive',
@@ -94,6 +94,7 @@ export async function GET() {
   return NextResponse.json({
     success: true,
     tunnel_name: user.tunnel_name,
+    user_name: user.full_name,
     cameras,
     plan_duration_days: user.plan_duration_days ?? 14,
     subscription_status: 'active',

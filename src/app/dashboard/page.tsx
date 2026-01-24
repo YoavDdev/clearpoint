@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import SurveillanceCameraView from "@/components/SurveillanceCameraView";
 import FootageView from "@/components/FootageView";
-import { AlertTriangle, Video, Monitor, Maximize, Clock, Minimize, Eye, Calendar, Settings, Lock, CreditCard } from "lucide-react";
+import { AlertTriangle, Video, Monitor, Maximize, Clock, Minimize, Eye, Calendar, Settings, Lock, CreditCard, Loader2 } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
@@ -15,14 +15,16 @@ function DashboardContent() {
   
   const [cameras, setCameras] = useState<any[]>([]);
   const [tunnelName, setTunnelName] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isMounted, setIsMounted] = useState(false);
   const [viewMode, setViewMode] = useState<'live' | 'recordings'>(
     modeParam === 'recordings' ? 'recordings' : 'live'
   );
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [subscriptionStatus, setSubscriptionStatus] = useState<string>('active');
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [connectionType, setConnectionType] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // Update view mode when URL parameter changes
   useEffect(() => {
@@ -43,6 +45,7 @@ function DashboardContent() {
         if (result.success) {
           setCameras(result.cameras);
           setTunnelName(result.tunnel_name);
+          setUserName(result.user_name);
           setSubscriptionStatus(result.subscription_status || 'inactive');
           setConnectionType(result.connection_type);
         } else {
@@ -56,6 +59,8 @@ function DashboardContent() {
             stack: error.stack
           });
         }
+      } finally {
+        setLoading(false);
       }
     }
 
@@ -100,6 +105,20 @@ function DashboardContent() {
       minute: '2-digit',
       second: '2-digit'
     });
+  };
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    
+    if (hour >= 5 && hour < 12) {
+      return 'בוקר טוב';
+    } else if (hour >= 12 && hour < 17) {
+      return 'צהריים טובים';
+    } else if (hour >= 17 && hour < 21) {
+      return 'ערב טוב';
+    } else {
+      return 'לילה טוב';
+    }
   };
 
   // Responsive grid layout optimized for 4 cameras
@@ -153,6 +172,18 @@ function DashboardContent() {
     return "grid-cols-2"; // Always 2x2 for 2-4 cameras in fullscreen
   };
 
+  // Show loading screen until subscription status is loaded
+  if (loading) {
+    return (
+      <div dir="rtl" className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+          <p className="text-slate-600 text-lg">טוען נתונים...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div dir="rtl" className="min-h-screen bg-slate-50">
       {/* Simple, Clean Header - Mobile Responsive */}
@@ -160,8 +191,10 @@ function DashboardContent() {
         <div className="max-w-7xl mx-auto">
           {/* Welcome Section */}
           <div className="mb-4 sm:mb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1 sm:mb-2">שלום! 👋</h1>
-            <p className="text-base sm:text-lg text-slate-600">ברוכים הבאים למערכת האבטחה שלכם</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1 sm:mb-2">
+              {userName ? `${getGreeting()}, ${userName}` : getGreeting()}
+            </h1>
+            <p className="text-base sm:text-lg text-slate-600">מערכת האבטחה שלך מוכנה לשירותך - צפה במצלמות, גש להקלטות, ושלוט בכל מקום</p>
           </div>
 
           {/* Status Cards - Stack on Mobile */}
@@ -196,36 +229,6 @@ function DashboardContent() {
           </div>
         </div>
       </div>
-
-      {/* Subscription Warning Banner */}
-      {subscriptionStatus !== 'active' && (
-        <div className="bg-gradient-to-l from-orange-600 to-red-600 px-3 sm:px-6 py-4">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-3 text-white">
-                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Lock className="w-5 h-5" />
-                </div>
-                <div className="text-center sm:text-right">
-                  <p className="font-bold text-base sm:text-lg">המנוי שלך לא פעיל</p>
-                  <p className="text-sm opacity-90">
-                    {connectionType === 'sim' 
-                      ? 'המערכת אינה זמינה ללא מנוי פעיל (כולל אינטרנט SIM). חדש מנוי לחזרה לשירות מלא.'
-                      : 'ניתן לצפות בשידור חי בלבד. חדש את המנוי כדי לגשת להקלטות.'}
-                  </p>
-                </div>
-              </div>
-              <a
-                href="/dashboard/subscription"
-                className="flex items-center gap-2 px-6 py-3 bg-white text-orange-600 rounded-xl font-bold hover:bg-orange-50 transition-all shadow-lg whitespace-nowrap"
-              >
-                <CreditCard className="w-5 h-5" />
-                <span>חדש מנוי</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Large, Clear Mode Switcher - Mobile Responsive */}
       <div className="bg-white border-b border-slate-200 px-3 sm:px-6 py-3 sm:py-4">
@@ -365,8 +368,29 @@ function DashboardContent() {
                 </div>
               )
             ) : (
-              // Recordings View Mode
-              <FootageView cameras={cameras} />
+              // Recordings View Mode - חסימה אם אין מנוי פעיל
+              subscriptionStatus !== 'active' ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <div className="w-24 h-24 bg-orange-100 rounded-full flex items-center justify-center mb-6">
+                    <Lock className="w-12 h-12 text-orange-600" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-slate-900 mb-2">נדרש מנוי פעיל</h2>
+                  <p className="text-lg text-slate-600 text-center max-w-md mb-2">
+                    כדי לצפות בהקלטות ולגשת לארכיון הווידאו, נדרש מנוי פעיל.
+                  </p>
+                  <p className="text-base text-slate-500 text-center max-w-md mb-6">
+                    חדש את המנוי שלך כדי לקבל גישה מלאה למערכת.
+                  </p>
+                  <a 
+                    href="/dashboard/subscription"
+                    className="px-6 py-3 bg-gradient-to-l from-orange-600 to-red-600 text-white rounded-xl font-bold hover:scale-105 transition-all shadow-lg"
+                  >
+                    חדש מנוי עכשיו
+                  </a>
+                </div>
+              ) : (
+                <FootageView cameras={cameras} />
+              )
             )}
           </div>
         </div>

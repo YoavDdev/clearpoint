@@ -37,12 +37,6 @@ export default function FootageView({ cameras }: FootageViewProps) {
           const isActive = result.subscription_status === 'active';
           setHasSubscription(isActive);
           
-          // If subscription became inactive, redirect
-          if (!isActive && !checkingSubscription) {
-            console.warn('⚠️ Subscription no longer active - redirecting');
-            window.location.href = '/dashboard/no-subscription';
-          }
-          
           if (result.plan_duration_days) {
             setRetentionDays(result.plan_duration_days);
           }

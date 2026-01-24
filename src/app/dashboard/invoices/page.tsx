@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { FileText, Calendar, DollarSign, Eye } from "lucide-react";
+import { FileText, Calendar, DollarSign, Eye, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export const dynamic = 'force-dynamic';
@@ -78,12 +78,10 @@ function InvoicesContent() {
 
   if (loading) {
     return (
-      <div dir="rtl" className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-slate-600">טוען חשבוניות...</p>
-          </div>
+      <div dir="rtl" className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+          <p className="text-slate-600 text-lg">טוען חשבוניות...</p>
         </div>
       </div>
     );
