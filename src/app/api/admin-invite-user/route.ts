@@ -67,14 +67,20 @@ export async function POST(req: Request) {
 
   let customer_uid = null;
   if (payplusResult.success && payplusResult.customer_uid) {
-    console.log('✅ PayPlus customer created:', payplusResult.customer_uid);
+    console.log('✅ PayPlus customer created successfully');
+    console.log('🔍 Received customer_uid from PayPlus:', payplusResult.customer_uid);
+    console.log('🔍 Type of customer_uid:', typeof payplusResult.customer_uid);
+    console.log('🔍 Length of customer_uid:', payplusResult.customer_uid?.length);
     customer_uid = payplusResult.customer_uid;
+    console.log('🔍 Will save to DB:', customer_uid);
   } else {
     console.warn('⚠️ Failed to create PayPlus customer:', payplusResult.error);
   }
 
   // 3. Add to users table (now includes business fields and customer_uid)
-  const { error: dbError } = await supabaseAdmin.from("users").insert({
+  console.log('💾 About to insert to DB with customer_uid:', customer_uid);
+  
+  const { data: insertedUser, error: dbError } = await supabaseAdmin.from("users").insert({
     id: userId,
     email,
     full_name,
@@ -92,11 +98,15 @@ export async function POST(req: Request) {
     business_postal_code: business_postal_code || null,
     communication_email: communication_email || null,
     customer_uid: customer_uid,
-  });
+  }).select();
 
   if (dbError) {
+    console.error('❌ DB insert error:', dbError);
     return NextResponse.json({ success: false, error: dbError.message }, { status: 400 });
   }
+
+  console.log('✅ User inserted to DB:', insertedUser);
+  console.log('🔍 Verify customer_uid in DB:', insertedUser?.[0]?.customer_uid);
 
   // 4. Generate invite link with proper callback flow
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://clearpoint.co.il';

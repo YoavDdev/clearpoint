@@ -640,7 +640,10 @@ export async function createPayPlusCustomer(
     });
 
     const data = await response.json();
-    console.log('📥 PayPlus response:', data);
+    console.log('📥 PayPlus full response:', JSON.stringify(data, null, 2));
+    console.log('🔍 Extracted customer_uid:', data.data?.customer_uid);
+    console.log('🔍 Response status:', response.status);
+    console.log('🔍 Results status:', data.results?.status);
 
     if (!response.ok || data.results?.status !== 'success') {
       console.error('❌ Failed to create PayPlus customer:', data);
@@ -650,9 +653,12 @@ export async function createPayPlusCustomer(
       };
     }
 
+    const extractedUid = data.data?.customer_uid;
+    console.log('✅ Returning customer_uid to caller:', extractedUid);
+
     return {
       success: true,
-      customer_uid: data.data?.customer_uid,
+      customer_uid: extractedUid,
     };
   } catch (error) {
     console.error('❌ createPayPlusCustomer error:', error);
