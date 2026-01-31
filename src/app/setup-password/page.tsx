@@ -62,12 +62,18 @@ export default function SetupPasswordPage() {
   }, [supabase]);
 
   const isStrongPassword = (pwd: string) => {
-    return pwd.length >= 8 && /[A-Z]/.test(pwd) && /[0-9]/.test(pwd);
+    return (
+      pwd.length >= 8 &&
+      /[a-z]/.test(pwd) &&
+      /[A-Z]/.test(pwd) &&
+      /[0-9]/.test(pwd) &&
+      /[^a-zA-Z0-9]/.test(pwd)
+    );
   };
 
   const handleSetPassword = async () => {
     if (!isStrongPassword(password)) {
-      setError("יש להזין סיסמה חזקה (לפחות 8 תווים, אות גדולה וספרה).");
+      setError("יש להזין סיסמה חזקה (לפחות 8 תווים, אות קטנה, אות גדולה, ספרה וסימן).");
       return;
     }
 
@@ -112,7 +118,7 @@ export default function SetupPasswordPage() {
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
-                      placeholder="לפחות 8 תווים, אות גדולה וספרה"
+                      placeholder="לפחות 8 תווים, אות קטנה, אות גדולה, ספרה וסימן"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="w-full px-4 py-3 pr-11 border border-slate-300 rounded-xl text-right focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
@@ -129,7 +135,7 @@ export default function SetupPasswordPage() {
                     </button>
                   </div>
                   <p className="text-xs text-slate-500 text-right">
-                    הסיסמה חייבת לכלול: 8+ תווים, אות גדולה, וספרה
+                    הסיסמה חייבת לכלול: 8+ תווים, אות קטנה, אות גדולה, ספרה וסימן
                   </p>
                 </div>
 
