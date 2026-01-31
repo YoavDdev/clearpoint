@@ -67,6 +67,20 @@ function InvoicesContent() {
     );
   };
 
+  const getPaymentSummaryText = (invoice: Invoice) => {
+    if (!invoice.payment) {
+      if (invoice.status === "paid") return "שולם";
+      if (invoice.status === "sent") return "ממתין לתשלום";
+      return "-";
+    }
+
+    if (invoice.payment.status === "completed") return "שולם";
+    if (invoice.payment.status === "pending") return "ממתין לתשלום";
+    if (invoice.payment.status === "failed") return "נכשל";
+
+    return "סטטוס לא ידוע";
+  };
+
   const stats = {
     total: invoices.length,
     paid: invoices.filter((i) => i.status === "paid").length,
@@ -194,30 +208,14 @@ function InvoicesContent() {
                       </div>
                     </div>
 
-                    {invoice.payment && (
-                      <div className="bg-slate-50 rounded-xl p-4 mb-4">
-                        <div className="grid md:grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-slate-600">סטטוס תשלום: </span>
-                            <span className="font-semibold">
-                              {invoice.payment.status === "completed"
-                                ? "הושלם ✅"
-                                : invoice.payment.status === "pending"
-                                ? "בהמתנה ⏳"
-                                : "נכשל ❌"}
-                            </span>
-                          </div>
-                          {invoice.payment.provider_transaction_id && (
-                            <div>
-                              <span className="text-slate-600">מזהה עסקה: </span>
-                              <span className="font-mono text-xs">
-                                {invoice.payment.provider_transaction_id.substring(0, 20)}...
-                              </span>
-                            </div>
-                          )}
+                    <div className="bg-slate-50 rounded-xl p-4 mb-4">
+                      <div className="grid md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-slate-600">סטטוס תשלום: </span>
+                          <span className="font-semibold">{getPaymentSummaryText(invoice)}</span>
                         </div>
                       </div>
-                    )}
+                    </div>
 
                     <div className="flex gap-3">
                       <Link
@@ -280,30 +278,14 @@ function InvoicesContent() {
                   </div>
                 </div>
 
-                {invoice.payment && (
-                  <div className="bg-slate-50 rounded-xl p-4 mb-4">
-                    <div className="grid md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-slate-600">סטטוס תשלום: </span>
-                        <span className="font-semibold">
-                          {invoice.payment.status === "completed"
-                            ? "הושלם ✅"
-                            : invoice.payment.status === "pending"
-                            ? "בהמתנה ⏳"
-                            : "נכשל ❌"}
-                        </span>
-                      </div>
-                      {invoice.payment.provider_transaction_id && (
-                        <div>
-                          <span className="text-slate-600">מזהה עסקה: </span>
-                          <span className="font-mono text-xs">
-                            {invoice.payment.provider_transaction_id.substring(0, 20)}...
-                          </span>
-                        </div>
-                      )}
+                <div className="bg-slate-50 rounded-xl p-4 mb-4">
+                  <div className="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-slate-600">סטטוס תשלום: </span>
+                      <span className="font-semibold">{getPaymentSummaryText(invoice)}</span>
                     </div>
                   </div>
-                )}
+                </div>
 
                 {invoice.has_subscription && invoice.monthly_price && (
                   <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 mb-4 border border-purple-200">

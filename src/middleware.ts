@@ -33,7 +33,6 @@ export async function middleware(request: NextRequest) {
     "/dashboard/invoices",
     "/dashboard/support",
     "/subscription-expired",
-    "/dashboard/payments",
   ];
 
   // בדוק אם זה נתיב שדורש מנוי

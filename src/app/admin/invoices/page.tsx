@@ -137,7 +137,7 @@ function AdminInvoicesContent() {
   };
 
   const getPaymentStatusBadge = (payment: Invoice["payment"]) => {
-    if (!payment) return <span className="text-gray-400 text-sm">אין תשלום</span>;
+    if (!payment) return <span className="text-gray-400 text-sm">אין עסקה</span>;
 
     const statusConfig = {
       pending: { label: "בהמתנה", color: "bg-yellow-100 text-yellow-800" },
@@ -153,6 +153,24 @@ function AdminInvoicesContent() {
         {config.label}
       </span>
     );
+  };
+
+  const getPaymentCell = (invoice: Invoice) => {
+    if (invoice.document_type === "quote") {
+      return <span className="text-slate-400 text-sm">-</span>;
+    }
+
+    if (!invoice.payment) {
+      if (invoice.status === "paid") {
+        return <span className="text-green-700 text-sm font-medium">שולם (ללא עסקה מקושרת)</span>;
+      }
+      if (invoice.status === "sent") {
+        return <span className="text-yellow-700 text-sm font-medium">ממתין (לא נוצרה עסקה)</span>;
+      }
+      return <span className="text-gray-400 text-sm">אין עסקה</span>;
+    }
+
+    return getPaymentStatusBadge(invoice.payment);
   };
 
   const stats = {
@@ -315,7 +333,7 @@ function AdminInvoicesContent() {
                     <th className="px-6 py-4 text-sm font-semibold text-slate-700">תאריך</th>
                     <th className="px-6 py-4 text-sm font-semibold text-slate-700">סכום</th>
                     <th className="px-6 py-4 text-sm font-semibold text-slate-700">סטטוס</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">תשלום</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">עסקה</th>
                     <th className="px-6 py-4 text-sm font-semibold text-slate-700">פעולות</th>
                   </tr>
                 </thead>
@@ -353,11 +371,7 @@ function AdminInvoicesContent() {
                       </td>
                       <td className="px-6 py-4">{getStatusBadge(invoice.status)}</td>
                       <td className="px-6 py-4">
-                        {invoice.document_type === 'quote' ? (
-                          <span className="text-slate-400 text-sm">-</span>
-                        ) : (
-                          getPaymentStatusBadge(invoice.payment)
-                        )}
+                        {getPaymentCell(invoice)}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex gap-2">
