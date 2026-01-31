@@ -72,19 +72,27 @@ function SubscribeForm() {
 
     const currentPlan = plans.find(p => p.id === selectedPlan);
     
-    const { error: insertError } = await supabase.from("subscription_requests").insert({
-      full_name: fullName,
-      email,
-      phone,
-      address,
-      preferred_date: preferredDate,
-      selected_plan: currentPlan ? `${currentPlan.name_he} - ₪${currentPlan.setup_price} התקנה + ₪${currentPlan.monthly_price}/חודש` : selectedPlan,
-      admin_notes: notes || null,
+    const response = await fetch("/api/public/subscribe-request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        full_name: fullName,
+        email,
+        phone,
+        address,
+        preferred_date: preferredDate || null,
+        selected_plan: currentPlan
+          ? `${currentPlan.name_he} - ₪${currentPlan.setup_price} התקנה + ₪${currentPlan.monthly_price}/חודש`
+          : selectedPlan,
+        admin_notes: notes || null,
+      }),
     });
+
+    const result = await response.json();
 
     setSubmitting(false);
 
-    if (!insertError) {
+    if (result?.success) {
       router.push("/thanks");
     } else {
       setError("אירעה שגיאה בשליחת הבקשה. אנא נסה שוב או צור קשר טלפוני.");

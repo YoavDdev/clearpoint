@@ -11,29 +11,20 @@ echo "  DEVICE_NAME: '$DEVICE_NAME'"
 echo "  LIVE_BASE: '$LIVE_BASE'"
 echo "  Directory exists: $([ -d "$LIVE_BASE" ] && echo 'YES' || echo 'NO')"
 
-SUPABASE_URL=https://tphagljqhgjkavzokzbd.supabase.co
-SUPABASE_API_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwaGFnbGpxaGdqa2F2em9remJkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTc3MjgwNywiZXhwIjoyMDYxMzQ4ODA3fQ.Q9MO25qwMRDWMz4DXPr4XAc_owcjB0MnK71H2rCzC_Y
+API_BASE="https://clearpoint.co.il/api"
+ENV_FILE="$HOME/clearpoint-core/.env"
+DEVICE_TOKEN="${CLEARPOINT_DEVICE_TOKEN:-}"
+if [[ -z "$DEVICE_TOKEN" && -f "$ENV_FILE" ]]; then
+  DEVICE_TOKEN=$(grep -E '^CLEARPOINT_DEVICE_TOKEN=' "$ENV_FILE" | tail -n 1 | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+fi
 
-# === Get Mini PC ID ===
-MINI_PC_ID=$(curl -s -X POST "$SUPABASE_URL/rest/v1/rpc/get_mini_pc_id" \
-  -H "apikey: $SUPABASE_API_KEY" \
-  -H "Authorization: Bearer $SUPABASE_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d "{\"p_user_id\": \"$USER_ID\", \"p_hostname\": \"$DEVICE_NAME\"}" | jq -r '.[0].mini_pc_id // empty')
-
-if [[ -z "$MINI_PC_ID" ]]; then
-  echo "❌ Could not find Mini PC ID for user $USER_ID"
-  echo "🔍 Debug info:"
-  echo "  USER_ID: '$USER_ID'"
-  echo "  DEVICE_NAME: '$DEVICE_NAME'"
-  echo "  Raw RPC response:"
-  curl -s -X POST "$SUPABASE_URL/rest/v1/rpc/get_mini_pc_id" \
-    -H "apikey: $SUPABASE_API_KEY" \
-    -H "Authorization: Bearer $SUPABASE_API_KEY" \
-    -H "Content-Type: application/json" \
-    -d "{\"p_user_id\": \"$USER_ID\", \"p_hostname\": \"$DEVICE_NAME\"}"
+if [[ -z "$DEVICE_TOKEN" ]]; then
+  echo "❌ Missing CLEARPOINT_DEVICE_TOKEN"
+  echo "💡 Add CLEARPOINT_DEVICE_TOKEN to $ENV_FILE"
   exit 1
 fi
+
+echo "🔐 Using device token from: ${ENV_FILE}"
 
 # === MINI PC SYSTEM METRICS ===
 
@@ -125,12 +116,10 @@ WINDOW_MINUTES=10
 RETRY_DIR="/tmp/clearpoint-restarts"
 mkdir -p "$RETRY_DIR"
 
-# === Report Mini PC Health to Supabase (PATCH) ===
-curl -s -X PATCH "$SUPABASE_URL/rest/v1/mini_pc_health?mini_pc_id=eq.$MINI_PC_ID" \
-  -H "apikey: $SUPABASE_API_KEY" \
-  -H "Authorization: Bearer $SUPABASE_API_KEY" \
+# === Report Mini PC Health to Clearpoint API (POST) ===
+curl -s -X POST "$API_BASE/ingest/mini-pc-health" \
   -H "Content-Type: application/json" \
-  -H "Prefer: return=minimal" \
+  -H "x-clearpoint-device-token: $DEVICE_TOKEN" \
   -d "{
     \"cpu_temp_celsius\": $CPU_TEMP,
     \"cpu_usage_pct\": $CPU_USAGE,
@@ -159,13 +148,7 @@ curl -s -X PATCH "$SUPABASE_URL/rest/v1/mini_pc_health?mini_pc_id=eq.$MINI_PC_ID
 
 echo "📊 Mini PC health reported: $MINI_PC_STATUS"
 
-# === Get camera mappings from database ===
-echo "🔍 Getting camera mappings for Mini PC: $MINI_PC_ID"
-CAMERA_MAPPINGS=$(curl -s -X GET "$SUPABASE_URL/rest/v1/cameras?mini_pc_id=eq.$MINI_PC_ID&select=id,name" \
-  -H "apikey: $SUPABASE_API_KEY" \
-  -H "Authorization: Bearer $SUPABASE_API_KEY")
-
-echo "📋 Camera mappings response: $CAMERA_MAPPINGS"
+# === Cameras are discovered locally from LIVE_BASE directories ===
 
 # === Loop over each camera for individual health ===
 echo "📁 Checking live base directory: $LIVE_BASE"
@@ -177,16 +160,7 @@ for CAMERA_DIR in $CAMERA_DIRS; do
   
   # Camera directory IS the UUID, so use it directly
   CAMERA_UUID="$CAMERA_DIR"
-  
-  # Verify this UUID exists in our camera mappings
-  CAMERA_EXISTS=$(echo "$CAMERA_MAPPINGS" | jq -r ".[] | select(.id==\"$CAMERA_UUID\") | .id" 2>/dev/null)
   echo "🆔 Camera UUID: $CAMERA_UUID"
-  echo "✅ Camera exists in DB: $([ -n "$CAMERA_EXISTS" ] && echo "YES" || echo "NO")"
-  
-  if [[ -z "$CAMERA_EXISTS" || "$CAMERA_EXISTS" == "null" ]]; then
-    echo "⚠️  Camera UUID $CAMERA_UUID not found in database"
-    continue
-  fi
   
   M3U8="$LIVE_BASE/$CAMERA_DIR/stream.m3u8"
   STREAM_STATUS="ok"
@@ -272,32 +246,31 @@ for CAMERA_DIR in $CAMERA_DIRS; do
         echo "📧 Sending permanent failure notification for camera $CAMERA_DIR..."
         
         # Get camera name from database
-        CAMERA_NAME=$(echo "$CAMERA_MAPPINGS" | jq -r ".[] | select(.id==\"$CAMERA_UUID\") | .name" 2>/dev/null)
-        [[ -z "$CAMERA_NAME" || "$CAMERA_NAME" == "null" ]] && CAMERA_NAME="Unknown Camera"
+        # CAMERA_NAME=$(echo "$CAMERA_MAPPINGS" | jq -r ".[] | select(.id==\"$CAMERA_UUID\") | .name" 2>/dev/null)
+        # [[ -z "$CAMERA_NAME" || "$CAMERA_NAME" == "null" ]] && CAMERA_NAME="Unknown Camera"
         
         # Send email notification via Clearpoint API
-        curl -s -X POST "https://clearpoint.co.il/api/admin/notifications" \
-          -H "Content-Type: application/json" \
-          -d "{
-            \"type\": \"camera_failure\",
-            \"title\": \"Camera Permanently Offline\",
-            \"message\": \"Camera '$CAMERA_NAME' (ID: $CAMERA_UUID) has failed permanently after $MAX_RETRIES restart attempts. Manual intervention required.\",
-            \"severity\": \"critical\",
-            \"camera_id\": \"$CAMERA_UUID\",
-            \"mini_pc_id\": \"$MINI_PC_ID\"
-          }" > /dev/null
+        # curl -s -X POST "https://clearpoint.co.il/api/admin/notifications" \
+        #   -H "Content-Type: application/json" \
+        #   -d "{
+        #     \"type\": \"camera_failure\",
+        #     \"title\": \"Camera Permanently Offline\",
+        #     \"message\": \"Camera '$CAMERA_NAME' (ID: $CAMERA_UUID) has failed permanently after $MAX_RETRIES restart attempts. Manual intervention required.\",
+        #     \"severity\": \"critical\",
+        #     \"camera_id\": \"$CAMERA_UUID\",
+        #     \"mini_pc_id\": \"$MINI_PC_ID\"
+        #   }" > /dev/null
         
         # Mark as notified to prevent spam
         echo "$NOW" > "$FAILURE_NOTIFIED_FILE"
-        echo "✅ Failure notification sent for camera $CAMERA_NAME"
+        # echo "✅ Failure notification sent for camera $CAMERA_NAME"
       fi
     fi
   fi
 
-  # === Report Camera Health to Supabase ===
-  echo "📤 Reporting camera health to Supabase..."
+  # === Report Camera Health to Clearpoint API ===
+  echo "📤 Reporting camera health to Clearpoint API..."
   echo "   Camera ID: $CAMERA_UUID"
-  echo "   Mini PC ID: $MINI_PC_ID" 
   echo "   Status: $STREAM_STATUS"
   echo "   Message: $CAMERA_MESSAGE"
   
@@ -305,7 +278,7 @@ for CAMERA_DIR in $CAMERA_DIRS; do
   if [[ "$STREAM_STATUS" == "ok" ]]; then
     # Stream is healthy - update last_checked to indicate camera is alive
     JSON_PAYLOAD="{
-      \"mini_pc_id\": \"$MINI_PC_ID\",
+      \"camera_id\": \"$CAMERA_UUID\",
       \"stream_status\": \"$STREAM_STATUS\",
       \"last_checked\": \"$(date -Is)\",
       \"log_message\": \"$CAMERA_MESSAGE\"
@@ -315,22 +288,20 @@ for CAMERA_DIR in $CAMERA_DIRS; do
     # Stream is NOT healthy (missing/stale/error) - DO NOT update last_checked
     # This prevents false "camera is online" detections
     JSON_PAYLOAD="{
-      \"mini_pc_id\": \"$MINI_PC_ID\",
+      \"camera_id\": \"$CAMERA_UUID\",
       \"stream_status\": \"$STREAM_STATUS\",
       \"log_message\": \"$CAMERA_MESSAGE\"
     }"
     echo "⚠️  Stream unhealthy ($STREAM_STATUS) - NOT updating last_checked"
   fi
   
-  # Try to update existing record (PATCH always works for existing records)
-  RESPONSE=$(curl -s -X PATCH "$SUPABASE_URL/rest/v1/camera_health?camera_id=eq.$CAMERA_UUID" \
-    -H "apikey: $SUPABASE_API_KEY" \
-    -H "Authorization: Bearer $SUPABASE_API_KEY" \
+  # Try to update existing record (POST always works for existing records)
+  RESPONSE=$(curl -s -X POST "$API_BASE/ingest/camera-health" \
     -H "Content-Type: application/json" \
-    -H "Prefer: return=minimal" \
+    -H "x-clearpoint-device-token: $DEVICE_TOKEN" \
     -d "$JSON_PAYLOAD")
   
-  echo "📥 Supabase response: $RESPONSE"
+  echo "📥 Clearpoint API response: $RESPONSE"
 
   echo "📹 Camera $CAMERA_DIR health: $STREAM_STATUS"
 done

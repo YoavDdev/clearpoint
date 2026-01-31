@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { format } from "date-fns";
 import Link from "next/link";
 
@@ -44,15 +43,6 @@ type SubscriptionRequest = {
 };
 
 export default function AdminRequestsPage() {
-  const [supabase, setSupabase] = useState<any>(null);
-
-  useEffect(() => {
-    setSupabase(createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    ));
-  }, []);
-
   const [requests, setRequests] = useState<SubscriptionRequest[]>([]);
   const [userEmails, setUserEmails] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -60,10 +50,12 @@ export default function AdminRequestsPage() {
   const [showPaymentLink, setShowPaymentLink] = useState<{id: string, link: string} | null>(null);
 
   async function fetchData() {
-    if (!supabase) return;
-    const { data: requestsData } = await supabase
-      .from("subscription_requests")
-      .select("*");
+    const requestsRes = await fetch("/api/admin/subscription-requests", {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+    const requestsJson = await requestsRes.json();
+    const requestsData = requestsJson?.requests || [];
 
     const usersRes = await fetch("/api/admin-get-users");
     const usersJson = await usersRes.json();
@@ -94,23 +86,32 @@ export default function AdminRequestsPage() {
   }
 
   async function updateStatus(id: string, status: string) {
-    if (!supabase) return;
-    await supabase.from("subscription_requests").update({ status }).eq("id", id);
+    await fetch("/api/admin/subscription-requests", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, patch: { status } }),
+    });
     fetchData();
   }
 
   async function updateNote(id: string, note: string) {
-    if (!supabase) return;
-    await supabase.from("subscription_requests").update({ admin_notes: note }).eq("id", id);
+    await fetch("/api/admin/subscription-requests", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, patch: { admin_notes: note } }),
+    });
     fetchData();
   }
 
   async function deleteRequest(id: string) {
-    if (!supabase) return;
     const confirmed = confirm("האם אתה בטוח שברצונך למחוק את הבקשה לצמיתות?");
     if (!confirmed) return;
 
-    await supabase.from("subscription_requests").delete().eq("id", id);
+    await fetch("/api/admin/subscription-requests", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
     fetchData();
   }
 
@@ -153,10 +154,8 @@ export default function AdminRequestsPage() {
   }
 
   useEffect(() => {
-    if (supabase) {
-      fetchData();
-    }
-  }, [supabase]);
+    fetchData();
+  }, []);
 
   if (loading) {
     return (

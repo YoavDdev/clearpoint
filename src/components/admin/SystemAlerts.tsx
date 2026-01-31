@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 
 interface Alert {
@@ -20,20 +19,18 @@ export function SystemAlerts() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
   const generateAlerts = async () => {
     const newAlerts: Alert[] = [];
 
     try {
-      // Check for offline cameras
-      const { data: offlineCameras } = await supabase
-        .from("cameras")
-        .select("name, user:users!cameras_user_id_fkey(full_name), last_seen_at")
-        .eq("is_stream_active", false);
+      const res = await fetch("/api/admin/system-alerts");
+      const summary = await res.json();
+
+      if (!summary?.success) {
+        throw new Error(summary?.error || "Failed to load system alerts summary");
+      }
+
+      const offlineCameras = summary.offlineCameras || [];
 
       if (offlineCameras && offlineCameras.length > 0) {
         offlineCameras.forEach((camera: any) => {
@@ -55,11 +52,7 @@ export function SystemAlerts() {
         });
       }
 
-      // Check for pending support requests
-      const { count: pendingSupport } = await supabase
-        .from("support_requests")
-        .select("*", { count: "exact", head: true })
-        .eq("is_handled", false);
+      const pendingSupport = summary.pendingSupport || 0;
 
       if (pendingSupport && pendingSupport > 0) {
         newAlerts.push({
@@ -75,11 +68,7 @@ export function SystemAlerts() {
         });
       }
 
-      // Check for new subscription requests
-      const { count: newRequests } = await supabase
-        .from("subscription_requests")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "new");
+      const newRequests = summary.newRequests || 0;
 
       if (newRequests && newRequests > 0) {
         newAlerts.push({
@@ -95,11 +84,7 @@ export function SystemAlerts() {
         });
       }
 
-      // Check for cameras with high disk usage
-      const { data: cameras } = await supabase
-        .from("cameras")
-        .select("id, name, user:users!cameras_user_id_fkey(full_name)")
-        .eq("is_stream_active", true);
+      const cameras = summary.activeCameras || [];
 
       if (cameras) {
         for (const camera of cameras) {
