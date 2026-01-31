@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
       .from("invoices")
       .select(`
         *,
-        payment:payments (
+        payment:payments!invoices_payment_id_fkey (
           id,
           status,
           amount,

@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
           email,
           phone
         ),
-        payment:payments (
+        payment:payments!invoices_payment_id_fkey (
           id,
           status,
           amount,
@@ -55,7 +55,12 @@ export async function GET(req: NextRequest) {
     const { data: invoices, error } = await query;
 
     if (error) {
-      console.error("Error fetching invoices:", error);
+      console.error("Error fetching invoices:", {
+        message: error.message,
+        details: (error as any).details,
+        hint: (error as any).hint,
+        code: (error as any).code,
+      });
       return NextResponse.json(
         { success: false, error: "Failed to fetch invoices" },
         { status: 500 }

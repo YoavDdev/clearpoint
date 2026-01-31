@@ -16,7 +16,7 @@ export default async function InvoiceViewPage({ params }: { params: { id: string
         phone,
         address
       ),
-      payment:payments (
+      payment:payments!invoices_payment_id_fkey (
         id,
         status,
         amount,
