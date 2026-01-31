@@ -75,8 +75,8 @@ USING public.camera_health ch2
 WHERE ch.camera_id = ch2.camera_id
   AND ch.created_at < ch2.created_at;
 
-ALTER TABLE public.mini_pc_health
-ADD CONSTRAINT IF NOT EXISTS mini_pc_health_mini_pc_id_key UNIQUE (mini_pc_id);
+CREATE UNIQUE INDEX IF NOT EXISTS mini_pc_health_mini_pc_id_key
+ON public.mini_pc_health (mini_pc_id);
 
-ALTER TABLE public.camera_health
-ADD CONSTRAINT IF NOT EXISTS camera_health_camera_id_key UNIQUE (camera_id);
+CREATE UNIQUE INDEX IF NOT EXISTS camera_health_camera_id_key
+ON public.camera_health (camera_id);

@@ -9,6 +9,7 @@ import {
   Activity,
   AlertCircle,
   CheckCircle,
+  Copy,
   HardDrive,
   Cpu,
   Clock,
@@ -128,8 +129,27 @@ export function MiniPCsTable({ miniPCs }: { miniPCs: MiniPC[] }) {
       : null;
 
     return (
-      <div dir="rtl" style={style} className="grid grid-cols-[1fr_1fr_1fr_1fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_1fr_1.2fr_0.8fr_0.8fr] border-b border-slate-200 px-6 py-4 text-sm items-center hover:bg-slate-50 transition-colors">
+      <div dir="rtl" style={style} className="grid grid-cols-[1fr_1fr_1fr_1fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_1fr_1.2fr_0.8fr_0.8fr_0.8fr] border-b border-slate-200 px-6 py-4 text-sm items-center hover:bg-slate-50 transition-colors">
         <div className="font-medium text-slate-800">{pc.device_name}</div>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs text-slate-600">
+            {pc.id?.slice(0, 8)}…
+          </span>
+          <button
+            type="button"
+            className="p-1 text-slate-500 hover:bg-slate-100 rounded transition-colors"
+            title="העתק UUID"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(pc.id);
+              } catch {
+                // ignore
+              }
+            }}
+          >
+            <Copy size={14} />
+          </button>
+        </div>
         <div className="text-slate-600">{pc.hostname}</div>
         <div className="text-slate-700">{pc.user?.full_name || "ללא לקוח"}</div>
         <div>
@@ -341,10 +361,14 @@ export function MiniPCsTable({ miniPCs }: { miniPCs: MiniPC[] }) {
       {/* Mini PCs Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <div dir="rtl" className="grid grid-cols-[1fr_1fr_1fr_1fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_1fr_1.2fr_0.8fr_0.8fr] bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold text-sm px-6 py-4">
+          <div dir="rtl" className="grid grid-cols-[1fr_1fr_1fr_1fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_1fr_1.2fr_0.8fr_0.8fr_0.8fr] bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold text-sm px-6 py-4">
             <div className="flex items-center gap-2">
               <Monitor size={16} />
               <span>שם Mini PC</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Copy size={16} />
+              <span>UUID</span>
             </div>
             <div>Hostname</div>
             <div className="flex items-center gap-2">
