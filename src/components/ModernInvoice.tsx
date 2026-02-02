@@ -11,6 +11,8 @@ interface InvoiceProps {
 export default function ModernInvoice({ invoice, items, isAdmin = false }: InvoiceProps) {
   const [isPrinting, setIsPrinting] = useState(false);
 
+  const documentTitle = invoice?.document_type === 'invoice' ? 'קבלה' : 'מסמך';
+
   const handlePrint = () => {
     setIsPrinting(true);
     setTimeout(() => {
@@ -98,11 +100,11 @@ export default function ModernInvoice({ invoice, items, isAdmin = false }: Invoi
             <div className="px-8 py-6 border-b-2 border-gray-900">
               <div className="flex justify-between items-center">
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">Clearpoint Security</h1>
+                  <h1 className="text-xl font-bold text-gray-900">ClearPoint</h1>
                   <p className="text-xs text-gray-600 mt-0.5">מערכות אבטחה ומצלמות</p>
                 </div>
                 <div className="text-left">
-                  <div className="text-2xl font-bold text-gray-900">חשבונית</div>
+                  <div className="text-2xl font-bold text-gray-900">{documentTitle}</div>
                   <div className="text-sm text-gray-600 mt-0.5">#{invoice.invoice_number}</div>
                 </div>
               </div>
@@ -123,7 +125,7 @@ export default function ModernInvoice({ invoice, items, isAdmin = false }: Invoi
 
               {/* Invoice Details */}
               <div>
-                <div className="text-xs font-semibold text-gray-500 uppercase mb-2">פרטי חשבונית</div>
+                <div className="text-xs font-semibold text-gray-500 uppercase mb-2">פרטי מסמך</div>
                 <div className="text-sm space-y-0.5">
                   <div className="flex justify-between">
                     <span className="text-gray-600">תאריך:</span>
@@ -270,7 +272,7 @@ export default function ModernInvoice({ invoice, items, isAdmin = false }: Invoi
             {/* Footer */}
             <div className="px-8 py-4 border-t border-gray-200 bg-white">
               <div className="text-center text-xs text-gray-500 space-y-1">
-                <div>Clearpoint Security • טלפון: 050-123-4567 • info@clearpoint.co.il</div>
+                <div>ClearPoint • info@clearpoint.co.il</div>
                 <div>© {new Date().getFullYear()} כל הזכויות שמורות</div>
               </div>
             </div>

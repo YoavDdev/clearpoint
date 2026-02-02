@@ -11,6 +11,13 @@ interface Customer {
   full_name: string;
   email: string;
   phone: string | null;
+  address?: string | null;
+  customer_type?: 'private' | 'business' | null;
+  company_name?: string | null;
+  vat_number?: string | null;
+  business_city?: string | null;
+  business_postal_code?: string | null;
+  communication_email?: string | null;
   plan_id: string | null;
 }
 
@@ -197,6 +204,14 @@ function CreateInvoiceContent() {
               userId={selectedCustomer.id}
               customerName={selectedCustomer.full_name || selectedCustomer.email}
               customerEmail={selectedCustomer.email}
+              customerPhone={selectedCustomer.phone || ''}
+              customerAddress={selectedCustomer.address || ''}
+              customerType={selectedCustomer.customer_type === 'business' ? 'business' : 'private'}
+              companyName={selectedCustomer.company_name || ''}
+              vatNumber={selectedCustomer.vat_number || ''}
+              businessCity={selectedCustomer.business_city || ''}
+              businessPostalCode={selectedCustomer.business_postal_code || ''}
+              communicationEmail={selectedCustomer.communication_email || ''}
             />
           </>
         )}

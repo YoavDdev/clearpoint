@@ -71,25 +71,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // יצירת חשבונית חדשה
-    const today = new Date();
-    const datePrefix = today.toISOString().slice(0, 10).replace(/-/g, '');
-    
-    const { data: lastInvoice } = await supabase
-      .from("invoices")
-      .select("invoice_number")
-      .like("invoice_number", `${datePrefix}%`)
-      .order("invoice_number", { ascending: false })
-      .limit(1)
-      .single();
+    // Atomic annual invoice number (YYYY-####)
+    const { data: invoiceNumber, error: numberError } = await supabase.rpc(
+      "generate_invoice_number"
+    );
 
-    let invoiceNumber: string;
-    if (lastInvoice?.invoice_number) {
-      const lastNumber = parseInt(lastInvoice.invoice_number.slice(-2));
-      const nextNumber = (lastNumber + 1).toString().padStart(2, '0');
-      invoiceNumber = `${datePrefix}${nextNumber}`;
-    } else {
-      invoiceNumber = `${datePrefix}01`;
+    if (numberError || !invoiceNumber) {
+      console.error("Error generating invoice number:", numberError);
+      return NextResponse.json(
+        { success: false, error: "Failed to generate invoice number" },
+        { status: 500 }
+      );
     }
 
     // יצירת החשבונית החדשה
@@ -103,6 +95,8 @@ export async function POST(req: NextRequest) {
         total_amount: quote.total_amount,
         currency: quote.currency,
         notes: quote.notes,
+        billing_snapshot: (quote as any).billing_snapshot ?? null,
+        issuer_snapshot: (quote as any).issuer_snapshot ?? null,
       })
       .select()
       .single();

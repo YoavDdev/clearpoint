@@ -27,10 +27,31 @@ interface InvoiceCreatorProps {
   userId: string;
   customerName: string;
   customerEmail: string;
+  customerPhone?: string;
+  customerAddress?: string;
+  customerType?: 'private' | 'business';
+  companyName?: string;
+  vatNumber?: string;
+  businessCity?: string;
+  businessPostalCode?: string;
+  communicationEmail?: string;
   defaultDocumentType?: 'quote' | 'invoice';
 }
 
-export default function InvoiceCreator({ userId, customerName, customerEmail, defaultDocumentType = 'invoice' }: InvoiceCreatorProps) {
+export default function InvoiceCreator({
+  userId,
+  customerName,
+  customerEmail,
+  customerPhone = '',
+  customerAddress = '',
+  customerType = 'private',
+  companyName = '',
+  vatNumber = '',
+  businessCity = '',
+  businessPostalCode = '',
+  communicationEmail = '',
+  defaultDocumentType = 'invoice',
+}: InvoiceCreatorProps) {
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [templates, setTemplates] = useState<ItemTemplate[]>([]);
   const [notes, setNotes] = useState("");
@@ -40,6 +61,15 @@ export default function InvoiceCreator({ userId, customerName, customerEmail, de
   const [invoiceLink, setInvoiceLink] = useState("");
   const [documentType, setDocumentType] = useState<'quote' | 'invoice'>(defaultDocumentType);
   const [validUntil, setValidUntil] = useState("");
+
+  const [billingCustomerType, setBillingCustomerType] = useState<'private' | 'business'>(customerType);
+  const [billingCompanyName, setBillingCompanyName] = useState(companyName);
+  const [billingVatNumber, setBillingVatNumber] = useState(vatNumber);
+  const [billingCity, setBillingCity] = useState(businessCity);
+  const [billingPostalCode, setBillingPostalCode] = useState(businessPostalCode);
+  const [billingCommunicationEmail, setBillingCommunicationEmail] = useState(communicationEmail);
+  const [billingPhone, setBillingPhone] = useState(customerPhone);
+  const [billingAddress, setBillingAddress] = useState(customerAddress);
   
   // הוסר: מנוי חודשי מטופל בנפרד דרך SubscriptionManager
 
@@ -103,12 +133,12 @@ export default function InvoiceCreator({ userId, customerName, customerEmail, de
 
   async function createInvoice() {
     if (items.length === 0) {
-      alert(documentType === 'quote' ? "❌ נא להוסיף לפחות פריט אחד להצעת המחיר" : "❌ נא להוסיף לפחות פריט אחד לחשבונית");
+      alert(documentType === 'quote' ? "❌ נא להוסיף לפחות פריט אחד לחשבון העסקה" : "❌ נא להוסיף לפחות פריט אחד לקבלה");
       return;
     }
 
     if (documentType === 'quote' && !validUntil) {
-      alert("❌ נא לבחור תאריך תוקף להצעת המחיר");
+      alert("❌ נא לבחור תאריך תוקף לחשבון העסקה");
       return;
     }
 
@@ -123,8 +153,19 @@ export default function InvoiceCreator({ userId, customerName, customerEmail, de
           notes,
           customerName,
           customerEmail,
+          customerPhone: billingPhone,
+          customerAddress: billingAddress,
+          customerCity: billingCity,
+          customerIdNumber: billingVatNumber,
           documentType,
           validUntil: documentType === 'quote' ? validUntil : null,
+
+          billingCustomerType,
+          billingCompanyName,
+          billingVatNumber,
+          billingBusinessCity: billingCity,
+          billingBusinessPostalCode: billingPostalCode,
+          billingCommunicationEmail,
         }),
       });
 
@@ -138,7 +179,7 @@ export default function InvoiceCreator({ userId, customerName, customerEmail, de
       }
     } catch (error) {
       console.error("Error creating invoice:", error);
-      alert(documentType === 'quote' ? "❌ שגיאה ביצירת הצעת מחיר" : "❌ שגיאה ביצירת חשבונית");
+      alert(documentType === 'quote' ? "❌ שגיאה ביצירת חשבון עסקה" : "❌ שגיאה ביצירת קבלה");
     } finally {
       setLoading(false);
     }
@@ -166,11 +207,11 @@ export default function InvoiceCreator({ userId, customerName, customerEmail, de
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Send size={32} className="text-green-600" />
           </div>
-          <h3 className="text-2xl font-bold text-slate-800 mb-2">✅ {isQuote ? 'הצעת מחיר נוצרה בהצלחה!' : 'חשבונית נוצרה בהצלחה!'}</h3>
-          <p className="text-slate-600 mb-6">{isQuote ? 'לינק להצעת המחיר מוכן לשליחה ללקוח' : 'לינק לחשבונית מוכן לשליחה ללקוח'}</p>
+          <h3 className="text-2xl font-bold text-slate-800 mb-2">✅ {isQuote ? 'חשבון עסקה נוצר בהצלחה!' : 'קבלה נוצרה בהצלחה!'}</h3>
+          <p className="text-slate-600 mb-6">{isQuote ? 'לינק לחשבון העסקה מוכן לשליחה ללקוח' : 'לינק לקבלה מוכן לשליחה ללקוח'}</p>
           
           <div className="bg-blue-50 rounded-lg p-4 mb-6">
-            <p className="text-sm text-slate-600 mb-2">{isQuote ? 'לינק להצעת המחיר:' : 'לינק לחשבונית:'}</p>
+            <p className="text-sm text-slate-600 mb-2">{isQuote ? 'לינק לחשבון העסקה:' : 'לינק לקבלה:'}</p>
             <div className="flex items-center gap-2">
               <input
                 type="text"
@@ -194,7 +235,7 @@ export default function InvoiceCreator({ userId, customerName, customerEmail, de
               rel="noopener noreferrer"
               className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
             >
-              {isQuote ? 'צפה בהצעת מחיר' : 'צפה בחשבונית'}
+              {isQuote ? 'צפה בחשבון עסקה' : 'צפה בקבלה'}
             </a>
             <button
               onClick={() => {
@@ -205,7 +246,7 @@ export default function InvoiceCreator({ userId, customerName, customerEmail, de
               }}
               className="px-6 py-3 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors font-medium"
             >
-              {isQuote ? 'צור הצעת מחיר נוספת' : 'צור חשבונית נוספת'}
+              {isQuote ? 'צור חשבון עסקה נוסף' : 'צור קבלה נוספת'}
             </button>
           </div>
         </div>
@@ -219,8 +260,8 @@ export default function InvoiceCreator({ userId, customerName, customerEmail, de
       <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-6 border-b border-slate-200">
         <div className="flex items-center justify-between">
           <div className="text-right">
-            <h3 className="text-xl font-bold text-slate-800 mb-1">{documentType === 'quote' ? '📋 צור הצעת מחיר' : '💰 צור חשבונית ושלח לתשלום'}</h3>
-            <p className="text-slate-600 text-sm">{documentType === 'quote' ? 'הוסף פריטים ושלח הצעת מחיר ללקוח לאישור' : 'הוסף פריטים, חשב סה"כ ושלח לינק ללקוח'}</p>
+            <h3 className="text-xl font-bold text-slate-800 mb-1">{documentType === 'quote' ? '📋 צור חשבון עסקה' : '🧾 צור קבלה ושלח לתשלום'}</h3>
+            <p className="text-slate-600 text-sm">{documentType === 'quote' ? 'הוסף פריטים ושלח חשבון עסקה ללקוח לאישור' : 'הוסף פריטים, חשב סה"כ ושלח לינק ללקוח'}</p>
           </div>
           <FileText size={32} className="text-purple-600" />
         </div>
@@ -239,7 +280,7 @@ export default function InvoiceCreator({ userId, customerName, customerEmail, de
                   : 'border-slate-300 bg-white text-slate-700 hover:border-blue-400'
               }`}
             >
-              <div className="font-bold mb-1">📋 הצעת מחיר</div>
+              <div className="font-bold mb-1">📋 חשבון עסקה</div>
               <div className="text-xs">ללא תשלום, לאישור לקוח</div>
             </button>
             <button
@@ -250,9 +291,116 @@ export default function InvoiceCreator({ userId, customerName, customerEmail, de
                   : 'border-slate-300 bg-white text-slate-700 hover:border-green-400'
               }`}
             >
-              <div className="font-bold mb-1">💰 חשבונית</div>
+              <div className="font-bold mb-1">🧾 קבלה</div>
               <div className="text-xs">עם לינק תשלום מיידי</div>
             </button>
+          </div>
+        </div>
+
+        <div className="mb-6 bg-white rounded-lg p-4 border border-slate-200">
+          <label className="text-sm font-medium text-slate-700 mb-3 block text-right">פרטי חיוב למסמך</label>
+
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <button
+              type="button"
+              onClick={() => setBillingCustomerType('private')}
+              className={`p-3 rounded-lg border-2 transition-all text-right ${
+                billingCustomerType === 'private'
+                  ? 'border-blue-600 bg-blue-50 text-blue-800'
+                  : 'border-slate-300 bg-white text-slate-700 hover:border-blue-400'
+              }`}
+            >
+              <div className="font-bold">פרטי</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setBillingCustomerType('business')}
+              className={`p-3 rounded-lg border-2 transition-all text-right ${
+                billingCustomerType === 'business'
+                  ? 'border-orange-600 bg-orange-50 text-orange-800'
+                  : 'border-slate-300 bg-white text-slate-700 hover:border-orange-400'
+              }`}
+            >
+              <div className="font-bold">עסק</div>
+            </button>
+          </div>
+
+          {billingCustomerType === 'business' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="text-sm text-slate-600 block text-right mb-1">שם חברה</label>
+                <input
+                  type="text"
+                  value={billingCompanyName}
+                  onChange={(e) => setBillingCompanyName(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-right"
+                  placeholder="שם החברה"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-slate-600 block text-right mb-1">ח.פ / ע.מ</label>
+                <input
+                  type="text"
+                  value={billingVatNumber}
+                  onChange={(e) => setBillingVatNumber(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-right"
+                  placeholder="מספר ח.פ / ע.מ"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-slate-600 block text-right mb-1">עיר</label>
+              <input
+                type="text"
+                value={billingCity}
+                onChange={(e) => setBillingCity(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-right"
+                placeholder="עיר"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-600 block text-right mb-1">מיקוד</label>
+              <input
+                type="text"
+                value={billingPostalCode}
+                onChange={(e) => setBillingPostalCode(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-right"
+                placeholder="מיקוד"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-600 block text-right mb-1">כתובת</label>
+              <input
+                type="text"
+                value={billingAddress}
+                onChange={(e) => setBillingAddress(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-right"
+                placeholder="כתובת לחשבונית/קבלה"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-600 block text-right mb-1">טלפון</label>
+              <input
+                type="text"
+                value={billingPhone}
+                onChange={(e) => setBillingPhone(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-right"
+                placeholder="טלפון"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-sm text-slate-600 block text-right mb-1">אימייל למסמכים (אופציונלי)</label>
+              <input
+                type="email"
+                value={billingCommunicationEmail}
+                onChange={(e) => setBillingCommunicationEmail(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-right"
+                placeholder="אימייל למסמכים"
+              />
+            </div>
           </div>
         </div>
 

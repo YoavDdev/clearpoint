@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
 
     console.log(`🔍 Fetching invoices for user: ${user.email} (${user.full_name}) - ID: ${user.id}`);
 
-    // שליפת החשבוניות (רק invoices, לא quotes - quotes נגישות רק דרך הלינק)
+    // שליפת מסמכים של המשתמש (חשבונות עסקה + קבלות)
     const { data: invoices, error } = await supabase
       .from("invoices")
       .select(`
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
         )
       `)
       .eq("user_id", user.id)
-      .eq("document_type", "invoice")
+      .in("document_type", ["invoice", "quote"])
       .order("created_at", { ascending: false });
 
     console.log(`📄 Found ${invoices?.length || 0} invoices for user ${user.email}`);

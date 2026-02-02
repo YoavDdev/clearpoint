@@ -26,7 +26,7 @@ export default function QuoteView({ quote, items }: QuoteViewProps) {
   };
 
   const handleApprove = async () => {
-    if (!confirm("האם אתה בטוח שברצונך לאשר את הצעת המחיר? תועבר לחשבונית.")) {
+    if (!confirm("האם אתה בטוח שברצונך לאשר את חשבון העסקה? תועבר לתשלום לקבלה.")) {
       return;
     }
 
@@ -44,14 +44,14 @@ export default function QuoteView({ quote, items }: QuoteViewProps) {
       const data = await res.json();
 
       if (data.success && data.invoice?.id) {
-        // הפניה לדף החשבונית (ולא ישר לתשלום)
+        // הפניה לדף הקבלה (ולא ישר לתשלום)
         window.location.href = `/invoice/${data.invoice.id}`;
       } else {
-        alert("❌ שגיאה באישור הצעת המחיר: " + (data.error || "Unknown error"));
+        alert("❌ שגיאה באישור חשבון העסקה: " + (data.error || "Unknown error"));
       }
     } catch (error) {
       console.error("Error approving quote:", error);
-      alert("❌ שגיאה באישור הצעת המחיר");
+      alert("❌ שגיאה באישור חשבון העסקה");
     } finally {
       setIsApproving(false);
     }
@@ -73,15 +73,15 @@ export default function QuoteView({ quote, items }: QuoteViewProps) {
       const data = await res.json();
 
       if (data.success) {
-        alert("✅ הצעת המחיר נדחתה בהצלחה. תודה על עדכונך.");
+        alert("✅ חשבון העסקה נדחה בהצלחה. תודה על עדכונך.");
         setShowRejectModal(false);
         router.refresh();
       } else {
-        alert("❌ שגיאה בדחיית הצעת המחיר: " + (data.error || "Unknown error"));
+        alert("❌ שגיאה בדחיית חשבון העסקה: " + (data.error || "Unknown error"));
       }
     } catch (error) {
       console.error("Error rejecting quote:", error);
-      alert("❌ שגיאה בדחיית הצעת המחיר");
+      alert("❌ שגיאה בדחיית חשבון העסקה");
     } finally {
       setIsRejecting(false);
     }
@@ -174,7 +174,7 @@ export default function QuoteView({ quote, items }: QuoteViewProps) {
                   className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium shadow-lg flex items-center gap-2"
                 >
                   <XCircle size={20} />
-                  <span>❌ דחה הצעה</span>
+                  <span>❌ דחה חשבון עסקה</span>
                 </button>
               </>
             )}
@@ -183,19 +183,19 @@ export default function QuoteView({ quote, items }: QuoteViewProps) {
           {/* Status Banner */}
           {isExpired && (
             <div className="mb-6 no-print bg-red-50 border-2 border-red-300 rounded-xl p-4 text-center">
-              <p className="text-red-800 font-bold">⚠️ הצעת המחיר פגה. אנא צור קשר עם המשרד.</p>
+              <p className="text-red-800 font-bold">⚠️ חשבון העסקה פג. אנא צור קשר עם המשרד.</p>
             </div>
           )}
 
           {isApproved && (
             <div className="mb-6 no-print bg-green-50 border-2 border-green-300 rounded-xl p-4 text-center">
-              <p className="text-green-800 font-bold">✅ הצעת המחיר אושרה והומרה לחשבונית</p>
+              <p className="text-green-800 font-bold">✅ חשבון העסקה אושר והומר לקבלה</p>
             </div>
           )}
 
           {isRejected && (
             <div className="mb-6 no-print bg-red-50 border-2 border-red-300 rounded-xl p-4 text-center">
-              <p className="text-red-800 font-bold">❌ הצעת המחיר נדחתה</p>
+              <p className="text-red-800 font-bold">❌ חשבון העסקה נדחה</p>
               {quote.rejection_reason && (
                 <p className="text-red-700 text-sm mt-2">סיבה: {quote.rejection_reason}</p>
               )}
@@ -208,11 +208,11 @@ export default function QuoteView({ quote, items }: QuoteViewProps) {
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-6">
               <div className="flex justify-between items-center">
                 <div className="text-right">
-                  <h1 className="text-3xl font-bold mb-2">📋 הצעת מחיר</h1>
-                  <p className="text-blue-100">Clearpoint Security Systems</p>
+                  <h1 className="text-3xl font-bold mb-2">📋 חשבון עסקה</h1>
+                  <p className="text-blue-100">ClearPoint</p>
                 </div>
                 <div className="text-left">
-                  <div className="text-sm mb-1">מספר הצעה</div>
+                  <div className="text-sm mb-1">מספר מסמך</div>
                   <div className="text-2xl font-bold">#{quote.invoice_number}</div>
                 </div>
               </div>
@@ -333,10 +333,10 @@ export default function QuoteView({ quote, items }: QuoteViewProps) {
             {/* Footer */}
             <div className="px-8 py-6 bg-slate-100 border-t-2 border-slate-300 text-center">
               <p className="text-sm text-slate-600">
-                Clearpoint Security Systems | info@clearpoint.co.il | 03-1234567
+                ClearPoint | info@clearpoint.co.il
               </p>
               <p className="text-xs text-slate-500 mt-2">
-                הצעת מחיר זו תקפה עד {quote.quote_valid_until ? new Date(quote.quote_valid_until).toLocaleDateString("he-IL") : "תאריך לא צוין"}
+                חשבון עסקה זה תקף עד {quote.quote_valid_until ? new Date(quote.quote_valid_until).toLocaleDateString("he-IL") : "תאריך לא צוין"}
               </p>
             </div>
           </div>
@@ -346,13 +346,13 @@ export default function QuoteView({ quote, items }: QuoteViewProps) {
         {showRejectModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 no-print" onClick={() => setShowRejectModal(false)}>
             <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-2xl font-bold text-slate-800 mb-4 text-right">דחיית הצעת מחיר</h3>
-              <p className="text-slate-600 mb-4 text-right">נשמח לדעת מדוע החלטת לדחות את ההצעה (אופציונלי)</p>
+              <h3 className="text-2xl font-bold text-slate-800 mb-4 text-right">דחיית חשבון עסקה</h3>
+              <p className="text-slate-600 mb-4 text-right">נשמח לדעת מדוע החלטת לדחות את חשבון העסקה (אופציונלי)</p>
               
               <textarea
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="למשל: מצאתי הצעה זולה יותר, לא מתאים לתקציב, וכו..."
+                placeholder="למשל: מצאתי פתרון זול יותר, לא מתאים לתקציב, וכו..."
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right resize-none mb-4"
                 rows={4}
               />

@@ -8,6 +8,7 @@ import SendInvoiceEmailButton from "./SendInvoiceEmailButton";
 interface Invoice {
   id: string;
   invoice_number: string;
+  document_type?: 'quote' | 'invoice';
   status: string;
   total_amount: number;
   created_at: string;
@@ -23,8 +24,14 @@ interface Props {
 export default function CustomerInvoicesList({ initialInvoices, userId }: Props) {
   const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
 
+  const getDocLabel = (inv: Invoice) => {
+    if (inv.document_type === 'quote') return 'חשבון עסקה';
+    if (inv.document_type === 'invoice') return 'קבלה';
+    return 'מסמך';
+  };
+
   const handleDeleteInvoice = async (invoiceId: string, invoiceNumber: string) => {
-    if (!confirm(`האם אתה בטוח שברצונך למחוק את חשבונית #${invoiceNumber}?`)) {
+    if (!confirm(`האם אתה בטוח שברצונך למחוק את המסמך #${invoiceNumber}?`)) {
       return;
     }
 
@@ -38,7 +45,7 @@ export default function CustomerInvoicesList({ initialInvoices, userId }: Props)
       const result = await response.json();
 
       if (result.success) {
-        alert("החשבונית נמחקה בהצלחה");
+        alert("המסמך נמחק בהצלחה");
         // Remove from local state
         setInvoices(invoices.filter((inv) => inv.id !== invoiceId));
       } else {
@@ -46,7 +53,7 @@ export default function CustomerInvoicesList({ initialInvoices, userId }: Props)
       }
     } catch (error) {
       console.error("Error deleting invoice:", error);
-      alert("שגיאה במחיקת החשבונית");
+      alert("שגיאה במחיקת המסמך");
     }
   };
 
@@ -54,8 +61,8 @@ export default function CustomerInvoicesList({ initialInvoices, userId }: Props)
     return (
       <div className="text-center py-12">
         <Receipt className="mx-auto text-slate-300 mb-4" size={64} />
-        <p className="text-slate-500 text-lg">אין חשבוניות ללקוח זה</p>
-        <p className="text-slate-400 text-sm mt-2">צור חשבונית ראשונה למטה</p>
+        <p className="text-slate-500 text-lg">אין מסמכים ללקוח זה</p>
+        <p className="text-slate-400 text-sm mt-2">צור מסמך ראשון למטה</p>
       </div>
     );
   }
@@ -66,6 +73,7 @@ export default function CustomerInvoicesList({ initialInvoices, userId }: Props)
         <thead>
           <tr className="border-b-2 border-slate-200">
             <th className="text-right py-3 px-4 font-semibold text-slate-700">מספר</th>
+            <th className="text-right py-3 px-4 font-semibold text-slate-700">סוג</th>
             <th className="text-right py-3 px-4 font-semibold text-slate-700">תאריך</th>
             <th className="text-right py-3 px-4 font-semibold text-slate-700">סכום</th>
             <th className="text-right py-3 px-4 font-semibold text-slate-700">סטטוס</th>
@@ -78,6 +86,9 @@ export default function CustomerInvoicesList({ initialInvoices, userId }: Props)
             <tr key={invoice.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
               <td className="py-3 px-4 font-mono text-sm text-slate-800">
                 #{invoice.invoice_number}
+              </td>
+              <td className="py-3 px-4 text-sm text-slate-700 font-medium">
+                {getDocLabel(invoice)}
               </td>
               <td className="py-3 px-4 text-sm text-slate-600">
                 {new Date(invoice.created_at).toLocaleDateString('he-IL')}
@@ -131,7 +142,7 @@ export default function CustomerInvoicesList({ initialInvoices, userId }: Props)
                     <button
                       onClick={() => handleDeleteInvoice(invoice.id, invoice.invoice_number)}
                       className="p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
-                      title="מחיקת חשבונית"
+                      title="מחיקת מסמך"
                     >
                       <Trash2 size={16} />
                     </button>

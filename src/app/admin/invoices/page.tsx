@@ -77,7 +77,7 @@ function AdminInvoicesContent() {
   };
 
   const handleDeleteInvoice = async (invoiceId: string, invoiceNumber: string, documentType: 'quote' | 'invoice') => {
-    const docName = documentType === 'quote' ? 'הצעת מחיר' : 'חשבונית';
+    const docName = documentType === 'quote' ? 'חשבון עסקה' : 'קבלה';
     if (!confirm(`האם אתה בטוח שברצונך למחוק את ${docName} #${invoiceNumber}?`)) {
       return;
     }
@@ -92,7 +92,7 @@ function AdminInvoicesContent() {
       const result = await response.json();
 
       if (result.success) {
-        const docName = documentType === 'quote' ? 'הצעת המחיר' : 'החשבונית';
+        const docName = documentType === 'quote' ? 'חשבון העסקה' : 'הקבלה';
         alert(`${docName} נמחקה בהצלחה`);
         fetchInvoices();
       } else {
@@ -100,7 +100,7 @@ function AdminInvoicesContent() {
       }
     } catch (error) {
       console.error("Error deleting invoice:", error);
-      const docName = documentType === 'quote' ? 'הצעת המחיר' : 'החשבונית';
+      const docName = documentType === 'quote' ? 'חשבון העסקה' : 'הקבלה';
       alert(`שגיאה במחיקת ${docName}`);
     }
   };
@@ -236,15 +236,15 @@ function AdminInvoicesContent() {
               <div className="text-3xl font-bold text-slate-800">{stats.total}</div>
             </div>
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-200">
-              <div className="text-blue-600 text-sm mb-2">הצעות מחיר</div>
+              <div className="text-blue-600 text-sm mb-2">חשבונות עסקה</div>
               <div className="text-3xl font-bold text-blue-700">{stats.quotes}</div>
             </div>
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-200">
-              <div className="text-orange-600 text-sm mb-2">חשבוניות</div>
+              <div className="text-orange-600 text-sm mb-2">קבלות</div>
               <div className="text-3xl font-bold text-orange-700">{stats.invoices}</div>
             </div>
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-emerald-200">
-              <div className="text-emerald-600 text-sm mb-2">הצעות אושרו</div>
+              <div className="text-emerald-600 text-sm mb-2">חשבונות אושרו</div>
               <div className="text-3xl font-bold text-emerald-700">{stats.quotesApproved}</div>
             </div>
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-green-200">

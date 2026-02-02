@@ -16,6 +16,12 @@ export async function POST(req: NextRequest) {
       customerAddress,
       customerCity,
       customerIdNumber,
+      billingCustomerType,
+      billingCompanyName,
+      billingVatNumber,
+      billingBusinessCity,
+      billingBusinessPostalCode,
+      billingCommunicationEmail,
       documentType = 'invoice',
       validUntil,
     } = await req.json();
@@ -40,29 +46,46 @@ export async function POST(req: NextRequest) {
 
     const isQuote = documentType === 'quote';
 
-    // חישוב מספר מסמך ייחודי (YYYYMMDD + sequential number)
-    const today = new Date();
-    const datePrefix = today.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
-    
-    // מציאת המספר האחרון עבור היום
-    const { data: lastInvoice } = await supabase
-      .from("invoices")
-      .select("invoice_number")
-      .like("invoice_number", `${datePrefix}%`)
-      .order("invoice_number", { ascending: false })
-      .limit(1)
-      .single();
-
-    let invoiceNumber: string;
-    if (lastInvoice?.invoice_number) {
-      // קיימת חשבונית מהיום - הגדל את המספר
-      const lastNumber = parseInt(lastInvoice.invoice_number.slice(-2));
-      const nextNumber = (lastNumber + 1).toString().padStart(2, '0');
-      invoiceNumber = `${datePrefix}${nextNumber}`;
-    } else {
-      // אין חשבונית מהיום - התחל מ-01
-      invoiceNumber = `${datePrefix}01`;
+    // Persist billing defaults on user (admin-managed)
+    // This is best-effort; even if it fails we still create the document.
+    try {
+      await supabase
+        .from('users')
+        .update({
+          customer_type: billingCustomerType || null,
+          company_name: billingCompanyName || null,
+          vat_number: billingVatNumber || null,
+          business_city: billingBusinessCity || null,
+          business_postal_code: billingBusinessPostalCode || null,
+          communication_email: billingCommunicationEmail || null,
+        })
+        .eq('id', userId);
+    } catch (e) {
+      console.warn('⚠️ Failed to persist billing defaults on user (continuing):', e);
     }
+
+    const billingSnapshot = {
+      customer_type: billingCustomerType || null,
+      company_name: billingCompanyName || null,
+      vat_number: billingVatNumber || null,
+      business_city: billingBusinessCity || customerCity || null,
+      business_postal_code: billingBusinessPostalCode || null,
+      communication_email: billingCommunicationEmail || null,
+      customer_name: customerName || null,
+      customer_email: customerEmail || null,
+      customer_phone: customerPhone || null,
+      customer_address: customerAddress || null,
+    };
+
+    const issuerSnapshot = {
+      brand_name: 'ClearPoint',
+      issuer_type: 'exempt',
+      vat_rate: 0,
+      currency: 'ILS',
+    };
+
+    // Annual atomic document number (YYYY-####)
+    let invoiceNumber: string | null = null;
 
     // יצירת חשבונית עם retry logic למקרה של race condition
     let invoice = null;
@@ -71,6 +94,20 @@ export async function POST(req: NextRequest) {
 
     while (!invoice && attempts < maxAttempts) {
       attempts++;
+
+      const { data: generatedNumber, error: numberError } = await supabase.rpc(
+        "generate_invoice_number"
+      );
+
+      if (numberError || !generatedNumber) {
+        console.error("Error generating invoice number:", numberError);
+        return NextResponse.json(
+          { success: false, error: "Failed to generate invoice number" },
+          { status: 500 }
+        );
+      }
+
+      invoiceNumber = generatedNumber as string;
 
       const { data, error } = await supabase
         .from("invoices")
@@ -83,6 +120,8 @@ export async function POST(req: NextRequest) {
           currency: "ILS",
           notes: notes || null,
           quote_valid_until: isQuote && validUntil ? validUntil : null,
+          billing_snapshot: billingSnapshot,
+          issuer_snapshot: issuerSnapshot,
         })
         .select()
         .single();
@@ -94,10 +133,9 @@ export async function POST(req: NextRequest) {
 
       // אם זו שגיאת duplicate - נסה עם מספר הבא
       if (error.code === '23505') {
-        console.log(`Invoice number ${invoiceNumber} already exists, trying next number...`);
-        const currentNumber = parseInt(invoiceNumber.slice(-2));
-        const nextNumber = (currentNumber + 1).toString().padStart(2, '0');
-        invoiceNumber = `${datePrefix}${nextNumber}`;
+        console.log(
+          `Invoice number ${invoiceNumber} already exists, retrying generation...`
+        );
         continue;
       }
 
@@ -221,14 +259,14 @@ export async function POST(req: NextRequest) {
 
     const payplusResponse = await createOneTimePayment({
       sum: totalAmount,
-      description: `חשבונית התקנה #${invoice.invoice_number} - ${customerName}`,
+      description: `קבלה התקנה #${invoice.invoice_number} - ${customerName}`,
       customer_uid: customerUid || undefined, // ✅ שימוש בלקוח קיים אם יש
       customer_name: customerName,
       customer_email: customerEmail,
       customer_phone: customerPhone || "",
       customer_address: customerAddress || "",
       customer_city: customerCity || "",
-      customer_id_number: customerIdNumber || "",
+      customer_id_number: customerIdNumber || billingVatNumber || "",
       items: items.map((item: any) => ({
         name: item.item_name,
         quantity: item.quantity,
