@@ -118,12 +118,55 @@ export async function POST(req: NextRequest) {
         // תשלום הצליח → החשבונית שולמה
         await supabase
           .from("invoices")
-          .update({ 
+          .update({
             status: 'paid',
-            paid_at: new Date().toISOString() 
+            paid_at: new Date().toISOString(),
           })
           .eq("id", payment.invoice_id);
         console.log("✅ Invoice marked as paid:", payment.invoice_id);
+
+        try {
+          const { data: invoice } = await supabase
+            .from('invoices')
+            .select('id, invoice_number, created_at, total_amount, email_sent_at, user:users(full_name, email)')
+            .eq('id', payment.invoice_id)
+            .single();
+
+          if (invoice?.user?.email && !invoice.email_sent_at) {
+            const { data: items } = await supabase
+              .from('invoice_items')
+              .select('*')
+              .eq('invoice_id', payment.invoice_id)
+              .order('sort_order', { ascending: true });
+
+            const isMonthlyRecurring = items?.length === 1 && items[0].item_type === 'subscription';
+
+            const { sendInvoiceEmail } = await import('@/lib/email');
+            await sendInvoiceEmail({
+              customerName: invoice.user.full_name || invoice.user.email,
+              customerEmail: invoice.user.email,
+              invoiceNumber: invoice.invoice_number,
+              invoiceDate: new Date(invoice.created_at).toLocaleDateString('he-IL'),
+              totalAmount: invoice.total_amount,
+              items: (items || []).map((it: any) => ({
+                name: it.item_name,
+                description: it.item_description || '',
+                quantity: it.quantity,
+                price: it.unit_price,
+              })),
+              invoiceUrl: `${process.env.NODE_ENV === 'production' ? 'https://www.clearpoint.co.il' : (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000')}/invoice/${invoice.id}`,
+              isMonthlyRecurring,
+            });
+
+            await supabase
+              .from('invoices')
+              .update({ email_sent_at: new Date().toISOString() })
+              .eq('id', invoice.id)
+              .is('email_sent_at', null);
+          }
+        } catch (emailError) {
+          console.error('⚠️ Failed to send receipt email:', emailError);
+        }
       } else {
         // תשלום נכשל → החשבונית נשארת ממתין לתשלום
         console.log("⚠️ Payment failed - invoice remains pending:", payment.invoice_id);

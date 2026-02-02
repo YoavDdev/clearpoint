@@ -301,24 +301,24 @@ function invoiceEmailTemplate(data: InvoiceEmailData): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${data.isMonthlyRecurring ? 'חשבונית חודשית' : 'חשבונית חדשה'}</title>
+  <title>${data.isMonthlyRecurring ? 'קבלה חודשית' : 'קבלה'}</title>
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f4f4;">
   <div style="background-color: white; border-radius: 10px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
     <div style="text-align: center; margin-bottom: 30px;">
-      <h1 style="color: ${data.isMonthlyRecurring ? '#8b5cf6' : '#10b981'}; margin: 0;">📄 ${data.isMonthlyRecurring ? 'חשבונית חודשית' : 'חשבונית חדשה'}</h1>
+      <h1 style="color: ${data.isMonthlyRecurring ? '#8b5cf6' : '#10b981'}; margin: 0;">${data.isMonthlyRecurring ? 'קבלה חודשית' : 'קבלה'}</h1>
     </div>
     
     <div style="background: linear-gradient(135deg, ${data.isMonthlyRecurring ? '#8b5cf6 0%, #7c3aed' : '#10b981 0%, #059669'} 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
       <p style="margin: 0; font-size: 14px;">שלום ${data.customerName},</p>
-      <p style="margin: 10px 0 0 0; font-size: 16px;">${data.isMonthlyRecurring ? 'קיבלת חשבונית חודשית חדשה עבור המנוי שלך' : 'החשבונית שלך מוכנה!'}</p>
+      <p style="margin: 10px 0 0 0; font-size: 16px;">${data.isMonthlyRecurring ? 'קיבלת קבלה חודשית עבור החיוב האחרון' : 'הקבלה שלך מוכנה!'}</p>
     </div>
 
     <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 20px; direction: rtl;">
-      <h3 style="margin-top: 0; color: #1f2937; text-align: right;">פרטי החשבונית:</h3>
+      <h3 style="margin-top: 0; color: #1f2937; text-align: right;">פרטי הקבלה:</h3>
       <table dir="rtl" style="width: 100%; border-collapse: collapse;">
         <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: right; width: 50%;">מספר חשבונית:</td>
+          <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: right; width: 50%;">מספר קבלה:</td>
           <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: left; font-weight: bold; font-family: monospace; width: 50%;">#${data.invoiceNumber}</td>
         </tr>
         <tr>
@@ -333,7 +333,7 @@ function invoiceEmailTemplate(data: InvoiceEmailData): string {
     </div>
 
     <div style="background-color: #f0fdf4; border-right: 4px solid #10b981; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-      <h4 style="margin-top: 0; color: #065f46;">פריטים בחשבונית:</h4>
+      <h4 style="margin-top: 0; color: #065f46;">פריטים בקבלה:</h4>
       <ul style="margin: 0; padding-right: 20px; color: #064e3b;">
         ${data.items.map(item => `
         <li style="margin-bottom: 8px;">
@@ -355,7 +355,7 @@ function invoiceEmailTemplate(data: InvoiceEmailData): string {
 
     <div style="text-align: center; margin-top: 30px;">
       <a href="${data.invoiceUrl}" style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
-        📄 צפה בחשבונית המלאה
+        צפה בקבלה המלאה
       </a>
     </div>
 
@@ -369,7 +369,7 @@ function invoiceEmailTemplate(data: InvoiceEmailData): string {
       <p style="margin: 0; font-size: 12px; color: #6b7280;">Clearpoint Security Systems</p>
       <p style="margin: 5px 0; font-size: 12px; color: #6b7280;">טלפון: 050-123-4567 | אימייל: info@clearpoint.co.il</p>
       <p style="margin: 10px 0 0 0; font-size: 11px; color: #9ca3af;">
-        קיבלת מייל זה כי נוצרה עבורך חשבונית במערכת Clearpoint Security
+        קיבלת מייל זה כי נוצרה עבורך קבלה במערכת Clearpoint Security
       </p>
     </div>
   </div>
@@ -541,7 +541,7 @@ export async function sendInvoiceEmail(data: InvoiceEmailData): Promise<boolean>
     const result = await resend.emails.send({
       from: FROM_EMAIL,
       to: data.customerEmail,
-      subject: `📄 ${data.isMonthlyRecurring ? 'חשבונית חודשית' : 'חשבונית חדשה'} #${data.invoiceNumber} | Clearpoint Security`,
+      subject: `${data.isMonthlyRecurring ? 'קבלה חודשית' : 'קבלה'} #${data.invoiceNumber} | Clearpoint Security`,
       html: invoiceEmailTemplate(data),
     });
 

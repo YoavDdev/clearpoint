@@ -273,6 +273,34 @@ export async function GET(req: NextRequest) {
           const amount = Number(rp.amount) || Number(status.amount) || 0;
           const currency = (rp.currency_code as string | null) || 'ILS';
 
+          const { data: userForSnapshot } = await supabaseAdmin
+            .from('users')
+            .select(
+              'full_name, email, phone, address, customer_type, company_name, vat_number, business_city, business_postal_code, communication_email'
+            )
+            .eq('id', rp.user_id)
+            .single();
+
+          const billingSnapshot = {
+            customer_type: userForSnapshot?.customer_type || null,
+            company_name: userForSnapshot?.company_name || null,
+            vat_number: userForSnapshot?.vat_number || null,
+            business_city: userForSnapshot?.business_city || null,
+            business_postal_code: userForSnapshot?.business_postal_code || null,
+            communication_email: userForSnapshot?.communication_email || null,
+            customer_name: userForSnapshot?.full_name || null,
+            customer_email: userForSnapshot?.email || null,
+            customer_phone: userForSnapshot?.phone || null,
+            customer_address: userForSnapshot?.address || null,
+          };
+
+          const issuerSnapshot = {
+            brand_name: 'ClearPoint',
+            issuer_type: 'exempt',
+            vat_rate: 0,
+            currency,
+          };
+
           // Create payment
           const { data: newPayment, error: paymentError } = await supabaseAdmin
             .from('payments')
@@ -332,6 +360,8 @@ export async function GET(req: NextRequest) {
                 monthly_price: amount,
                 paid_at: paidAtDate.toISOString(),
                 sent_at: new Date().toISOString(),
+                billing_snapshot: billingSnapshot,
+                issuer_snapshot: issuerSnapshot,
                 notes: `קבלה אוטומטית - הוראת קבע\nRecurring UID: ${recurringUid}\nRecurring Month: ${paidMonth}`,
               })
               .select('id, invoice_number')
@@ -379,6 +409,46 @@ export async function GET(req: NextRequest) {
             .from('payments')
             .update({ invoice_id: createdInvoice.id, invoice_number: createdInvoice.invoice_number })
             .eq('id', newPayment.id);
+
+          try {
+            const { data: invoiceToEmail } = await supabaseAdmin
+              .from('invoices')
+              .select('id, invoice_number, created_at, total_amount, email_sent_at, user:users(full_name, email)')
+              .eq('id', createdInvoice.id)
+              .single();
+
+            if (invoiceToEmail?.user?.email && !invoiceToEmail.email_sent_at) {
+              const { sendInvoiceEmail } = await import('@/lib/email');
+              await sendInvoiceEmail({
+                customerName: invoiceToEmail.user.full_name || invoiceToEmail.user.email,
+                customerEmail: invoiceToEmail.user.email,
+                invoiceNumber: invoiceToEmail.invoice_number,
+                invoiceDate: new Date(invoiceToEmail.created_at).toLocaleDateString('he-IL'),
+                totalAmount: invoiceToEmail.total_amount,
+                items: [
+                  {
+                    name: 'מנוי חודשי',
+                    description: `מנוי לשירות Clearpoint Security - ${paidAtDate.toLocaleDateString('he-IL', {
+                      month: 'long',
+                      year: 'numeric',
+                    })}`,
+                    quantity: 1,
+                    price: amount,
+                  },
+                ],
+                invoiceUrl: `${process.env.NODE_ENV === 'production' ? 'https://www.clearpoint.co.il' : (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000')}/invoice/${createdInvoice.id}`,
+                isMonthlyRecurring: true,
+              });
+
+              await supabaseAdmin
+                .from('invoices')
+                .update({ email_sent_at: new Date().toISOString() })
+                .eq('id', createdInvoice.id)
+                .is('email_sent_at', null);
+            }
+          } catch (emailError) {
+            console.error('⚠️ [CRON] Failed to send recurring receipt email:', emailError);
+          }
 
           receiptsCreated++;
         } catch (innerError) {

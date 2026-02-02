@@ -11,6 +11,9 @@ interface InvoiceProps {
 export default function ModernInvoice({ invoice, items, isAdmin = false }: InvoiceProps) {
   const [isPrinting, setIsPrinting] = useState(false);
 
+  const billing = invoice?.billing_snapshot || {};
+  const issuer = invoice?.issuer_snapshot || {};
+
   const documentTitle = invoice?.document_type === 'invoice' ? 'קבלה' : 'מסמך';
 
   const handlePrint = () => {
@@ -116,10 +119,38 @@ export default function ModernInvoice({ invoice, items, isAdmin = false }: Invoi
               <div>
                 <div className="text-xs font-semibold text-gray-500 uppercase mb-2">לקוח</div>
                 <div className="text-sm space-y-0.5">
-                  <div className="font-semibold text-gray-900">{invoice.user?.full_name || "לקוח"}</div>
-                  <div className="text-gray-600">{invoice.user?.email}</div>
-                  {invoice.user?.phone && <div className="text-gray-600">{invoice.user.phone}</div>}
-                  {invoice.user?.address && <div className="text-gray-600 text-xs">{invoice.user.address}</div>}
+                  <div className="font-semibold text-gray-900">
+                    {billing.customer_name || invoice.user?.full_name || "לקוח"}
+                  </div>
+                  <div className="text-gray-600">{billing.customer_email || invoice.user?.email}</div>
+                  {(billing.customer_phone || invoice.user?.phone) && (
+                    <div className="text-gray-600">{billing.customer_phone || invoice.user?.phone}</div>
+                  )}
+                  {(billing.customer_address || invoice.user?.address) && (
+                    <div className="text-gray-600 text-xs">
+                      {billing.customer_address || invoice.user?.address}
+                    </div>
+                  )}
+
+                  {(billing.customer_type || billing.company_name || billing.vat_number) && (
+                    <div className="pt-2 mt-2 border-t border-gray-200 text-xs text-gray-600 space-y-1">
+                      {billing.customer_type && (
+                        <div>
+                          <span className="text-gray-500">סוג לקוח:</span> {billing.customer_type}
+                        </div>
+                      )}
+                      {billing.company_name && (
+                        <div>
+                          <span className="text-gray-500">שם חברה:</span> {billing.company_name}
+                        </div>
+                      )}
+                      {billing.vat_number && (
+                        <div>
+                          <span className="text-gray-500">ח.פ/ע.מ:</span> {billing.vat_number}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -272,7 +303,19 @@ export default function ModernInvoice({ invoice, items, isAdmin = false }: Invoi
             {/* Footer */}
             <div className="px-8 py-4 border-t border-gray-200 bg-white">
               <div className="text-center text-xs text-gray-500 space-y-1">
-                <div>ClearPoint • info@clearpoint.co.il</div>
+                <div>
+                  {(issuer.brand_name || 'ClearPoint')}
+                  {' • '}
+                  {(issuer.communication_email || 'info@clearpoint.co.il')}
+                </div>
+                {(issuer.vat_number || issuer.issuer_type || issuer.vat_rate !== undefined) && (
+                  <div>
+                    {issuer.vat_number ? `ע.מ: ${issuer.vat_number}` : null}
+                    {issuer.vat_number && issuer.issuer_type ? ' • ' : null}
+                    {issuer.issuer_type ? `סוג עוסק: ${issuer.issuer_type}` : null}
+                    {(issuer.vat_rate !== undefined && issuer.vat_rate !== null) ? ` • מע"מ: ${issuer.vat_rate}%` : null}
+                  </div>
+                )}
                 <div>© {new Date().getFullYear()} כל הזכויות שמורות</div>
               </div>
             </div>
