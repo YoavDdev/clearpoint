@@ -95,8 +95,12 @@ export async function POST(req: NextRequest) {
     while (!invoice && attempts < maxAttempts) {
       attempts++;
 
+      const numberFunction = isQuote
+        ? "generate_quote_number"
+        : "generate_invoice_number";
+
       const { data: generatedNumber, error: numberError } = await supabase.rpc(
-        "generate_invoice_number"
+        numberFunction
       );
 
       if (numberError || !generatedNumber) {

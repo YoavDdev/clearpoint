@@ -187,7 +187,7 @@ export async function POST(req: NextRequest) {
 
     const payplusResponse = await createOneTimePayment({
       sum: quote.total_amount,
-      description: `חשבונית #${invoice.invoice_number} - ${quote.user.full_name}`,
+      description: `קבלה #${invoice.invoice_number} - ${quote.user.full_name}`,
       customer_uid: customerUid || undefined, // ✅ שימוש בלקוח קיים אם יש
       customer_name: quote.user.full_name || "",
       customer_email: quote.user.email || "",
