@@ -71,35 +71,60 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Atomic annual invoice number (YYYY-####)
-    const { data: invoiceNumber, error: numberError } = await supabase.rpc(
-      "generate_invoice_number"
-    );
+    // Atomic annual invoice number (YYYY-####) with retry on duplicates
+    let invoice: any = null;
+    let invoiceError: any = null;
+    let attempts = 0;
+    const maxAttempts = 3;
 
-    if (numberError || !invoiceNumber) {
-      console.error("Error generating invoice number:", numberError);
-      return NextResponse.json(
-        { success: false, error: "Failed to generate invoice number" },
-        { status: 500 }
+    while (!invoice && attempts < maxAttempts) {
+      attempts++;
+
+      const { data: invoiceNumber, error: numberError } = await supabase.rpc(
+        "generate_invoice_number"
       );
-    }
 
-    // יצירת החשבונית החדשה
-    const { data: invoice, error: invoiceError } = await supabase
-      .from("invoices")
-      .insert({
-        user_id: quote.user_id,
-        invoice_number: invoiceNumber,
-        document_type: "invoice",
-        status: "draft",
-        total_amount: quote.total_amount,
-        currency: quote.currency,
-        notes: quote.notes,
-        billing_snapshot: (quote as any).billing_snapshot ?? null,
-        issuer_snapshot: (quote as any).issuer_snapshot ?? null,
-      })
-      .select()
-      .single();
+      if (numberError || !invoiceNumber) {
+        console.error("Error generating invoice number:", numberError);
+        return NextResponse.json(
+          { success: false, error: "Failed to generate invoice number" },
+          { status: 500 }
+        );
+      }
+
+      const { data: createdInvoice, error: createError } = await supabase
+        .from("invoices")
+        .insert({
+          user_id: quote.user_id,
+          invoice_number: invoiceNumber,
+          document_type: "invoice",
+          status: "draft",
+          total_amount: quote.total_amount,
+          currency: quote.currency,
+          notes: quote.notes,
+          billing_snapshot: (quote as any).billing_snapshot ?? null,
+          issuer_snapshot: (quote as any).issuer_snapshot ?? null,
+        })
+        .select()
+        .single();
+
+      if (!createError) {
+        invoice = createdInvoice;
+        invoiceError = null;
+        break;
+      }
+
+      invoiceError = createError;
+
+      if (createError.code === '23505') {
+        console.log(
+          `Invoice number ${invoiceNumber} already exists, retrying generation...`
+        );
+        continue;
+      }
+
+      break;
+    }
 
     if (invoiceError || !invoice) {
       console.error("Error creating invoice:", invoiceError);

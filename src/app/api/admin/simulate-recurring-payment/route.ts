@@ -86,24 +86,58 @@ export async function POST(req: NextRequest) {
 
     // יצירת חשבונית אוטומטית
     if (newPayment) {
-      const { data: invoiceNumber } = await supabase.rpc("generate_invoice_number");
-      
-      const { data: newInvoice, error: invoiceError } = await supabase
-        .from("invoices")
-        .insert({
-          user_id: userId,
-          invoice_number: invoiceNumber || `INV-${Date.now()}`,
-          status: "paid",
-          total_amount: subscription.custom_price || subscription.amount,
-          currency: "ILS",
-          payment_id: newPayment.id,
-          has_subscription: true,
-          monthly_price: subscription.custom_price || subscription.amount,
-          notes: `תשלום חודשי אוטומטי - סימולציה\nתאריך: ${new Date().toLocaleDateString('he-IL')}\nעסקה: SIM-${Date.now()}`,
-          sent_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
+      let newInvoice: any = null;
+      let invoiceError: any = null;
+      let attempts = 0;
+      const maxAttempts = 3;
+
+      while (!newInvoice && attempts < maxAttempts) {
+        attempts++;
+
+        const { data: invoiceNumber, error: numberError } = await supabase.rpc(
+          "generate_invoice_number"
+        );
+
+        if (numberError || !invoiceNumber) {
+          invoiceError = numberError;
+          break;
+        }
+
+        const { data: createdInvoice, error: createError } = await supabase
+          .from("invoices")
+          .insert({
+            user_id: userId,
+            invoice_number: invoiceNumber,
+            document_type: "invoice",
+            status: "paid",
+            total_amount: subscription.custom_price || subscription.amount,
+            currency: "ILS",
+            payment_id: newPayment.id,
+            has_subscription: true,
+            monthly_price: subscription.custom_price || subscription.amount,
+            notes: `תשלום חודשי אוטומטי - סימולציה\nתאריך: ${new Date().toLocaleDateString('he-IL')}\nעסקה: SIM-${Date.now()}`,
+            sent_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (!createError) {
+          newInvoice = createdInvoice;
+          invoiceError = null;
+          break;
+        }
+
+        invoiceError = createError;
+
+        if (createError.code === '23505') {
+          console.log(
+            `Invoice number ${invoiceNumber} already exists, retrying generation...`
+          );
+          continue;
+        }
+
+        break;
+      }
 
       if (!invoiceError && newInvoice) {
         await supabase
