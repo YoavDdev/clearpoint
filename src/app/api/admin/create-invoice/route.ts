@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createOneTimePayment } from "@/lib/payplus";
+import { getIssuerSnapshot } from "@/lib/issuer";
 
 export const dynamic = 'force-dynamic';
 
@@ -78,10 +79,7 @@ export async function POST(req: NextRequest) {
     };
 
     const issuerSnapshot = {
-      brand_name: 'ClearPoint',
-      issuer_type: 'exempt',
-      vat_rate: 0,
-      currency: 'ILS',
+      ...getIssuerSnapshot('ILS'),
     };
 
     // Annual atomic document number (YYYY-####)

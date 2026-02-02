@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { payplusClient } from '@/lib/payplusClient';
+import { getIssuerSnapshot } from '@/lib/issuer';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -295,10 +296,7 @@ export async function GET(req: NextRequest) {
           };
 
           const issuerSnapshot = {
-            brand_name: 'ClearPoint',
-            issuer_type: 'exempt',
-            vat_rate: 0,
-            currency,
+            ...getIssuerSnapshot(currency),
           };
 
           // Create payment
@@ -413,18 +411,24 @@ export async function GET(req: NextRequest) {
           try {
             const { data: invoiceToEmail } = await supabaseAdmin
               .from('invoices')
-              .select('id, invoice_number, created_at, total_amount, email_sent_at, user:users(full_name, email)')
+              .select(
+                'id, invoice_number, created_at, total_amount, email_sent_at, user:users!invoices_user_id_fkey(full_name, email)'
+              )
               .eq('id', createdInvoice.id)
               .single();
 
-            if (invoiceToEmail?.user?.email && !invoiceToEmail.email_sent_at) {
+            const emailUser = Array.isArray((invoiceToEmail as any)?.user)
+              ? (invoiceToEmail as any).user[0]
+              : (invoiceToEmail as any)?.user;
+
+            if (emailUser?.email && !invoiceToEmail?.email_sent_at) {
               const { sendInvoiceEmail } = await import('@/lib/email');
               await sendInvoiceEmail({
-                customerName: invoiceToEmail.user.full_name || invoiceToEmail.user.email,
-                customerEmail: invoiceToEmail.user.email,
-                invoiceNumber: invoiceToEmail.invoice_number,
-                invoiceDate: new Date(invoiceToEmail.created_at).toLocaleDateString('he-IL'),
-                totalAmount: invoiceToEmail.total_amount,
+                customerName: emailUser.full_name || emailUser.email,
+                customerEmail: emailUser.email,
+                invoiceNumber: (invoiceToEmail as any).invoice_number,
+                invoiceDate: new Date((invoiceToEmail as any).created_at).toLocaleDateString('he-IL'),
+                totalAmount: (invoiceToEmail as any).total_amount,
                 items: [
                   {
                     name: 'מנוי חודשי',
