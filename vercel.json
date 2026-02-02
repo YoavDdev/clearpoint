@@ -4,8 +4,8 @@
   "regions": ["iad1"],
   "crons": [
     {
-      "path": "/api/cron/subscription-manager",
-      "schedule": "0 2 * * *"
+      "path": "/api/cron/sync-payplus-recurring",
+      "schedule": "10 2 * * *"
     }
   ]
 }

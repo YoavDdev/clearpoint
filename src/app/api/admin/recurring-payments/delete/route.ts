@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     const { data: payment, error: fetchError } = await supabaseAdmin
       .from('recurring_payments')
-      .select('recurring_uid')
+      .select('recurring_uid, is_active')
       .eq('id', recurring_payment_id)
       .single();
 
@@ -32,6 +32,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Second delete: remove local record completely so it disappears from the list.
+    if (payment.is_active === false) {
+      const { error: hardDeleteError } = await supabaseAdmin
+        .from('recurring_payments')
+        .delete()
+        .eq('id', recurring_payment_id);
+
+      if (hardDeleteError) {
+        console.error('❌ Database hard delete error:', hardDeleteError);
+        return NextResponse.json(
+          { error: 'Failed to delete recurring payment from database' },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Recurring payment removed from Clearpoint',
+      });
+    }
+
+    // First delete: best-effort delete in PayPlus, then deactivate locally.
     if (payment.recurring_uid) {
       try {
         await deleteRecurringPayment(payment.recurring_uid);

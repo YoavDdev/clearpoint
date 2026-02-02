@@ -1,22 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function POST(request: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    console.log('🔵 Starting PayPlus sync...');
+    const authHeader = req.headers.get('authorization');
+    const isVercelCron = req.headers.get('x-vercel-cron') === '1';
 
-    // Call PayPlus API directly to get raw data
-    const baseUrl = process.env.PAYPLUS_USE_MOCK === 'true' 
+    // Support both:
+    // 1) Protected manual calls (Authorization: Bearer CRON_SECRET)
+    // 2) Vercel Cron calls (x-vercel-cron: 1)
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}` && !isVercelCron) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    console.log('🤖 [CRON] Starting PayPlus recurring payments sync...');
+
+    const baseUrl = process.env.PAYPLUS_USE_MOCK === 'true'
       ? 'https://restapidev.payplus.co.il'
       : 'https://restapi.payplus.co.il';
-    
+
     const apiUrl = `${baseUrl}/api/v1.0/RecurringPayments/View?terminal_uid=${process.env.PAYPLUS_TERMINAL_UID}`;
-    
+
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
@@ -34,9 +49,9 @@ export async function POST(request: NextRequest) {
     }
 
     const rawData = await response.json();
-    
+
     const payplusPayments = (rawData && Array.isArray(rawData.data)) ? rawData.data : [];
-    console.log(`📦 Found ${payplusPayments.length} payments in PayPlus`);
+    console.log(`📦 [CRON] Found ${payplusPayments.length} payments in PayPlus`);
 
     const payplusUids = payplusPayments
       .map((p: any) => p?.uid)
@@ -50,35 +65,31 @@ export async function POST(request: NextRequest) {
 
     for (const payment of payplusPayments) {
       try {
-        // Try to find matching user by email first
-        let userId = null;
+        let userId: string | null = null;
         if (payment.customer_email) {
           const { data: user } = await supabaseAdmin
             .from('users')
             .select('id')
             .eq('email', payment.customer_email)
             .single();
-          
+
           if (user) userId = user.id;
         }
 
         if (!userId) {
-          console.log(`⚠️ No user found for ${payment.customer_email}, skipping`);
+          console.log(`⚠️ [CRON] No user found for ${payment.customer_email}, skipping`);
           skippedCount++;
           continue;
         }
 
-        // Convert recurring_type from text to number
-        let recurringType = 2; // default monthly
+        let recurringType = 2;
         if (payment.recurring_type === 'daily') recurringType = 0;
         else if (payment.recurring_type === 'weekly') recurringType = 1;
         else if (payment.recurring_type === 'monthly') recurringType = 2;
 
-        // Parse start date (format: DD/MM/YYYY)
         const [day, month, year] = payment.start_date.split('/');
         const startDate = new Date(`${year}-${month}-${day}`);
-        
-        // Calculate next charge date
+
         const nextChargeDate = new Date(startDate);
         if (recurringType === 2) {
           nextChargeDate.setMonth(nextChargeDate.getMonth() + 1);
@@ -88,16 +99,14 @@ export async function POST(request: NextRequest) {
           nextChargeDate.setDate(nextChargeDate.getDate() + 1);
         }
 
-        // Parse number_of_charges
         const numCharges = payment.number_of_charges === 'unlimited' ? 0 : parseInt(payment.number_of_charges) || 0;
 
-        // Prepare data object
         const paymentData = {
           user_id: userId,
           plan_id: null,
           recurring_uid: payment.uid,
           customer_uid: payment.customer_uid,
-          card_token: null, // PayPlus doesn't return the token
+          card_token: null,
           recurring_type: recurringType,
           recurring_range: 1,
           number_of_charges: numCharges,
@@ -118,7 +127,6 @@ export async function POST(request: NextRequest) {
           updated_at: new Date().toISOString(),
         };
 
-        // Check if already exists in our DB
         const { data: existing } = await supabaseAdmin
           .from('recurring_payments')
           .select('id')
@@ -126,46 +134,38 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (existing) {
-          // Update existing record
           const { error: updateError } = await supabaseAdmin
             .from('recurring_payments')
             .update(paymentData)
             .eq('id', existing.id);
 
           if (updateError) {
-            console.error(`❌ Error updating ${payment.uid}:`, updateError);
+            console.error(`❌ [CRON] Error updating ${payment.uid}:`, updateError);
             errorCount++;
           } else {
-            console.log(`🔄 Updated ${payment.uid} for ${payment.customer_name}`);
             updatedCount++;
           }
         } else {
-          // Insert new record
           const { error: insertError } = await supabaseAdmin
             .from('recurring_payments')
             .insert(paymentData);
 
           if (insertError) {
-            console.error(`❌ Error inserting ${payment.uid}:`, insertError);
+            console.error(`❌ [CRON] Error inserting ${payment.uid}:`, insertError);
             errorCount++;
           } else {
-            console.log(`✅ Created ${payment.uid} for ${payment.customer_name}`);
             syncedCount++;
           }
         }
       } catch (itemError) {
-        console.error(`❌ Error processing payment:`, itemError);
+        console.error('❌ [CRON] Error processing recurring payment item:', itemError);
         errorCount++;
       }
     }
 
-    // Deactivate records that exist in our DB but no longer exist in PayPlus
-    // This fixes the case where recurring orders were deleted in PayPlus but still show in Clearpoint.
     try {
       const nowIso = new Date().toISOString();
 
-      // We only consider rows that were synced from PayPlus (best-effort heuristic).
-      // If PayPlus returns 0 items, we mark all PayPlus-synced rows as inactive.
       const baseDeactivateQuery = supabaseAdmin
         .from('recurring_payments')
         .update({
@@ -190,20 +190,21 @@ export async function POST(request: NextRequest) {
       }
 
       if (deactivateResult.error) {
-        console.error('❌ Error deactivating missing PayPlus records:', deactivateResult.error);
+        console.error('❌ [CRON] Error deactivating missing PayPlus records:', deactivateResult.error);
       } else {
         deactivatedCount = deactivateResult.data?.length || 0;
-        if (deactivatedCount > 0) {
-          console.log(`🗑️ Deactivated ${deactivatedCount} local records not found in PayPlus`);
-        }
       }
     } catch (deactivateError) {
-      console.error('❌ Deactivate-missing step failed:', deactivateError);
+      console.error('❌ [CRON] Deactivate-missing step failed:', deactivateError);
     }
+
+    console.log(
+      `✅ [CRON] PayPlus sync completed. synced=${syncedCount} updated=${updatedCount} deactivated=${deactivatedCount} skipped=${skippedCount} errors=${errorCount}`
+    );
 
     return NextResponse.json({
       success: true,
-      message: `סונכרנו ${syncedCount} מנויים חדשים, עודכנו ${updatedCount} מנויים קיימים, בוטלו ${deactivatedCount} מנויים שנמחקו ב-PayPlus`,
+      message: `synced=${syncedCount}, updated=${updatedCount}, deactivated=${deactivatedCount}, skipped=${skippedCount}, errors=${errorCount}`,
       synced: syncedCount,
       updated: updatedCount,
       skipped: skippedCount,
@@ -212,14 +213,12 @@ export async function POST(request: NextRequest) {
       total: payplusPayments.length,
     });
   } catch (error) {
-    console.error('❌ Sync error:', error);
-    console.error('❌ Stack:', error instanceof Error ? error.stack : 'No stack');
+    console.error('❌ [CRON] Sync error:', error);
     return NextResponse.json(
-      { 
+      {
         success: false,
-        error: 'Internal server error', 
+        error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : 'No stack'
       },
       { status: 500 }
     );
