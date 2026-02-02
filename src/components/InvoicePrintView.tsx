@@ -79,7 +79,7 @@ export default function InvoicePrintView({ invoice, items, isAdmin = false }: In
               className="flex items-center gap-3 px-6 py-3 bg-gradient-to-l from-blue-600 to-cyan-600 text-white rounded-xl hover:scale-105 transition-all shadow-lg font-bold"
             >
               <Printer size={20} />
-              {isPrinting ? "מכין להדפסה..." : "הדפס חשבונית"}
+              {isPrinting ? "מכין להדפסה..." : "הדפס קבלה"}
             </button>
           </div>
 
@@ -90,7 +90,7 @@ export default function InvoicePrintView({ invoice, items, isAdmin = false }: In
               <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg">
                 <FileText size={40} className="text-white" />
               </div>
-              <h1 className="text-4xl font-bold text-slate-800 mb-2">חשבונית #{invoice.invoice_number}</h1>
+              <h1 className="text-4xl font-bold text-slate-800 mb-2">קבלה #{invoice.invoice_number}</h1>
               <p className="text-slate-600 text-lg">Clearpoint Security Systems</p>
               <p className="text-slate-500 text-sm mt-2">מערכות אבטחה ומצלמות מתקדמות</p>
             </div>
@@ -131,7 +131,7 @@ export default function InvoicePrintView({ invoice, items, isAdmin = false }: In
                 {/* Invoice Details */}
                 <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3 text-right">
                   <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
-                    <div className="text-blue-100 text-xs mb-1">מספר חשבונית</div>
+                    <div className="text-blue-100 text-xs mb-1">מספר קבלה</div>
                     <div className="font-bold text-lg">#{invoice.invoice_number}</div>
                   </div>
                   <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
@@ -348,7 +348,7 @@ export default function InvoicePrintView({ invoice, items, isAdmin = false }: In
               <p>במידה ויש שאלות, צור קשר עם התמיכה שלנו</p>
               <p className="mt-3">© {new Date().getFullYear()} Clearpoint Security. כל הזכויות שמורות.</p>
               <p className="text-xs text-slate-500 mt-2">
-                מסמך זה הונפק באופן אלקטרוני ומהווה חשבונית חוקית
+                מסמך זה הונפק באופן אלקטרוני ומהווה קבלה חוקית
               </p>
             </div>
           </div>

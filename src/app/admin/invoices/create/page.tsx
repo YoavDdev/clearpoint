@@ -87,10 +87,10 @@ function CreateInvoiceContent() {
           <div className="flex items-center justify-between mb-6">
             <div className="text-right">
               <h1 className="text-4xl font-bold text-slate-800 mb-2">
-                צור חשבונית חדשה
+                צור מסמך חדש
               </h1>
               <p className="text-slate-600">
-                בחר לקוח והכן חשבונית / הצעת מחיר מפורטת
+                בחר לקוח והכן קבלה / חשבון עסקה מפורט
               </p>
             </div>
             <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center shadow-lg">
@@ -104,7 +104,7 @@ function CreateInvoiceContent() {
             className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors"
           >
             <ArrowLeft size={16} />
-            <span>חזרה לרשימת חשבוניות</span>
+            <span>חזרה לרשימת מסמכים</span>
           </Link>
         </div>
 
@@ -117,7 +117,7 @@ function CreateInvoiceContent() {
                 <User className="text-blue-600" size={24} />
               </h2>
               <p className="text-slate-600 text-sm">
-                חפש ובחר את הלקוח עבורו ברצונך ליצור חשבונית
+                חפש ובחר את הלקוח עבורו ברצונך ליצור מסמך
               </p>
             </div>
 

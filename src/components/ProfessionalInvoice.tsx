@@ -97,7 +97,7 @@ export default function ProfessionalInvoice({ invoice, items, isAdmin = false }:
               disabled={isPrinting}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
             >
-              {isPrinting ? "מכין להדפסה..." : "🖨️ הדפס חשבונית"}
+              {isPrinting ? "מכין להדפסה..." : "🖨️ הדפס קבלה"}
             </button>
             <button
               onClick={() => window.history.back()}
@@ -125,7 +125,7 @@ export default function ProfessionalInvoice({ invoice, items, isAdmin = false }:
                 
                 {/* Invoice Title */}
                 <div className="text-left">
-                  <h2 className="text-4xl font-bold text-gray-900 mb-2">חשבונית</h2>
+                  <h2 className="text-4xl font-bold text-gray-900 mb-2">קבלה</h2>
                   <p className="text-xl font-semibold text-gray-700">#{invoice.invoice_number}</p>
                 </div>
               </div>
@@ -146,7 +146,7 @@ export default function ProfessionalInvoice({ invoice, items, isAdmin = false }:
 
               {/* Invoice Details */}
               <div>
-                <h3 className="text-sm font-bold text-gray-900 mb-3 uppercase">פרטי חשבונית</h3>
+                <h3 className="text-sm font-bold text-gray-900 mb-3 uppercase">פרטי קבלה</h3>
                 <div className="text-sm text-gray-700 space-y-1">
                   <div className="flex justify-between">
                     <span className="font-medium">תאריך הנפקה:</span>

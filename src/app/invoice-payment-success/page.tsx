@@ -49,12 +49,12 @@ export default async function InvoicePaymentSuccessPage({
                 {/* Invoice Details */}
                 <div className="bg-slate-50 rounded-2xl p-6 text-right">
                   <div className="flex items-center gap-3 mb-4 justify-end">
-                    <h2 className="text-xl font-bold text-slate-800">פרטי חשבונית</h2>
+                    <h2 className="text-xl font-bold text-slate-800">פרטי קבלה</h2>
                     <FileText size={24} className="text-slate-600" />
                   </div>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-600">מספר חשבונית:</span>
+                      <span className="text-slate-600">מספר קבלה:</span>
                       <span className="font-semibold text-slate-800">#{invoice.invoice_number}</span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -105,7 +105,7 @@ export default async function InvoicePaymentSuccessPage({
                   className="flex-1 px-6 py-4 bg-white border-2 border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-all font-bold text-center flex items-center justify-center gap-2"
                 >
                   <FileText size={20} />
-                  <span>צפה בחשבונית</span>
+                  <span>צפה בקבלה</span>
                 </Link>
               )}
             </div>

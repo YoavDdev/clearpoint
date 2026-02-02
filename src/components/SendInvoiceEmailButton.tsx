@@ -60,7 +60,7 @@ export default function SendInvoiceEmailButton({
           ? 'bg-red-600 text-white hover:bg-red-700'
           : 'bg-emerald-600 text-white hover:bg-emerald-700'
       } ${isSending ? 'opacity-50 cursor-not-allowed' : ''}`}
-      title={`שלח מייל עם חשבונית #${invoiceNumber}`}
+      title={`שלח מייל עם קבלה #${invoiceNumber}`}
     >
       {isSending ? (
         <>

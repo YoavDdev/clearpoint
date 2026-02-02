@@ -101,7 +101,7 @@ function paymentConfirmationTemplate(data: PaymentConfirmationData): string {
         </tr>
         ${data.invoiceNumber ? `
         <tr>
-          <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb;">מספר חשבונית:</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb;">מספר קבלה:</td>
           <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; text-align: left;">${data.invoiceNumber}</td>
         </tr>
         ` : ''}
@@ -347,7 +347,7 @@ function invoiceEmailTemplate(data: InvoiceEmailData): string {
     ${data.isMonthlyRecurring ? `
     <div style="background-color: #fef3c7; border-right: 4px solid #f59e0b; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
       <p style="margin: 0; color: #78350f; font-size: 14px;">
-        🔄 <strong>זוהי חשבונית חודשית אוטומטית</strong><br>
+        🔄 <strong>זוהי קבלה חודשית אוטומטית</strong><br>
         התשלום בוצע אוטומטית מכרטיס האשראי שלך. אין צורך בפעולה מצדך.
       </p>
     </div>
@@ -361,7 +361,7 @@ function invoiceEmailTemplate(data: InvoiceEmailData): string {
 
     <div style="background-color: #dbeafe; border-right: 4px solid #3b82f6; padding: 15px; border-radius: 8px; margin-top: 20px;">
       <p style="margin: 0; color: #1e3a8a; font-size: 14px;">
-        💡 <strong>טיפ:</strong> שמור חשבונית זו לצורך תיעוד והנהלת חשבונות
+        💡 <strong>טיפ:</strong> שמור קבלה זו לצורך תיעוד והנהלת חשבונות
       </p>
     </div>
 

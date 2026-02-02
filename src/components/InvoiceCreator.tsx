@@ -378,7 +378,7 @@ export default function InvoiceCreator({
                 value={billingAddress}
                 onChange={(e) => setBillingAddress(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-right"
-                placeholder="כתובת לחשבונית/קבלה"
+                placeholder="כתובת למסמך"
               />
             </div>
             <div>
@@ -544,13 +544,13 @@ export default function InvoiceCreator({
 
         {/* Notes */}
         <div className="mb-6">
-          <label className="text-sm font-medium text-slate-700 mb-2 block text-right">{documentType === 'quote' ? 'הערות להצעת המחיר' : 'הערות לחשבונית'}</label>
+          <label className="text-sm font-medium text-slate-700 mb-2 block text-right">{documentType === 'quote' ? 'הערות לחשבון העסקה' : 'הערות לקבלה'}</label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="הערות נוספות, פרטי תשלום, תנאים..."
-            className="w-full px-4 py-3 border border-slate-300 rounded-lg text-right resize-none"
+            className="w-full px-4 py-3 border border-slate-300 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             rows={3}
+            placeholder="הערות נוספות..."
           />
         </div>
 
@@ -578,17 +578,17 @@ export default function InvoiceCreator({
             {loading ? (
               <>
                 <div className="animate-spin w-5 h-5 border-3 border-white border-t-transparent rounded-full" />
-                <span>יוצר חשבונית...</span>
+                <span>{documentType === 'quote' ? 'יוצר חשבון עסקה...' : 'יוצר קבלה...'}</span>
               </>
             ) : documentType === 'quote' ? (
               <>
-                <Send size={24} />
-                <span>שלח הצעת מחיר ללקוח</span>
+                <FileText size={24} />
+                <span>צור חשבון עסקה</span>
               </>
             ) : (
               <>
                 <Send size={24} />
-                <span>צור חשבונית ושלח לינק תשלום</span>
+                <span>צור קבלה ושלח לינק תשלום</span>
               </>
             )}
           </button>

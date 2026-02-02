@@ -215,21 +215,23 @@ function AdminInvoicesContent() {
 
           {/* User Filter Banner */}
           {userIdFilter && invoices.length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <User size={20} className="text-blue-600" />
-                <div>
-                  <p className="text-sm font-medium text-blue-900">מציג חשבוניות של: {invoices[0]?.user?.full_name || invoices[0]?.user?.email}</p>
-                  <p className="text-xs text-blue-700">נמצאו {invoices.length} מסמכים</p>
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <User size={20} className="text-blue-600" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">מציג מסמכים של: {invoices[0]?.user?.full_name || invoices[0]?.user?.email}</p>
+                    <p className="text-xs text-blue-700">נמצאו {invoices.length} מסמכים</p>
+                  </div>
                 </div>
+                <button
+                  onClick={clearUserFilter}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <X size={16} />
+                  <span>הצג הכל</span>
+                </button>
               </div>
-              <button
-                onClick={clearUserFilter}
-                className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-medium transition-colors"
-              >
-                <X size={16} />
-                <span>הצג הכל</span>
-              </button>
             </div>
           )}
 
@@ -396,7 +398,7 @@ function AdminInvoicesContent() {
                           <Link
                             href={invoice.document_type === 'quote' ? `/quote/${invoice.id}` : `/admin/invoices/${invoice.id}`}
                             className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
-                            title={invoice.document_type === 'quote' ? 'צפייה בהצעת מחיר' : 'צפייה והדפסה'}
+                            title={invoice.document_type === 'quote' ? 'צפייה בחשבון עסקה' : 'צפייה והדפסה'}
                           >
                             <Eye size={18} />
                           </Link>

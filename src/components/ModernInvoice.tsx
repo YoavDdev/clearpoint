@@ -14,7 +14,12 @@ export default function ModernInvoice({ invoice, items, isAdmin = false }: Invoi
   const billing = invoice?.billing_snapshot || {};
   const issuer = invoice?.issuer_snapshot || {};
 
-  const documentTitle = invoice?.document_type === 'invoice' ? 'קבלה' : 'מסמך';
+  const documentTitle =
+    invoice?.document_type === 'invoice'
+      ? 'קבלה'
+      : invoice?.document_type === 'quote'
+        ? 'חשבון עסקה'
+        : 'מסמך';
 
   const handlePrint = () => {
     setIsPrinting(true);

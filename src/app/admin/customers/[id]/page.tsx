@@ -319,10 +319,10 @@ export default async function CustomerViewPage({ params }: { params: { id: strin
             <div className="flex items-center justify-between mb-4">
               <div className="text-right flex-1">
                 <h3 className="text-lg font-semibold text-slate-800 mb-1 flex items-center gap-2 justify-end">
-                  <span>צור חשבונית</span>
+                  <span>צור מסמך</span>
                   <FileText className="text-green-600" size={22} />
                 </h3>
-                <p className="text-sm text-slate-600">הצעת מחיר / חשבונית לתשלום</p>
+                <p className="text-sm text-slate-600">חשבון עסקה / קבלה לתשלום</p>
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 text-green-600 font-semibold group-hover:gap-3 transition-all">
@@ -339,14 +339,14 @@ export default async function CustomerViewPage({ params }: { params: { id: strin
             <div className="flex items-center justify-between mb-4">
               <div className="text-right flex-1">
                 <h3 className="text-lg font-semibold text-slate-800 mb-1 flex items-center gap-2 justify-end">
-                  <span>חשבוניות הלקוח</span>
+                  <span>מסמכי הלקוח</span>
                   <Receipt className="text-blue-600" size={22} />
                 </h3>
-                <p className="text-sm text-slate-600">צפייה בכל החשבוניות שהונפקו</p>
+                <p className="text-sm text-slate-600">צפייה בכל המסמכים שהונפקו</p>
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 text-blue-600 group-hover:gap-3 transition-all">
-              <span className="text-sm font-medium">צפה בחשבוניות</span>
+              <span className="text-sm font-medium">צפה במסמכים</span>
               <ExternalLink size={16} />
             </div>
           </Link>

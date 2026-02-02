@@ -22,7 +22,7 @@ export default function DashboardSidebar({ isAdmin = false }: { isAdmin?: boolea
     { href: "/dashboard?mode=recordings", icon: Video, label: "הקלטות", description: "צפייה בהקלטות קודמות" },
     { href: "#", icon: Sparkles, label: "התראות AI", description: "זיהוי חכם של אירועים", comingSoon: true },
     { href: "/dashboard/subscription", icon: Repeat, label: "המנוי שלי", description: "פרטי התוכנית שלי" },
-    { href: "/dashboard/invoices", icon: FileText, label: "חשבוניות", description: "כל החשבוניות שלי" },
+    { href: "/dashboard/invoices", icon: FileText, label: "מסמכים", description: "כל המסמכים שלי" },
     { href: "/dashboard/support", icon: HelpCircle, label: "עזרה ותמיכה", description: "קבלו עזרה מהצוות" },
   ];
 
