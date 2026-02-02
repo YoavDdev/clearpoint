@@ -43,11 +43,12 @@ function AdminInvoicesContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [documentTypeFilter, setDocumentTypeFilter] = useState("all");
+  const [subscriptionFilter, setSubscriptionFilter] = useState<'all' | 'true' | 'false'>('all');
   const userIdFilter = searchParams.get("user_id");
 
   useEffect(() => {
     fetchInvoices();
-  }, [statusFilter, documentTypeFilter, userIdFilter]);
+  }, [statusFilter, documentTypeFilter, subscriptionFilter, userIdFilter]);
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -55,6 +56,9 @@ function AdminInvoicesContent() {
       let url = `/api/admin/invoices?status=${statusFilter}`;
       if (documentTypeFilter !== "all") {
         url += `&document_type=${documentTypeFilter}`;
+      }
+      if (subscriptionFilter !== 'all') {
+        url += `&subscription=${subscriptionFilter}`;
       }
       if (userIdFilter) {
         url += `&user_id=${userIdFilter}`;
@@ -196,8 +200,8 @@ function AdminInvoicesContent() {
                 <FileText size={32} className="text-white" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-slate-800">ניהול חשבוניות</h1>
-                <p className="text-slate-600">כל החשבוניות במערכת</p>
+                <h1 className="text-4xl font-bold text-slate-800">ניהול מסמכים</h1>
+                <p className="text-slate-600">כל המסמכים במערכת</p>
               </div>
             </div>
             <Link
@@ -205,7 +209,7 @@ function AdminInvoicesContent() {
               className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg font-medium"
             >
               <FileText size={20} />
-              <span>צור חשבונית חדשה</span>
+              <span>צור מסמך חדש</span>
             </Link>
           </div>
 
@@ -216,7 +220,7 @@ function AdminInvoicesContent() {
                 <User size={20} className="text-blue-600" />
                 <div>
                   <p className="text-sm font-medium text-blue-900">מציג חשבוניות של: {invoices[0]?.user?.full_name || invoices[0]?.user?.email}</p>
-                  <p className="text-xs text-blue-700">נמצאו {invoices.length} חשבוניות</p>
+                  <p className="text-xs text-blue-700">נמצאו {invoices.length} מסמכים</p>
                 </div>
               </div>
               <button
@@ -259,13 +263,13 @@ function AdminInvoicesContent() {
 
           {/* Filters */}
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-4 gap-4">
               {/* Search */}
               <div className="relative">
                 <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
                 <input
                   type="text"
-                  placeholder="חיפוש לפי מספר חשבונית, שם לקוח או אימייל..."
+                  placeholder="חיפוש לפי מספר מסמך, שם לקוח או אימייל..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pr-12 pl-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -281,8 +285,22 @@ function AdminInvoicesContent() {
                   className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="all">הכל</option>
-                  <option value="quote">📋 הצעות מחיר</option>
-                  <option value="invoice">💰 חשבוניות</option>
+                  <option value="quote">📋 חשבונות עסקה</option>
+                  <option value="invoice">🧾 קבלות</option>
+                </select>
+              </div>
+
+              {/* Subscription Filter */}
+              <div className="flex items-center gap-2">
+                <DollarSign size={20} className="text-slate-600" />
+                <select
+                  value={subscriptionFilter}
+                  onChange={(e) => setSubscriptionFilter(e.target.value as 'all' | 'true' | 'false')}
+                  className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">כל סוגי הקבלות</option>
+                  <option value="false">🧾 קבלות חד-פעמי</option>
+                  <option value="true">💳 קבלות הוראת קבע</option>
                 </select>
               </div>
 
@@ -300,7 +318,7 @@ function AdminInvoicesContent() {
                     <option value="quote_approved">הצעה אושרה</option>
                     <option value="quote_rejected">הצעה נדחתה</option>
                   </optgroup>
-                  <optgroup label="חשבוניות">
+                  <optgroup label="קבלות">
                     <option value="draft">טיוטות</option>
                     <option value="sent">ממתינות לתשלום</option>
                     <option value="paid">שולמו</option>
@@ -315,11 +333,11 @@ function AdminInvoicesContent() {
         {/* Invoices List */}
         <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
           {loading ? (
-            <div className="p-12 text-center text-slate-600">טוען חשבוניות...</div>
+            <div className="p-12 text-center text-slate-600">טוען מסמכים...</div>
           ) : filteredInvoices.length === 0 ? (
             <div className="p-12 text-center text-slate-600">
               <FileText size={48} className="mx-auto mb-4 text-slate-400" />
-              <p className="text-xl font-semibold mb-2">לא נמצאו חשבוניות</p>
+              <p className="text-xl font-semibold mb-2">לא נמצאו מסמכים</p>
               <p className="text-sm">נסה לשנות את הפילטרים או החיפוש</p>
             </div>
           ) : (
@@ -346,7 +364,7 @@ function AdminInvoicesContent() {
                             ? 'bg-blue-100 text-blue-800' 
                             : 'bg-orange-100 text-orange-800'
                         }`}>
-                          {invoice.document_type === 'quote' ? '📋 הצעה' : '💰 חשבונית'}
+                          {invoice.document_type === 'quote' ? '📋 חשבון עסקה' : '🧾 קבלה'}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -386,7 +404,7 @@ function AdminInvoicesContent() {
                             <button
                               onClick={() => handleDeleteInvoice(invoice.id, invoice.invoice_number, invoice.document_type)}
                               className="p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
-                              title={invoice.document_type === 'quote' ? 'מחיקת הצעת מחיר' : 'מחיקת חשבונית'}
+                              title={invoice.document_type === 'quote' ? 'מחיקת חשבון עסקה' : 'מחיקת קבלה'}
                             >
                               <Trash2 size={18} />
                             </button>
@@ -411,7 +429,7 @@ export default function AdminInvoicesPage() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-slate-600">טוען חשבוניות...</p>
+          <p className="text-slate-600">טוען מסמכים...</p>
         </div>
       </div>
     }>

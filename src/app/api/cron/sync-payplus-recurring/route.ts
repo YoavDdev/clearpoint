@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { payplusClient } from '@/lib/payplusClient';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -8,6 +9,14 @@ const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+function pad2(n: number) {
+  return String(n).padStart(2, '0');
+}
+
+function toRecurringMonth(date: Date) {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}`;
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -189,18 +198,205 @@ export async function GET(req: NextRequest) {
           .select('id');
       }
 
-      if (deactivateResult.error) {
-        console.error('❌ [CRON] Error deactivating missing PayPlus records:', deactivateResult.error);
+    // -----------------------------------------------------
+    // Auto-generate recurring receipts (no email for now)
+    // Source of truth: PayPlus ViewRecurring -> last_payment_date
+    // Idempotency: payments.metadata contains { recurring_uid, recurring_month }
+    // -----------------------------------------------------
+    let receiptsCreated = 0;
+    let receiptsSkipped = 0;
+    let receiptsErrors = 0;
+
+    try {
+      const now = new Date();
+      const currentMonth = toRecurringMonth(now);
+
+      const { data: activeRecurring, error: activeRecurringError } = await supabaseAdmin
+        .from('recurring_payments')
+        .select('id, user_id, recurring_uid, amount, currency_code')
+        .eq('is_active', true)
+        .eq('is_valid', true)
+        .not('recurring_uid', 'is', null);
+
+      if (activeRecurringError) {
+        throw activeRecurringError;
+      }
+
+      for (const rp of activeRecurring || []) {
+        try {
+          const recurringUid = rp.recurring_uid as string | null;
+          if (!recurringUid) continue;
+
+          const status = await payplusClient.getRecurringStatus(recurringUid);
+          if (!status?.last_payment_date) {
+            receiptsSkipped++;
+            continue;
+          }
+
+          const paidAtDate = new Date(status.last_payment_date);
+          if (Number.isNaN(paidAtDate.getTime())) {
+            receiptsSkipped++;
+            continue;
+          }
+
+          const paidMonth = toRecurringMonth(paidAtDate);
+          if (paidMonth !== currentMonth) {
+            receiptsSkipped++;
+            continue;
+          }
+
+          // Idempotency check (same recurring_uid + month)
+          const { data: existingPayment } = await supabaseAdmin
+            .from('payments')
+            .select('id')
+            .eq('payment_type', 'recurring')
+            .contains('metadata', {
+              recurring_uid: recurringUid,
+              recurring_month: paidMonth,
+            })
+            .maybeSingle();
+
+          if (existingPayment) {
+            receiptsSkipped++;
+            continue;
+          }
+
+          const amount = Number(rp.amount) || Number(status.amount) || 0;
+          const currency = (rp.currency_code as string | null) || 'ILS';
+
+          // Create payment
+          const { data: newPayment, error: paymentError } = await supabaseAdmin
+            .from('payments')
+            .insert({
+              user_id: rp.user_id,
+              amount,
+              currency,
+              status: 'completed',
+              payment_type: 'recurring',
+              payment_provider: 'payplus',
+              description: `חיוב חודשי אוטומטי - ${paidAtDate.toLocaleDateString('he-IL')}`,
+              paid_at: paidAtDate.toISOString(),
+              metadata: {
+                recurring_payment_id: rp.id,
+                recurring_uid: recurringUid,
+                recurring_month: paidMonth,
+                payplus_last_payment_date: status.last_payment_date,
+              },
+            })
+            .select('id')
+            .single();
+
+          if (paymentError || !newPayment) {
+            console.error('❌ [CRON] Failed to create recurring payment record:', paymentError);
+            receiptsErrors++;
+            continue;
+          }
+
+          // Create receipt (invoice document)
+          let createdInvoice: any = null;
+          let attempts = 0;
+          const maxAttempts = 3;
+
+          while (!createdInvoice && attempts < maxAttempts) {
+            attempts++;
+
+            const { data: invoiceNumber, error: numberError } = await supabaseAdmin.rpc(
+              'generate_invoice_number'
+            );
+
+            if (numberError || !invoiceNumber) {
+              console.error('❌ [CRON] Failed to generate invoice number:', numberError);
+              break;
+            }
+
+            const { data: invoice, error: invoiceError } = await supabaseAdmin
+              .from('invoices')
+              .insert({
+                user_id: rp.user_id,
+                invoice_number: invoiceNumber,
+                document_type: 'invoice',
+                status: 'paid',
+                total_amount: amount,
+                currency,
+                payment_id: newPayment.id,
+                has_subscription: true,
+                monthly_price: amount,
+                paid_at: paidAtDate.toISOString(),
+                sent_at: new Date().toISOString(),
+                notes: `קבלה אוטומטית - הוראת קבע\nRecurring UID: ${recurringUid}\nRecurring Month: ${paidMonth}`,
+              })
+              .select('id, invoice_number')
+              .single();
+
+            if (!invoiceError && invoice) {
+              createdInvoice = invoice;
+              break;
+            }
+
+            if (invoiceError?.code === '23505') {
+                if (deactivateResult.error) {
+                 Invoice number ${invoiceNumber} already exists, retrying generation...`
+              );
+              continue;
+            }
+
+            console.error('❌ [CRON] Failed to create recurring receipt:', invoiceError);
+            break;
+          }
+
+          if (!createdInvoice) {
+            receiptsErrors++;
+            continue;
+          }
+
+          await supabaseAdmin
+            .from('invoice_items')
+            .insert({
+              invoice_id: createdInvoice.id,
+              item_type: 'subscription',
+              item_name: 'מנוי חודשי',
+              item_description: `מנוי לשירות Clearpoint Security - ${paidAtDate.toLocaleDateString('he-IL', {
+                month: 'long',
+                year: 'numeric',
+              })}`,
+              quantity: 1,
+              unit_price: amount,
+              total_price: amount,
+              sort_order: 0,
+            });
+
+          // Link payment <-> invoice (best-effort)
+          await supabaseAdmin
+            .from('payments')
+            .update({ invoice_id: createdInvoice.id, invoice_number: createdInvoice.invoice_number })
+            .eq('id', newPayment.id);
+
+          receiptsCreated++;
+        } catch (innerError) {
+          console.error('❌ [CRON] Recurring receipt creation error:', innerError);
+          receiptsErrors++;
+        }
+      }
+    } catch (receiptPassError) {
+      console.error('❌ [CRON] Recurring receipts pass failed:', receiptPassError);
+      receiptsErrors++;
+    }
+
+    console.log(
+      ` console.error('❌ [CRON] Error deactivating missing PayPlus records:', deactivateResult.error);
       } else {
         deactivatedCount = deactivateResult.data?.length || 0;
       }
     } catch (deactivateError) {
-      console.error('❌ [CRON] Deactivate-missing step failed:', deactivateError);
+      console.error('❌ [CRON] Deactivate-missing step failed:', deactivateError);t}, receiptsCreated=${receiptsCreated}, receiptsSkipped=${receiptsSkipped}, receiptsErrors=${receipsErrors
     }
 
     console.log(
       `✅ [CRON] PayPlus sync completed. synced=${syncedCount} updated=${updatedCount} deactivated=${deactivatedCount} skipped=${skippedCount} errors=${errorCount}`
-    );
+    );t,
+      receiptsCreated,
+      receiptsSkipped,
+      receipsErrors
 
     return NextResponse.json({
       success: true,

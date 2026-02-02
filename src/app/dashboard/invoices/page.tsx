@@ -108,7 +108,7 @@ function InvoicesContent() {
       <div dir="rtl" className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
-          <p className="text-slate-600 text-lg">טוען חשבוניות...</p>
+          <p className="text-slate-600 text-lg">טוען מסמכים...</p>
         </div>
       </div>
     );
@@ -120,8 +120,8 @@ function InvoicesContent() {
         <div className="max-w-6xl mx-auto">
           <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
             <FileText size={64} className="mx-auto mb-4 text-slate-300" />
-            <h3 className="text-2xl font-bold text-slate-800 mb-2">אין חשבוניות עדיין</h3>
-            <p className="text-slate-600">החשבוניות שלך יופיעו כאן</p>
+            <h3 className="text-2xl font-bold text-slate-800 mb-2">אין מסמכים עדיין</h3>
+            <p className="text-slate-600">המסמכים שלך יופיעו כאן</p>
           </div>
         </div>
       </div>
@@ -130,6 +130,8 @@ function InvoicesContent() {
 
   const quotes = invoices.filter((inv) => inv.document_type === 'quote');
   const receipts = invoices.filter((inv) => inv.document_type === 'invoice');
+  const recurringReceipts = receipts.filter((inv) => inv.has_subscription);
+  const oneTimeReceipts = receipts.filter((inv) => !inv.has_subscription);
 
   return (
     <div dir="rtl" className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-6">
@@ -140,8 +142,8 @@ function InvoicesContent() {
               <FileText size={32} className="text-white" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold text-slate-800">החשבוניות שלי</h1>
-              <p className="text-slate-600">כל החשבוניות והתשלומים שלך מסודרים לפי סוג</p>
+              <h1 className="text-4xl font-bold text-slate-800">המסמכים שלי</h1>
+              <p className="text-slate-600">כל המסמכים והתשלומים שלך מסודרים לפי סוג</p>
             </div>
           </div>
 
@@ -149,7 +151,7 @@ function InvoicesContent() {
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-slate-600 text-sm mb-1">סה"כ חשבוניות</div>
+                  <div className="text-slate-600 text-sm mb-1">סה"כ מסמכים</div>
                   <div className="text-3xl font-bold text-slate-800">{stats.total}</div>
                 </div>
                 <FileText size={32} className="text-blue-500" />
@@ -249,20 +251,20 @@ function InvoicesContent() {
         )}
 
 
-        {/* Receipts Section */}
-        {receipts.length > 0 && (
+        {/* Recurring Receipts Section */}
+        {recurringReceipts.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                 <span className="text-xl">🧾</span>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-slate-800">קבלות</h2>
-                <p className="text-sm text-slate-600">מסמכים לאחר תשלום</p>
+                <h2 className="text-2xl font-bold text-slate-800">קבלות הוראת קבע</h2>
+                <p className="text-sm text-slate-600">קבלות שנוצרו אוטומטית עבור חיובים חודשיים</p>
               </div>
             </div>
             <div className="space-y-4">
-              {receipts.map((invoice) => (
+              {recurringReceipts.map((invoice) => (
             <div
               key={invoice.id}
               className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden hover:shadow-xl transition-all"
@@ -328,6 +330,78 @@ function InvoicesContent() {
                 </div>
               </div>
             </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* One-time Receipts Section */}
+        {oneTimeReceipts.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                <span className="text-xl">🧾</span>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-800">קבלות חד-פעמי</h2>
+                <p className="text-sm text-slate-600">קבלות עבור תשלומים חד-פעמיים</p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              {oneTimeReceipts.map((invoice) => (
+                <div
+                  key={invoice.id}
+                  className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden hover:shadow-xl transition-all"
+                >
+                  <div className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-green-800 border border-green-200">
+                            קבלה
+                          </div>
+                          <h3 className="text-2xl font-bold text-slate-800">#{invoice.invoice_number}</h3>
+                          {getStatusBadge(invoice.status)}
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-slate-600">
+                          <div className="flex items-center gap-2">
+                            <Calendar size={16} />
+                            <span>הונפקה: {new Date(invoice.created_at).toLocaleDateString("he-IL")}</span>
+                          </div>
+                          {invoice.paid_at && (
+                            <div className="flex items-center gap-2 text-green-600">
+                              <span>•</span>
+                              <span>שולם: {new Date(invoice.paid_at).toLocaleDateString("he-IL")}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-left">
+                        <div className="text-sm text-slate-600 mb-1">סכום</div>
+                        <div className="text-3xl font-bold text-slate-800">₪{invoice.total_amount.toFixed(2)}</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50 rounded-xl p-4 mb-4">
+                      <div className="grid md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-slate-600">סטטוס תשלום: </span>
+                          <span className="font-semibold">{getPaymentSummaryText(invoice)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <Link
+                        href={`/invoice/${invoice.id}`}
+                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-l from-blue-600 to-cyan-600 text-white rounded-xl hover:scale-105 transition-all shadow-lg font-bold"
+                      >
+                        <Eye size={20} />
+                        <span>צפייה והדפסה</span>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           </div>

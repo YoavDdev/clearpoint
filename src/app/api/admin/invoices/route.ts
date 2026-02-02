@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
     const userId = searchParams.get("user_id");
     const status = searchParams.get("status");
     const documentType = searchParams.get("document_type");
+    const subscription = searchParams.get("subscription");
 
     let query = supabase
       .from("invoices")
@@ -50,6 +51,13 @@ export async function GET(req: NextRequest) {
     // פילטר לפי סטטוס
     if (status && status !== "all") {
       query = query.eq("status", status);
+    }
+
+    // Optional filter: recurring receipts (has_subscription)
+    if (subscription === 'true') {
+      query = query.eq('has_subscription', true);
+    } else if (subscription === 'false') {
+      query = query.eq('has_subscription', false);
     }
 
     const { data: invoices, error } = await query;
