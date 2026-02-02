@@ -71,6 +71,9 @@ export async function GET(req: NextRequest) {
     let skippedCount = 0;
     let errorCount = 0;
     let deactivatedCount = 0;
+    let receiptsCreated = 0;
+    let receiptsSkipped = 0;
+    let receiptsErrors = 0;
 
     for (const payment of payplusPayments) {
       try {
@@ -198,15 +201,21 @@ export async function GET(req: NextRequest) {
           .select('id');
       }
 
+      if (deactivateResult.error) {
+        console.error('❌ [CRON] Error deactivating missing PayPlus records:', deactivateResult.error);
+      } else {
+        deactivatedCount = deactivateResult.data?.length || 0;
+      }
+
+    } catch (deactivateError) {
+      console.error('❌ [CRON] Deactivate-missing step failed:', deactivateError);
+    }
+
     // -----------------------------------------------------
     // Auto-generate recurring receipts (no email for now)
     // Source of truth: PayPlus ViewRecurring -> last_payment_date
     // Idempotency: payments.metadata contains { recurring_uid, recurring_month }
     // -----------------------------------------------------
-    let receiptsCreated = 0;
-    let receiptsSkipped = 0;
-    let receiptsErrors = 0;
-
     try {
       const now = new Date();
       const currentMonth = toRecurringMonth(now);
@@ -334,8 +343,8 @@ export async function GET(req: NextRequest) {
             }
 
             if (invoiceError?.code === '23505') {
-                if (deactivateResult.error) {
-                 Invoice number ${invoiceNumber} already exists, retrying generation...`
+              console.log(
+                `Invoice number ${invoiceNumber} already exists, retrying generation...`
               );
               continue;
             }
@@ -383,29 +392,20 @@ export async function GET(req: NextRequest) {
     }
 
     console.log(
-      ` console.error('❌ [CRON] Error deactivating missing PayPlus records:', deactivateResult.error);
-      } else {
-        deactivatedCount = deactivateResult.data?.length || 0;
-      }
-    } catch (deactivateError) {
-      console.error('❌ [CRON] Deactivate-missing step failed:', deactivateError);t}, receiptsCreated=${receiptsCreated}, receiptsSkipped=${receiptsSkipped}, receiptsErrors=${receipsErrors
-    }
-
-    console.log(
-      `✅ [CRON] PayPlus sync completed. synced=${syncedCount} updated=${updatedCount} deactivated=${deactivatedCount} skipped=${skippedCount} errors=${errorCount}`
-    );t,
-      receiptsCreated,
-      receiptsSkipped,
-      receipsErrors
+      `✅ [CRON] PayPlus sync completed. synced=${syncedCount} updated=${updatedCount} deactivated=${deactivatedCount} skipped=${skippedCount} errors=${errorCount} receiptsCreated=${receiptsCreated} receiptsSkipped=${receiptsSkipped} receiptsErrors=${receiptsErrors}`
+    );
 
     return NextResponse.json({
       success: true,
-      message: `synced=${syncedCount}, updated=${updatedCount}, deactivated=${deactivatedCount}, skipped=${skippedCount}, errors=${errorCount}`,
+      message: `synced=${syncedCount}, updated=${updatedCount}, deactivated=${deactivatedCount}, skipped=${skippedCount}, errors=${errorCount}, receiptsCreated=${receiptsCreated}, receiptsSkipped=${receiptsSkipped}, receiptsErrors=${receiptsErrors}`,
       synced: syncedCount,
       updated: updatedCount,
       skipped: skippedCount,
       deactivated: deactivatedCount,
       errors: errorCount,
+      receiptsCreated,
+      receiptsSkipped,
+      receiptsErrors,
       total: payplusPayments.length,
     });
   } catch (error) {
