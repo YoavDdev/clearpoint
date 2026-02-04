@@ -47,11 +47,12 @@ export async function GET(req: NextRequest) {
   try {
     const authHeader = req.headers.get('authorization');
     const isVercelCron = req.headers.get('x-vercel-cron') === '1';
+    const isManualAuthorized = authHeader === `Bearer ${process.env.CRON_SECRET}`;
 
     // Support both:
     // 1) Protected manual calls (Authorization: Bearer CRON_SECRET)
     // 2) Vercel Cron calls (x-vercel-cron: 1)
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}` && !isVercelCron) {
+    if (!isManualAuthorized && !isVercelCron) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -99,6 +100,15 @@ export async function GET(req: NextRequest) {
     let receiptsCreated = 0;
     let receiptsSkipped = 0;
     let receiptsErrors = 0;
+
+    const receiptDebug: Array<{
+      recurring_uid: string;
+      action: 'created' | 'skipped' | 'error';
+      reason?: string;
+      last_payment_date?: string | null;
+      paid_month?: string | null;
+      current_month?: string;
+    }> = [];
 
     for (const payment of payplusPayments) {
       try {
@@ -264,6 +274,14 @@ export async function GET(req: NextRequest) {
           const status = await payplusClient.getRecurringStatus(recurringUid);
           if (!status?.last_payment_date) {
             console.log(`ℹ️ [CRON] Skipping receipts for ${recurringUid}: missing last_payment_date`);
+            receiptDebug.push({
+              recurring_uid: recurringUid,
+              action: 'skipped',
+              reason: 'missing_last_payment_date',
+              last_payment_date: status?.last_payment_date ?? null,
+              current_month: currentMonth,
+              paid_month: null,
+            });
             receiptsSkipped++;
             continue;
           }
@@ -273,6 +291,14 @@ export async function GET(req: NextRequest) {
             console.log(
               `ℹ️ [CRON] Skipping receipts for ${recurringUid}: cannot parse last_payment_date='${status.last_payment_date}'`
             );
+            receiptDebug.push({
+              recurring_uid: recurringUid,
+              action: 'skipped',
+              reason: 'unparseable_last_payment_date',
+              last_payment_date: status.last_payment_date,
+              current_month: currentMonth,
+              paid_month: null,
+            });
             receiptsSkipped++;
             continue;
           }
@@ -282,6 +308,14 @@ export async function GET(req: NextRequest) {
             console.log(
               `ℹ️ [CRON] Skipping receipts for ${recurringUid}: paidMonth=${paidMonth} currentMonth=${currentMonth} last_payment_date='${status.last_payment_date}'`
             );
+            receiptDebug.push({
+              recurring_uid: recurringUid,
+              action: 'skipped',
+              reason: 'month_mismatch',
+              last_payment_date: status.last_payment_date,
+              current_month: currentMonth,
+              paid_month: paidMonth,
+            });
             receiptsSkipped++;
             continue;
           }
@@ -298,6 +332,14 @@ export async function GET(req: NextRequest) {
             .maybeSingle();
 
           if (existingPayment) {
+            receiptDebug.push({
+              recurring_uid: recurringUid,
+              action: 'skipped',
+              reason: 'already_exists_for_month',
+              last_payment_date: status.last_payment_date,
+              current_month: currentMonth,
+              paid_month: paidMonth,
+            });
             receiptsSkipped++;
             continue;
           }
@@ -354,6 +396,14 @@ export async function GET(req: NextRequest) {
 
           if (paymentError || !newPayment) {
             console.error('❌ [CRON] Failed to create recurring payment record:', paymentError);
+            receiptDebug.push({
+              recurring_uid: recurringUid,
+              action: 'error',
+              reason: 'failed_create_payment',
+              last_payment_date: status.last_payment_date,
+              current_month: currentMonth,
+              paid_month: paidMonth,
+            });
             receiptsErrors++;
             continue;
           }
@@ -413,6 +463,14 @@ export async function GET(req: NextRequest) {
           }
 
           if (!createdInvoice) {
+            receiptDebug.push({
+              recurring_uid: recurringUid,
+              action: 'error',
+              reason: 'failed_create_invoice',
+              last_payment_date: status.last_payment_date,
+              current_month: currentMonth,
+              paid_month: paidMonth,
+            });
             receiptsErrors++;
             continue;
           }
@@ -486,8 +544,23 @@ export async function GET(req: NextRequest) {
           }
 
           receiptsCreated++;
+          receiptDebug.push({
+            recurring_uid: recurringUid,
+            action: 'created',
+            last_payment_date: status.last_payment_date,
+            current_month: currentMonth,
+            paid_month: paidMonth,
+          });
         } catch (innerError) {
           console.error('❌ [CRON] Recurring receipt creation error:', innerError);
+          receiptDebug.push({
+            recurring_uid: (rp.recurring_uid as string) || 'unknown',
+            action: 'error',
+            reason: 'unhandled_exception',
+            last_payment_date: null,
+            current_month: currentMonth,
+            paid_month: null,
+          });
           receiptsErrors++;
         }
       }
@@ -511,6 +584,7 @@ export async function GET(req: NextRequest) {
       receiptsCreated,
       receiptsSkipped,
       receiptsErrors,
+      ...(isManualAuthorized ? { receiptDebug } : {}),
       total: payplusPayments.length,
     });
   } catch (error) {
