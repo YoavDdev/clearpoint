@@ -272,11 +272,17 @@ export async function GET(req: NextRequest) {
           if (!recurringUid) continue;
 
           const status = await payplusClient.getRecurringStatus(recurringUid);
-          if (!status) {
+          let lastPaymentDateStr: string | undefined = status?.last_payment_date;
+          if (!lastPaymentDateStr) {
+            lastPaymentDateStr = await payplusClient.getRecurringLastChargeDate(recurringUid);
+          }
+
+          if (!lastPaymentDateStr) {
+            console.log(`ℹ️ [CRON] Skipping receipts for ${recurringUid}: missing last charge date`);
             receiptDebug.push({
               recurring_uid: recurringUid,
               action: 'skipped',
-              reason: 'status_fetch_failed',
+              reason: status ? 'missing_last_payment_date' : 'missing_last_charge_date',
               last_payment_date: null,
               current_month: currentMonth,
               paid_month: null,
@@ -288,33 +294,16 @@ export async function GET(req: NextRequest) {
             continue;
           }
 
-          if (!status?.last_payment_date) {
-            console.log(`ℹ️ [CRON] Skipping receipts for ${recurringUid}: missing last_payment_date`);
-            receiptDebug.push({
-              recurring_uid: recurringUid,
-              action: 'skipped',
-              reason: 'missing_last_payment_date',
-              last_payment_date: status?.last_payment_date ?? null,
-              current_month: currentMonth,
-              paid_month: null,
-              ...(isManualAuthorized
-                ? { charges_debug: await payplusClient.getRecurringChargesDebug(recurringUid) }
-                : {}),
-            });
-            receiptsSkipped++;
-            continue;
-          }
-
-          const paidAtDate = parsePayPlusDate(status.last_payment_date);
+          const paidAtDate = parsePayPlusDate(lastPaymentDateStr);
           if (!paidAtDate) {
             console.log(
-              `ℹ️ [CRON] Skipping receipts for ${recurringUid}: cannot parse last_payment_date='${status.last_payment_date}'`
+              `ℹ️ [CRON] Skipping receipts for ${recurringUid}: cannot parse last_payment_date='${lastPaymentDateStr}'`
             );
             receiptDebug.push({
               recurring_uid: recurringUid,
               action: 'skipped',
               reason: 'unparseable_last_payment_date',
-              last_payment_date: status.last_payment_date,
+              last_payment_date: lastPaymentDateStr,
               current_month: currentMonth,
               paid_month: null,
             });
@@ -325,13 +314,13 @@ export async function GET(req: NextRequest) {
           const paidMonth = toRecurringMonth(paidAtDate);
           if (paidMonth !== currentMonth) {
             console.log(
-              `ℹ️ [CRON] Skipping receipts for ${recurringUid}: paidMonth=${paidMonth} currentMonth=${currentMonth} last_payment_date='${status.last_payment_date}'`
+              `ℹ️ [CRON] Skipping receipts for ${recurringUid}: paidMonth=${paidMonth} currentMonth=${currentMonth} last_payment_date='${lastPaymentDateStr}'`
             );
             receiptDebug.push({
               recurring_uid: recurringUid,
               action: 'skipped',
               reason: 'month_mismatch',
-              last_payment_date: status.last_payment_date,
+              last_payment_date: lastPaymentDateStr,
               current_month: currentMonth,
               paid_month: paidMonth,
             });
@@ -355,7 +344,7 @@ export async function GET(req: NextRequest) {
               recurring_uid: recurringUid,
               action: 'skipped',
               reason: 'already_exists_for_month',
-              last_payment_date: status.last_payment_date,
+              last_payment_date: lastPaymentDateStr,
               current_month: currentMonth,
               paid_month: paidMonth,
             });
@@ -363,7 +352,7 @@ export async function GET(req: NextRequest) {
             continue;
           }
 
-          const amount = Number(rp.amount) || Number(status.amount) || 0;
+          const amount = Number(rp.amount) || Number(status?.amount) || 0;
           const currency = (rp.currency_code as string | null) || 'ILS';
 
           const { data: userForSnapshot } = await supabaseAdmin
@@ -407,7 +396,7 @@ export async function GET(req: NextRequest) {
                 recurring_payment_id: rp.id,
                 recurring_uid: recurringUid,
                 recurring_month: paidMonth,
-                payplus_last_payment_date: status.last_payment_date,
+                payplus_last_payment_date: lastPaymentDateStr,
               },
             })
             .select('id')
@@ -419,7 +408,7 @@ export async function GET(req: NextRequest) {
               recurring_uid: recurringUid,
               action: 'error',
               reason: 'failed_create_payment',
-              last_payment_date: status.last_payment_date,
+              last_payment_date: lastPaymentDateStr,
               current_month: currentMonth,
               paid_month: paidMonth,
             });
@@ -486,7 +475,7 @@ export async function GET(req: NextRequest) {
               recurring_uid: recurringUid,
               action: 'error',
               reason: 'failed_create_invoice',
-              last_payment_date: status.last_payment_date,
+              last_payment_date: lastPaymentDateStr,
               current_month: currentMonth,
               paid_month: paidMonth,
             });
@@ -566,7 +555,7 @@ export async function GET(req: NextRequest) {
           receiptDebug.push({
             recurring_uid: recurringUid,
             action: 'created',
-            last_payment_date: status.last_payment_date,
+            last_payment_date: lastPaymentDateStr,
             current_month: currentMonth,
             paid_month: paidMonth,
           });

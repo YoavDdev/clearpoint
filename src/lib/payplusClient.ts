@@ -82,6 +82,10 @@ export class PayPlusClient {
     }
   }
 
+  async getRecurringLastChargeDate(recurringUid: string): Promise<string | undefined> {
+    return this.getLastChargeDateFromChargesList(recurringUid);
+  }
+
   private withTerminalUid(url: string) {
     if (!this.terminalUid) return url;
     const sep = url.includes('?') ? '&' : '?';
