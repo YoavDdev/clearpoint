@@ -61,10 +61,12 @@ export class PayPlusClient {
   private apiKey: string;
   private secretKey: string;
   private baseUrl: string;
+  private terminalUid: string;
 
   constructor() {
     this.apiKey = process.env.PAYPLUS_API_KEY || '';
     this.secretKey = process.env.PAYPLUS_SECRET_KEY || '';
+    this.terminalUid = process.env.PAYPLUS_TERMINAL_UID || '';
 
     this.baseUrl =
       process.env.PAYPLUS_USE_MOCK === 'true'
@@ -74,6 +76,16 @@ export class PayPlusClient {
     if (!this.apiKey || !this.secretKey) {
       console.warn('⚠️ PayPlus API keys not configured');
     }
+
+    if (!this.terminalUid) {
+      console.warn('⚠️ PayPlus terminal UID not configured (PAYPLUS_TERMINAL_UID)');
+    }
+  }
+
+  private withTerminalUid(url: string) {
+    if (!this.terminalUid) return url;
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}terminal_uid=${encodeURIComponent(this.terminalUid)}`;
   }
 
   /**
@@ -87,7 +99,7 @@ export class PayPlusClient {
       console.log(`🔑 Secret Key configured: ${!!this.secretKey}`);
 
       const response = await fetch(
-        `${this.baseUrl}/RecurringPayments/${recurringUid}/ViewRecurring`,
+        this.withTerminalUid(`${this.baseUrl}/RecurringPayments/${recurringUid}/ViewRecurring`),
         {
           method: 'GET',
           headers: {
@@ -169,7 +181,7 @@ export class PayPlusClient {
   }> {
     try {
       const response = await fetch(
-        `${this.baseUrl}/RecurringPayments/${recurringUid}/ViewRecurringCharge`,
+        this.withTerminalUid(`${this.baseUrl}/RecurringPayments/${recurringUid}/ViewRecurringCharge`),
         {
           method: 'GET',
           headers: {
@@ -229,7 +241,7 @@ export class PayPlusClient {
   private async getLastChargeDateFromChargesList(recurringUid: string): Promise<string | undefined> {
     try {
       const response = await fetch(
-        `${this.baseUrl}/RecurringPayments/${recurringUid}/ViewRecurringCharge`,
+        this.withTerminalUid(`${this.baseUrl}/RecurringPayments/${recurringUid}/ViewRecurringCharge`),
         {
           method: 'GET',
           headers: {
