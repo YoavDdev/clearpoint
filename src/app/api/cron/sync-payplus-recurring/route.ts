@@ -48,13 +48,9 @@ function parsePayPlusDate(value: string): Date | null {
 export async function GET(req: NextRequest) {
   try {
     const authHeader = req.headers.get('authorization');
-    const isVercelCron = req.headers.get('x-vercel-cron') === '1';
     const isManualAuthorized = authHeader === `Bearer ${process.env.CRON_SECRET}`;
 
-    // Support both:
-    // 1) Protected manual calls (Authorization: Bearer CRON_SECRET)
-    // 2) Vercel Cron calls (x-vercel-cron: 1)
-    if (!isManualAuthorized && !isVercelCron) {
+    if (!isManualAuthorized) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
