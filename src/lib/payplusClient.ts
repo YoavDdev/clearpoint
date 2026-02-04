@@ -125,18 +125,31 @@ export class PayPlusClient {
       
       console.log('📦 PayPlus API Response:', JSON.stringify(data, null, 2));
 
-      // Check if PayPlus returned an error
-      if (data.results?.status === 'error') {
-        console.error(`❌ PayPlus API error: ${data.results.description} (code: ${data.results.code})`);
+      // PayPlus responses are not consistent across endpoints/environments.
+      // We support both:
+      // 1) { results: { status: true, data: {...} } }
+      // 2) { status_code: '000', ... } (flat payload)
+      // 3) { data: { status_code: '000', ... } }
+      const resultsStatus = (data as any)?.results?.status;
+      if (resultsStatus === 'error') {
+        const desc = (data as any)?.results?.description;
+        const code = (data as any)?.results?.code;
+        console.error(`❌ PayPlus API error: ${desc} (code: ${code})`);
         return null;
       }
 
-      if (!data.results?.status || !data.results.data) {
+      const recurringData: any =
+        (data as any)?.results?.data ?? (data as any)?.data ?? (data as any);
+
+      const statusCode = recurringData?.status_code;
+      const okByResults = typeof resultsStatus === 'boolean' ? resultsStatus : undefined;
+      const okByStatusCode = typeof statusCode === 'string' ? statusCode === '000' : undefined;
+
+      if (!recurringData || (okByResults === false && okByStatusCode !== true)) {
         console.error('❌ PayPlus API returned unsuccessful status or missing data');
         return null;
       }
 
-      const recurringData = data.results.data;
       console.log('📊 Recurring Data:', JSON.stringify(recurringData, null, 2));
 
       let lastPaymentDate = recurringData.last_payment_date;
