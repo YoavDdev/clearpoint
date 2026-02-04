@@ -157,6 +157,75 @@ export class PayPlusClient {
     }
   }
 
+  async getRecurringChargesDebug(recurringUid: string): Promise<{
+    ok: boolean;
+    httpStatus?: number;
+    resultsStatus?: any;
+    resultsCode?: any;
+    resultsDescription?: any;
+    chargesCount?: number;
+    sampleChargeKeys?: string[];
+    dateCandidates?: Record<string, unknown>;
+  }> {
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/RecurringPayments/${recurringUid}/ViewRecurringCharge`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'api-key': this.apiKey,
+            'secret-key': this.secretKey,
+          },
+        }
+      );
+
+      const httpStatus = response.status;
+      const payload: any = await response.json().catch(() => null);
+
+      const maybeCharges =
+        payload?.data ??
+        payload?.results?.data ??
+        payload?.results?.data?.charges ??
+        payload?.results?.data?.items ??
+        payload?.results?.data?.list;
+
+      const charges: any[] = Array.isArray(maybeCharges)
+        ? maybeCharges
+        : Array.isArray(maybeCharges?.data)
+          ? maybeCharges.data
+          : [];
+
+      const sample = charges?.[0];
+
+      const pick = (obj: any, key: string) => (obj && key in obj ? obj[key] : undefined);
+      const dateCandidates = sample
+        ? {
+            last_payment_date: pick(sample, 'last_payment_date'),
+            payment_date: pick(sample, 'payment_date'),
+            charge_date: pick(sample, 'charge_date'),
+            transaction_date: pick(sample, 'transaction_date'),
+            created_at: pick(sample, 'created_at'),
+            created_date: pick(sample, 'created_date'),
+            date: pick(sample, 'date'),
+          }
+        : undefined;
+
+      return {
+        ok: response.ok && payload?.results?.status !== 'error',
+        httpStatus,
+        resultsStatus: payload?.results?.status,
+        resultsCode: payload?.results?.code,
+        resultsDescription: payload?.results?.description,
+        chargesCount: charges.length,
+        sampleChargeKeys: sample ? Object.keys(sample).slice(0, 30) : [],
+        dateCandidates,
+      };
+    } catch {
+      return { ok: false };
+    }
+  }
+
   private async getLastChargeDateFromChargesList(recurringUid: string): Promise<string | undefined> {
     try {
       const response = await fetch(

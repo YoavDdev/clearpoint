@@ -272,6 +272,22 @@ export async function GET(req: NextRequest) {
           if (!recurringUid) continue;
 
           const status = await payplusClient.getRecurringStatus(recurringUid);
+          if (!status) {
+            receiptDebug.push({
+              recurring_uid: recurringUid,
+              action: 'skipped',
+              reason: 'status_fetch_failed',
+              last_payment_date: null,
+              current_month: currentMonth,
+              paid_month: null,
+              ...(isManualAuthorized
+                ? { charges_debug: await payplusClient.getRecurringChargesDebug(recurringUid) }
+                : {}),
+            } as any);
+            receiptsSkipped++;
+            continue;
+          }
+
           if (!status?.last_payment_date) {
             console.log(`ℹ️ [CRON] Skipping receipts for ${recurringUid}: missing last_payment_date`);
             receiptDebug.push({
@@ -281,6 +297,9 @@ export async function GET(req: NextRequest) {
               last_payment_date: status?.last_payment_date ?? null,
               current_month: currentMonth,
               paid_month: null,
+              ...(isManualAuthorized
+                ? { charges_debug: await payplusClient.getRecurringChargesDebug(recurringUid) }
+                : {}),
             });
             receiptsSkipped++;
             continue;
