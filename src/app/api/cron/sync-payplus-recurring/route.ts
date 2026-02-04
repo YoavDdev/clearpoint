@@ -115,6 +115,11 @@ export async function GET(req: NextRequest) {
         recipient?: string | null;
         error?: string | null;
       };
+      invoice?: {
+        id: string;
+        invoice_number?: string | null;
+        email_sent_at?: string | null;
+      };
     }> = [];
 
     for (const payment of payplusPayments) {
@@ -347,6 +352,48 @@ export async function GET(req: NextRequest) {
             .maybeSingle();
 
           if (existingPayment) {
+            let invoiceInfo: { id: string; invoice_number?: string | null; email_sent_at?: string | null } | null =
+              null;
+            let emailInfo:
+              | { status: 'sent' | 'skipped' | 'error'; recipient?: string | null; error?: string | null }
+              | undefined;
+
+            if (isManualAuthorized) {
+              try {
+                const { data: inv } = await supabaseAdmin
+                  .from('invoices')
+                  .select(
+                    'id, invoice_number, email_sent_at, user:users!invoices_user_id_fkey(email)'
+                  )
+                  .eq('payment_id', (existingPayment as any).id)
+                  .maybeSingle();
+
+                if (inv?.id) {
+                  invoiceInfo = {
+                    id: (inv as any).id,
+                    invoice_number: (inv as any).invoice_number ?? null,
+                    email_sent_at: (inv as any).email_sent_at ?? null,
+                  };
+
+                  const invUser = Array.isArray((inv as any)?.user)
+                    ? (inv as any).user[0]
+                    : (inv as any)?.user;
+
+                  emailInfo = {
+                    status: (inv as any).email_sent_at ? 'sent' : 'skipped',
+                    recipient: invUser?.email ?? null,
+                    error: null,
+                  };
+                }
+              } catch (e) {
+                emailInfo = {
+                  status: 'error',
+                  recipient: null,
+                  error: e instanceof Error ? e.message : String(e),
+                };
+              }
+            }
+
             receiptDebug.push({
               recurring_uid: recurringUid,
               action: 'skipped',
@@ -354,6 +401,8 @@ export async function GET(req: NextRequest) {
               last_payment_date: lastPaymentDateStr,
               current_month: currentMonth,
               paid_month: paidMonth,
+              ...(invoiceInfo ? { invoice: invoiceInfo } : {}),
+              ...(emailInfo ? { email: emailInfo } : {}),
             });
             receiptsSkipped++;
             continue;
