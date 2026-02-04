@@ -167,6 +167,14 @@ export async function GET(req: NextRequest) {
 
         const numCharges = payment.number_of_charges === 'unlimited' ? 0 : parseInt(payment.number_of_charges) || 0;
 
+        const lastChargeRaw =
+          payment.last_payment_date ||
+          payment.last_charge_date ||
+          payment.last_payment ||
+          payment.last_charge;
+
+        const lastChargeDate = lastChargeRaw ? parsePayPlusDate(String(lastChargeRaw)) : null;
+
         const paymentData = {
           user_id: userId,
           plan_id: null,
@@ -177,6 +185,7 @@ export async function GET(req: NextRequest) {
           recurring_range: 1,
           number_of_charges: numCharges,
           start_date: startDate.toISOString(),
+          last_charge_date: lastChargeDate ? lastChargeDate.toISOString() : null,
           next_charge_date: nextChargeDate.toISOString(),
           amount: parseFloat(payment.each_payment_amount) || 0,
           currency_code: 'ILS',

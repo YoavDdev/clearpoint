@@ -1,15 +1,13 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { FixedSizeList as List } from 'react-window';
 import { 
   CreditCard, 
-  Calendar, 
   DollarSign, 
   User, 
-  Mail, 
-  Phone,
   CheckCircle,
   XCircle,
   Loader2,
@@ -22,8 +20,6 @@ import {
   Trash2,
   Eye,
   ArrowLeft,
-  Plus,
-  X,
 } from 'lucide-react';
 
 interface RecurringPayment {
@@ -59,6 +55,7 @@ interface RecurringPayment {
     id: string;
     name: string;
     monthly_price: number;
+    connection_type?: string;
   };
 }
 
@@ -69,24 +66,29 @@ function RecurringPaymentsContent() {
   const [payments, setPayments] = useState<RecurringPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'active' | 'cancelled'>('all');
+  const [filter, setFilter] = useState<'all' | 'active' | 'paused' | 'cancelled'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(50);
+  const [total, setTotal] = useState(0);
   const [customerInfo, setCustomerInfo] = useState<{full_name: string, email: string} | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [users, setUsers] = useState<any[]>([]); // PayPlus customers
-  const [internalUsers, setInternalUsers] = useState<any[]>([]); // Supabase users
-  const [plans, setPlans] = useState<any[]>([]);
-  const [creating, setCreating] = useState(false);
   const [syncing, setSyncing] = useState(false);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const fetchPayments = async (showRefresh = false) => {
     try {
       if (showRefresh) setRefreshing(true);
       else setLoading(true);
 
-      const url = userIdFilter 
-        ? `/api/admin/recurring-payments/list?user_id=${userIdFilter}` 
-        : '/api/admin/recurring-payments/list';
+      const params = new URLSearchParams();
+      params.set('status', filter);
+      params.set('page', String(page));
+      params.set('page_size', String(pageSize));
+      if (searchTerm.trim()) params.set('q', searchTerm.trim());
+      if (userIdFilter) params.set('user_id', userIdFilter);
+
+      const url = `/api/admin/recurring-payments/list?${params.toString()}`;
       
       const response = await fetch(url);
       const result = await response.json();
@@ -96,6 +98,7 @@ function RecurringPaymentsContent() {
       }
       
       setPayments(result.recurring_payments || []);
+      setTotal(Number(result.total || 0));
     } catch (error) {
       console.error('❌ Error fetching payments:', error);
       alert(`שגיאה בטעינת מנויים: ${error instanceof Error ? error.message : 'שגיאה לא ידועה'}`);
@@ -110,7 +113,15 @@ function RecurringPaymentsContent() {
     if (userIdFilter) {
       fetchCustomerInfo();
     }
-  }, [userIdFilter]);
+  }, [userIdFilter, filter, page, pageSize]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setPage(0);
+      fetchPayments();
+    }, 250);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
 
   const fetchCustomerInfo = async () => {
     try {
@@ -131,83 +142,6 @@ function RecurringPaymentsContent() {
     router.push('/admin/recurring-payments');
   };
 
-  const fetchUsersAndPlans = async () => {
-    try {
-      // Fetch internal users (who have customer_uid from PayPlus) and plans
-      const [usersRes, plansRes] = await Promise.all([
-        fetch('/api/admin-get-users'),
-        fetch('/api/plans'),
-      ]);
-      
-      const usersData = await usersRes.json();
-      const plansData = await plansRes.json();
-      
-      console.log('📦 Full users data:', usersData);
-      console.log('📦 Plans data:', plansData);
-      
-      // Show all users for now (not filtering by customer_uid)
-      if (usersData.success && usersData.users) {
-        console.log('✅ Total users:', usersData.users.length);
-        console.log('📋 Sample user:', usersData.users[0]);
-        
-        // Check how many have customer_uid
-        const usersWithPayPlus = usersData.users.filter((u: any) => u.customer_uid);
-        const usersWithoutPayPlus = usersData.users.filter((u: any) => !u.customer_uid);
-        console.log('✅ Users WITH customer_uid:', usersWithPayPlus.length, usersWithPayPlus);
-        console.log('⚠️ Users WITHOUT customer_uid:', usersWithoutPayPlus.length);
-        
-        // Show ALL users for now (we'll create customer_uid if needed)
-        setUsers(usersData.users);
-      } else {
-        console.log('⚠️ No users found');
-      }
-      
-      // Plans API returns { success, plans }
-      if (plansData.success && plansData.plans) {
-        setPlans(plansData.plans);
-      }
-    } catch (error) {
-      console.error('Error fetching users/plans:', error);
-      alert('שגיאה בטעינת נתונים. אנא נסה שוב.');
-    }
-  };
-
-  const handleCreateRecurring = async (formData: any) => {
-    if (!formData.user_id || !formData.amount || !formData.start_date) {
-      alert('נא למלא את כל השדות הנדרשים');
-      return;
-    }
-
-    setCreating(true);
-    try {
-      const response = await fetch('/api/admin/recurring-payments/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
-      
-      // Show payment link to admin
-      const paymentUrl = result.payment_url;
-      const message = `✅ לינק תשלום נוצר בהצלחה!\n\n📋 העתק את הלינק הזה ושלח ללקוח:\n\n${paymentUrl}\n\nהלקוח יזין את פרטי הכרטיס והמנוי ייווצר אוטומטית.`;
-      
-      if (confirm(message + '\n\nלהעתיק ללוח?')) {
-        navigator.clipboard.writeText(paymentUrl);
-        alert('✅ הלינק הועתק ללוח!');
-      }
-      
-      setShowCreateModal(false);
-      fetchPayments(true);
-    } catch (error) {
-      console.error('Error creating recurring payment:', error);
-      alert(`שגיאה ביצירת המנוי: ${error instanceof Error ? error.message : 'שגיאה לא ידועה'}`);
-    } finally {
-      setCreating(false);
-    }
-  };
-
   const handleSyncFromPayPlus = async () => {
     if (!confirm('האם לסנכרן את כל המנויים מ-PayPlus? זה עשוי לקחת זמן.')) return;
 
@@ -221,6 +155,7 @@ function RecurringPaymentsContent() {
       
       if (result.success) {
         alert(`✅ ${result.message}\n\nחדשים: ${result.synced}\nעודכנו: ${result.updated}\nדולגו: ${result.skipped}\nשגיאות: ${result.errors}\nסה"כ: ${result.total}`);
+        setPage(0);
         fetchPayments(true);
       } else {
         throw new Error(result.error || 'Sync failed');
@@ -276,28 +211,22 @@ function RecurringPaymentsContent() {
     }
   };
 
-  const filteredPayments = payments
-    .filter(p => {
-      if (filter === 'active') return p.is_active && p.is_valid;
-      if (filter === 'cancelled') return !p.is_active;
-      return true;
-    })
-    .filter(p => 
-      searchTerm === '' || 
-      (p.user?.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.user?.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.user?.phone || '').includes(searchTerm)
-    );
-
-  const stats = {
-    total: payments.length,
-    active: payments.filter(p => p.is_active && p.is_valid).length,
-    paused: payments.filter(p => p.is_active && !p.is_valid).length,
-    cancelled: payments.filter(p => !p.is_active).length,
-    totalRevenue: payments
+  const stats = useMemo(() => {
+    const active = payments.filter(p => p.is_active && p.is_valid).length;
+    const paused = payments.filter(p => p.is_active && !p.is_valid).length;
+    const cancelled = payments.filter(p => !p.is_active).length;
+    const totalRevenue = payments
       .filter(p => p.is_active && p.is_valid)
-      .reduce((sum, p) => sum + p.amount, 0),
-  };
+      .reduce((sum, p) => sum + p.amount, 0);
+    return {
+      pageTotal: payments.length,
+      total,
+      active,
+      paused,
+      cancelled,
+      totalRevenue,
+    };
+  }, [payments, total]);
 
   const getStatusBadge = (payment: RecurringPayment) => {
     if (!payment.is_active) {
@@ -342,6 +271,97 @@ function RecurringPaymentsContent() {
   const getDaysUntilCharge = (dateString: string) => {
     const days = Math.ceil((new Date(dateString).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
     return days;
+  };
+
+  const Row = ({ index, style }: { index: number; style: any }) => {
+    const payment = payments[index];
+    if (!payment) return null;
+    const nextCharge = payment.next_charge_date ? formatDate(payment.next_charge_date) : '—';
+    const lastCharge = payment.last_charge_date ? formatDate(payment.last_charge_date) : '—';
+    const daysUntilCharge = payment.next_charge_date ? getDaysUntilCharge(payment.next_charge_date) : null;
+    const amountText = `₪${payment.amount.toFixed(0)}`;
+
+    return (
+      <div
+        style={style}
+        dir="ltr"
+        className={`grid grid-cols-12 gap-3 items-center px-4 border-b border-slate-100 ${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}
+      >
+        <div className="col-span-1 flex gap-1 justify-start" dir="ltr">
+          <Link
+            href={`/admin/customers/${payment.user_id}`}
+            className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all"
+            title="צפה בלקוח"
+          >
+            <Eye className="w-4 h-4" />
+          </Link>
+
+          {payment.is_active && (
+            <button
+              onClick={() => handleToggleValid(payment.id, payment.is_valid)}
+              className={`p-2 rounded-lg transition-all ${
+                payment.is_valid
+                  ? 'bg-orange-50 text-orange-600 hover:bg-orange-100'
+                  : 'bg-green-50 text-green-600 hover:bg-green-100'
+              }`}
+              title={payment.is_valid ? 'השהה' : 'הפעל'}
+            >
+              {payment.is_valid ? (
+                <Pause className="w-4 h-4" />
+              ) : (
+                <Play className="w-4 h-4" />
+              )}
+            </button>
+          )}
+
+          <button
+            onClick={() => handleDelete(payment.id)}
+            className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all"
+            title="מחק"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="col-span-1" dir="rtl">
+          <div className="text-sm text-slate-900 text-right">{lastCharge}</div>
+        </div>
+
+        <div className="col-span-2" dir="rtl">
+          <div className="text-sm text-slate-900 text-right">{nextCharge}</div>
+          {daysUntilCharge !== null && (
+            <div className="text-xs text-slate-500 text-right">
+              {daysUntilCharge > 0 ? `בעוד ${daysUntilCharge} ימים` : daysUntilCharge === 0 ? 'היום' : 'עבר'}
+            </div>
+          )}
+        </div>
+
+        <div className="col-span-2" dir="rtl">
+          {getStatusBadge(payment)}
+        </div>
+
+        <div className="col-span-1" dir="rtl">
+          <div className="font-bold text-slate-900 text-right">{amountText}</div>
+        </div>
+
+        <div className="col-span-2 min-w-0" dir="rtl">
+          <div className="text-sm text-slate-900 truncate text-right">
+            {payment.plan?.name || '—'}
+            {payment.plan?.connection_type && (
+              <span className="text-xs text-slate-500 mr-2">
+                ({payment.plan.connection_type === 'sim' ? 'SIM' : payment.plan.connection_type === 'wifi' ? 'Wi‑Fi' : payment.plan.connection_type})
+              </span>
+            )}
+          </div>
+          <div className="text-xs text-slate-500 truncate text-right">{getRecurringTypeText(payment.recurring_type, payment.recurring_range)}</div>
+        </div>
+
+        <div className="col-span-3 min-w-0" dir="rtl">
+          <div className="font-bold text-slate-900 truncate text-right">{payment.user?.full_name || 'לא ידוע'}</div>
+          <div className="text-xs text-slate-600 truncate text-right">{payment.user?.email || '—'}</div>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -407,6 +427,7 @@ function RecurringPaymentsContent() {
               <div>
                 <p className="text-slate-600 text-sm">סה"כ מנויים</p>
                 <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
+                <p className="text-xs text-slate-500">בעמוד: {stats.pageTotal}</p>
               </div>
             </div>
           </div>
@@ -470,19 +491,57 @@ function RecurringPaymentsContent() {
               className="flex-1 px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <div className="flex gap-2">
-              {(['all', 'active', 'cancelled'] as const).map((f) => (
+              {(['all', 'active', 'paused', 'cancelled'] as const).map((f) => (
                 <button
                   key={f}
-                  onClick={() => setFilter(f)}
+                  onClick={() => {
+                    setPage(0);
+                    setFilter(f);
+                  }}
                   className={`px-4 py-2 rounded-xl font-medium transition-all ${
                     filter === f
                       ? 'bg-blue-600 text-white'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
-                  {f === 'all' ? 'הכל' : f === 'active' ? 'פעילים' : 'מבוטלים'}
+                  {f === 'all' ? 'הכל' : f === 'active' ? 'פעילים' : f === 'paused' ? 'מושהים' : 'מבוטלים'}
                 </button>
               ))}
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
+            <div className="text-sm text-slate-600">
+              עמוד {page + 1} מתוך {totalPages} • סה"כ {total}
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPage(0);
+                  setPageSize(Number(e.target.value));
+                }}
+                className="px-3 py-2 border border-slate-200 rounded-xl bg-white text-sm"
+              >
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value={200}>200</option>
+              </select>
+
+              <button
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 disabled:opacity-50"
+              >
+                הקודם
+              </button>
+              <button
+                onClick={() => setPage((p) => (p + 1 < totalPages ? p + 1 : p))}
+                disabled={page + 1 >= totalPages}
+                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 disabled:opacity-50"
+              >
+                הבא
+              </button>
             </div>
           </div>
         </div>
@@ -508,7 +567,7 @@ function RecurringPaymentsContent() {
         </div>
       )}
 
-      {filteredPayments.length === 0 ? (
+      {payments.length === 0 ? (
         <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-12 text-center">
           <CreditCard className="w-16 h-16 text-slate-300 mx-auto mb-4" />
           <h3 className="text-xl font-bold text-slate-900 mb-2">אין מנויים חוזרים</h3>
@@ -519,318 +578,25 @@ function RecurringPaymentsContent() {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {filteredPayments.map((payment) => {
-            const daysUntilCharge = payment.next_charge_date ? getDaysUntilCharge(payment.next_charge_date) : null;
-            
-            return (
-              <div key={payment.id} className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden hover:shadow-xl transition-all">
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
-                          <User className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-bold text-slate-900">
-                            {payment.user?.full_name || 'לא ידוע'}
-                          </h3>
-                          {payment.plan && (
-                            <p className="text-sm text-slate-600">{payment.plan.name}</p>
-                          )}
-                          <p className="text-xs text-slate-500 mt-1">
-                            {getRecurringTypeText(payment.recurring_type, payment.recurring_range)}
-                            {payment.number_of_charges > 0 && ` • ${payment.number_of_charges} חיובים`}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <Mail className="w-4 h-4" />
-                          {payment.user?.email || 'לא ידוע'}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <Phone className="w-4 h-4" />
-                          {payment.user?.phone || 'לא ידוע'}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col items-end gap-2">
-                      {getStatusBadge(payment)}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t border-slate-100">
-                    <div>
-                      <p className="text-xs text-slate-500 mb-1">סכום</p>
-                      <p className="text-xl font-bold text-slate-900">
-                        ₪{payment.amount.toFixed(2)}
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-xs text-slate-500 mb-1">חיוב הבא</p>
-                      {payment.next_charge_date ? (
-                        <>
-                          <p className="text-sm font-medium text-slate-900">
-                            {formatDate(payment.next_charge_date)}
-                          </p>
-                          {daysUntilCharge !== null && (
-                            <p className="text-xs text-slate-600">
-                              {daysUntilCharge > 0 ? `בעוד ${daysUntilCharge} ימים` : daysUntilCharge === 0 ? 'היום' : 'עבר'}
-                            </p>
-                          )}
-                        </>
-                      ) : (
-                        <p className="text-sm text-slate-400">לא הוגדר</p>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <p className="text-xs text-slate-500 mb-1">תאריך התחלה</p>
-                      <p className="text-sm font-medium text-slate-900">
-                        {formatDate(payment.start_date)}
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-xs text-slate-500 mb-1">נוצר</p>
-                      <p className="text-sm font-medium text-slate-900">
-                        {formatDate(payment.created_at)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
-                    <Link
-                      href={`/admin/customers/${payment.user_id}`}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium"
-                    >
-                      <Eye className="w-4 h-4" />
-                      צפה בלקוח
-                    </Link>
-                    
-                    {payment.is_active && (
-                      <button
-                        onClick={() => handleToggleValid(payment.id, payment.is_valid)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm font-medium ${
-                          payment.is_valid
-                            ? 'bg-orange-50 text-orange-600 hover:bg-orange-100'
-                            : 'bg-green-50 text-green-600 hover:bg-green-100'
-                        }`}
-                      >
-                        {payment.is_valid ? (
-                          <>
-                            <Pause className="w-4 h-4" />
-                            השהה
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-4 h-4" />
-                            הפעל
-                          </>
-                        )}
-                      </button>
-                    )}
-                    
-                    <button
-                      onClick={() => handleDelete(payment.id)}
-                      className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all text-sm font-medium"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      מחק
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Modal removed - recurring payments managed in PayPlus only */}
-      {false && showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowCreateModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 rounded-t-2xl">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-2xl font-bold text-slate-900">צור חיוב חודשי אוטומטי</h2>
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="p-2 hover:bg-slate-100 rounded-lg transition-all"
-                >
-                  <X className="w-5 h-5 text-slate-600" />
-                </button>
-              </div>
-              <p className="text-sm text-slate-600">בחר לקוח, תוכנית ותאריך התחלה - המערכת תחייב אוטומטית כל חודש באותו יום</p>
-            </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                const userId = formData.get('user_id') as string;
-                const planId = formData.get('plan_id') as string;
-                const selectedPlan = plans.find(p => p.id === planId);
-                const selectedUser = users.find(u => u.id === userId);
-                const amount = parseFloat(formData.get('amount') as string);
-                
-                // API will create customer_uid automatically if needed
-                // Format date to DD/MM/YYYY for PayPlus
-                const startDateInput = formData.get('start_date') as string;
-                const dateObj = new Date(startDateInput);
-                const day = String(dateObj.getDate()).padStart(2, '0');
-                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                const year = dateObj.getFullYear();
-                const formattedStartDate = `${day}/${month}/${year}`;
-                
-                const data = {
-                  user_id: userId,
-                  plan_id: planId || null,
-                  customer_uid: selectedUser?.customer_uid || null, // API creates if null
-                  card_token: null, // PayPlus will request card if needed
-                  recurring_type: 2, // Monthly - fixed
-                  recurring_range: 1, // Every month - fixed
-                  number_of_charges: 0, // Unlimited - fixed
-                  start_date: formattedStartDate, // DD/MM/YYYY format
-                  amount: amount,
-                  currency_code: 'ILS',
-                  items: [
-                    {
-                      name: selectedPlan ? selectedPlan.name : 'מנוי חודשי',
-                      quantity: 1,
-                      price: amount,
-                      vat_type: 0,
-                    }
-                  ],
-                  notes: formData.get('notes'),
-                };
-                handleCreateRecurring(data);
-              }}
-              className="p-6 space-y-4"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    בחר לקוח *
-                  </label>
-                  <select
-                    name="user_id"
-                    required
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">-- בחר לקוח --</option>
-                    {users.map((user) => (
-                      <option key={user.id} value={user.id} data-customer-uid={user.customer_uid}>
-                        {user.full_name} ({user.email})
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-slate-500 mt-1">💡 לקוחות רשומים במערכת (מקושרים ל-PayPlus)</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    בחר תוכנית *
-                  </label>
-                  <select
-                    name="plan_id"
-                    required
-                    onChange={(e) => {
-                      const selectedPlan = plans.find(p => p.id === e.target.value);
-                      if (selectedPlan) {
-                        const amountInput = document.querySelector('input[name="amount"]') as HTMLInputElement;
-                        if (amountInput) {
-                          amountInput.value = selectedPlan.monthly_price.toString();
-                        }
-                      }
-                    }}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">-- בחר תוכנית --</option>
-                    {plans.map((plan) => (
-                      <option key={plan.id} value={plan.id}>
-                        {plan.name} (₪{plan.monthly_price})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    מחיר חודשי *
-                  </label>
-                  <input
-                    type="number"
-                    name="amount"
-                    required
-                    step="0.01"
-                    min="0"
-                    placeholder="99.00"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">💡 מתמלא אוטומטית לפי התוכנית</p>
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    תאריך התחלה *
-                  </label>
-                  <input
-                    type="date"
-                    name="start_date"
-                    required
-                    defaultValue={new Date().toISOString().split('T')[0]}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">🔁 מתאריך זה, כל חודש באותו יום יחויב הלקוח אוטומטית</p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  הערות
-                </label>
-                <textarea
-                  name="notes"
-                  rows={3}
-                  placeholder="הערות נוספות..."
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4 border-t border-slate-200">
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-l from-green-600 to-emerald-600 text-white rounded-xl hover:scale-105 transition-all shadow-lg font-bold disabled:opacity-50"
-                >
-                  {creating ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      יוצר חיוב חודשי...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-5 h-5" />
-                      צור חיוב חודשי
-                    </>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  disabled={creating}
-                  className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-medium disabled:opacity-50"
-                >
-                  ביטול
-                </button>
-              </div>
-            </form>
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+          <div dir="ltr" className="grid grid-cols-12 gap-3 px-4 py-3 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700">
+            <div className="col-span-1" dir="rtl">פעולות</div>
+            <div className="col-span-1 text-right" dir="rtl">חיוב אחרון</div>
+            <div className="col-span-2 text-right" dir="rtl">חיוב הבא</div>
+            <div className="col-span-2 text-right" dir="rtl">סטטוס</div>
+            <div className="col-span-1 text-right" dir="rtl">סכום</div>
+            <div className="col-span-2 text-right" dir="rtl">תוכנית</div>
+            <div className="col-span-3 text-right" dir="rtl">לקוח</div>
           </div>
+
+          <List
+            height={520}
+            itemCount={payments.length}
+            itemSize={56}
+            width={'100%'}
+          >
+            {Row as any}
+          </List>
         </div>
       )}
     </div>
