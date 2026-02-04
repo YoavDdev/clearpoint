@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { forwardRef, useEffect, useMemo, useState, Suspense } from "react";
 import { FileText, User, Calendar, DollarSign, Eye, Printer, Search, Filter, Ban, X, Loader2, Download } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
+import { FixedSizeList as List } from "react-window";
 
 interface Invoice {
   id: string;
@@ -243,6 +244,23 @@ function AdminInvoicesContent() {
     );
   });
 
+  const ListOuterElement = useMemo(() => {
+    const Comp = forwardRef<HTMLDivElement, any>((props, ref) => {
+      return (
+        <div
+          ref={ref}
+          {...props}
+          style={{
+            ...(props.style || {}),
+            scrollbarGutter: 'stable',
+          }}
+        />
+      );
+    });
+    Comp.displayName = 'InvoicesListOuterElement';
+    return Comp;
+  }, []);
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       // הצעות מחיר
@@ -259,14 +277,14 @@ function AdminInvoicesContent() {
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.draft;
     return (
-      <span className={`px-3 py-1 rounded-full text-sm font-medium ${config.color}`}>
+      <span className={`px-3 py-1 rounded-full text-xs font-medium ${config.color}`}>
         {config.label}
       </span>
     );
   };
 
   const getPaymentStatusBadge = (payment: Invoice["payment"]) => {
-    if (!payment) return <span className="text-gray-400 text-sm">אין עסקה</span>;
+    if (!payment) return <span className="text-gray-400 text-xs">אין עסקה</span>;
 
     const statusConfig = {
       pending: { label: "בהמתנה", color: "bg-yellow-100 text-yellow-800" },
@@ -275,7 +293,7 @@ function AdminInvoicesContent() {
     };
 
     const config = statusConfig[payment.status as keyof typeof statusConfig];
-    if (!config) return <span className="text-gray-400 text-sm">לא ידוע</span>;
+    if (!config) return <span className="text-gray-400 text-xs">לא ידוע</span>;
 
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>
@@ -286,17 +304,17 @@ function AdminInvoicesContent() {
 
   const getPaymentCell = (invoice: Invoice) => {
     if (invoice.document_type === "quote") {
-      return <span className="text-slate-400 text-sm">-</span>;
+      return <span className="text-slate-400 text-xs">-</span>;
     }
 
     if (!invoice.payment) {
       if (invoice.status === "paid") {
-        return <span className="text-green-700 text-sm font-medium">שולם (ללא עסקה מקושרת)</span>;
+        return <span className="text-green-700 text-xs font-medium">שולם (ללא עסקה מקושרת)</span>;
       }
       if (invoice.status === "sent") {
-        return <span className="text-yellow-700 text-sm font-medium">ממתין (לא נוצרה עסקה)</span>;
+        return <span className="text-yellow-700 text-xs font-medium">ממתין (לא נוצרה עסקה)</span>;
       }
-      return <span className="text-gray-400 text-sm">אין עסקה</span>;
+      return <span className="text-gray-400 text-xs">אין עסקה</span>;
     }
 
     return getPaymentStatusBadge(invoice.payment);
@@ -637,80 +655,116 @@ function AdminInvoicesContent() {
               <p className="text-sm">נסה לשנות את הפילטרים או החיפוש</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr className="text-right">
-                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">סוג</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">מספר</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">לקוח</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">תאריך</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">סכום</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">סטטוס</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">עסקה</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-slate-700">פעולות</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {filteredInvoices.map((invoice) => (
-                    <tr key={invoice.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
-                          invoice.document_type === 'quote' 
-                            ? 'bg-blue-100 text-blue-800' 
-                            : 'bg-orange-100 text-orange-800'
-                        }`}>
-                          {invoice.document_type === 'quote' ? '📋 חשבון עסקה' : '🧾 קבלה'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="font-bold text-slate-800">#{invoice.invoice_number}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-slate-800">{invoice.user?.full_name || "לא ידוע"}</div>
-                        <div className="text-sm text-slate-600">{invoice.user?.email}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-slate-700">
-                          {new Date(invoice.created_at).toLocaleDateString("he-IL")}
-                        </div>
-                        {invoice.paid_at && (
-                          <div className="text-xs text-green-600 mt-1">
-                            שולם: {new Date(invoice.paid_at).toLocaleDateString("he-IL")}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="font-bold text-slate-800">₪{invoice.total_amount.toFixed(2)}</div>
-                      </td>
-                      <td className="px-6 py-4">{getStatusBadge(invoice.status)}</td>
-                      <td className="px-6 py-4">
-                        {getPaymentCell(invoice)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-2">
-                          <Link
-                            href={invoice.document_type === 'quote' ? `/quote/${invoice.id}` : `/admin/invoices/${invoice.id}`}
-                            className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
-                            title={invoice.document_type === 'quote' ? 'צפייה בחשבון עסקה' : 'צפייה והדפסה'}
+            <div className="overflow-x-auto lg:overflow-x-visible">
+              <div className="w-full min-w-[1100px] lg:min-w-0">
+                <div
+                  dir="rtl"
+                  className="grid grid-cols-[1.1fr_1fr_2.2fr_1.4fr_1fr_1.2fr_1.2fr_1.2fr] gap-3 items-center px-6 py-4 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700"
+                >
+                  <div className="min-w-0 text-right">סוג</div>
+                  <div className="min-w-0 text-right">מספר</div>
+                  <div className="min-w-0 text-right">לקוח</div>
+                  <div className="min-w-0 text-right">תאריך</div>
+                  <div className="min-w-0 text-right">סכום</div>
+                  <div className="min-w-0 text-right">סטטוס</div>
+                  <div className="min-w-0 text-right">עסקה</div>
+                  <div className="min-w-0 text-right">פעולות</div>
+                </div>
+
+                <List
+                  height={560}
+                  itemCount={filteredInvoices.length}
+                  itemSize={72}
+                  width={'100%'}
+                  outerElementType={ListOuterElement as any}
+                >
+                  {({ index, style }: { index: number; style: any }) => {
+                    const invoice = filteredInvoices[index];
+                    if (!invoice) return null;
+
+                    return (
+                      <div
+                        style={style}
+                        dir="rtl"
+                        className={`grid grid-cols-[1.1fr_1fr_2.2fr_1.4fr_1fr_1.2fr_1.2fr_1.2fr] gap-3 items-center px-6 border-b border-slate-100 hover:bg-slate-50 transition-colors text-sm ${
+                          index % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <span
+                            className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold ${
+                              invoice.document_type === 'quote'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-orange-100 text-orange-800'
+                            }`}
+                            title={invoice.document_type}
                           >
-                            <Eye size={18} />
-                          </Link>
-                          {(invoice.status !== "paid" && invoice.status !== "quote_approved") && (
-                            <button
-                              onClick={() => handleCancelInvoice(invoice.id, invoice.invoice_number, invoice.document_type)}
-                              className="p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
-                              title={invoice.document_type === 'quote' ? 'ביטול חשבון עסקה' : 'ביטול קבלה'}
-                            >
-                              <Ban size={18} />
-                            </button>
+                            {invoice.document_type === 'quote' ? 'חשבון עסקה' : 'קבלה'}
+                          </span>
+                        </div>
+
+                        <div className="min-w-0 text-right">
+                          <div className="font-bold text-slate-800 truncate" title={invoice.invoice_number}>
+                            #{invoice.invoice_number}
+                          </div>
+                        </div>
+
+                        <div className="min-w-0">
+                          <div
+                            className="font-medium text-slate-800 truncate text-right"
+                            title={invoice.user?.full_name || invoice.user?.email}
+                          >
+                            {invoice.user?.full_name || 'לא ידוע'}
+                          </div>
+                          <div className="text-xs text-slate-600 truncate text-right" title={invoice.user?.email}>
+                            {invoice.user?.email}
+                          </div>
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="text-slate-700 text-right">
+                            {new Date(invoice.created_at).toLocaleDateString('he-IL')}
+                          </div>
+                          {invoice.paid_at && (
+                            <div className="text-xs text-green-600 mt-1 text-right">
+                              שולם: {new Date(invoice.paid_at).toLocaleDateString('he-IL')}
+                            </div>
                           )}
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+
+                        <div className="min-w-0 text-right">
+                          <div className="font-bold text-slate-800">₪{invoice.total_amount.toFixed(2)}</div>
+                        </div>
+
+                        <div className="min-w-0 text-right">{getStatusBadge(invoice.status)}</div>
+
+                        <div className="min-w-0 text-right">{getPaymentCell(invoice)}</div>
+
+                        <div className="min-w-0" dir="ltr">
+                          <div className="flex gap-2 justify-start" dir="ltr">
+                            <Link
+                              href={invoice.document_type === 'quote' ? `/quote/${invoice.id}` : `/admin/invoices/${invoice.id}`}
+                              className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
+                              title={invoice.document_type === 'quote' ? 'צפייה בחשבון עסקה' : 'צפייה והדפסה'}
+                            >
+                              <Eye size={18} />
+                            </Link>
+                            {invoice.status !== 'paid' && invoice.status !== 'quote_approved' && (
+                              <button
+                                onClick={() => handleCancelInvoice(invoice.id, invoice.invoice_number, invoice.document_type)}
+                                className="p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
+                                title={invoice.document_type === 'quote' ? 'ביטול חשבון עסקה' : 'ביטול קבלה'}
+                              >
+                                <Ban size={18} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }}
+                </List>
+              </div>
             </div>
           )}
         </div>
