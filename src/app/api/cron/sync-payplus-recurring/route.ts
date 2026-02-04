@@ -47,8 +47,15 @@ function parsePayPlusDate(value: string): Date | null {
 
 export async function GET(req: NextRequest) {
   try {
+    const startedAtMs = Date.now();
+
     const authHeader = req.headers.get('authorization');
     const isManualAuthorized = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+
+    const { searchParams } = new URL(req.url);
+    const receiptsCursor = searchParams.get('receipts_cursor');
+    const receiptsLimitRaw = searchParams.get('receipts_limit');
+    const receiptsLimit = Math.max(1, Math.min(200, Number(receiptsLimitRaw) || 50));
 
     if (!isManualAuthorized) {
       return NextResponse.json(
@@ -98,6 +105,10 @@ export async function GET(req: NextRequest) {
     let receiptsCreated = 0;
     let receiptsSkipped = 0;
     let receiptsErrors = 0;
+
+    let receiptsBatchProcessed = 0;
+    let receiptsNextCursor: string | null = null;
+    let receiptsHasMore = false;
 
     const receiptDebug: Array<{
       recurring_uid: string;
@@ -263,12 +274,20 @@ export async function GET(req: NextRequest) {
       const now = new Date();
       const currentMonth = toRecurringMonth(now);
 
-      const { data: activeRecurring, error: activeRecurringError } = await supabaseAdmin
+      let activeRecurringQuery = supabaseAdmin
         .from('recurring_payments')
         .select('id, user_id, recurring_uid, amount, currency_code')
         .eq('is_active', true)
         .eq('is_valid', true)
-        .not('recurring_uid', 'is', null);
+        .not('recurring_uid', 'is', null)
+        .order('id', { ascending: true })
+        .limit(receiptsLimit);
+
+      if (receiptsCursor) {
+        activeRecurringQuery = activeRecurringQuery.gt('id', receiptsCursor);
+      }
+
+      const { data: activeRecurring, error: activeRecurringError } = await activeRecurringQuery;
 
       if (activeRecurringError) {
         throw activeRecurringError;
@@ -276,6 +295,15 @@ export async function GET(req: NextRequest) {
 
       for (const rp of activeRecurring || []) {
         try {
+          receiptsBatchProcessed++;
+          receiptsNextCursor = rp.id;
+
+          // Stay safely within serverless timeout (Hobby can be tighter). Stop early and let scheduler call again.
+          if (Date.now() - startedAtMs > 45_000) {
+            receiptsHasMore = true;
+            break;
+          }
+
           const recurringUid = rp.recurring_uid as string | null;
           if (!recurringUid) continue;
 
@@ -665,6 +693,8 @@ export async function GET(req: NextRequest) {
           receiptsErrors++;
         }
       }
+
+      receiptsHasMore = receiptsHasMore || ((activeRecurring?.length || 0) === receiptsLimit);
     } catch (receiptPassError) {
       console.error('❌ [CRON] Recurring receipts pass failed:', receiptPassError);
       receiptsErrors++;
@@ -685,6 +715,14 @@ export async function GET(req: NextRequest) {
       receiptsCreated,
       receiptsSkipped,
       receiptsErrors,
+      receiptsBatch: {
+        cursor: receiptsCursor,
+        limit: receiptsLimit,
+        processed: receiptsBatchProcessed,
+        nextCursor: receiptsNextCursor,
+        hasMore: receiptsHasMore,
+        stoppedEarly: Date.now() - startedAtMs > 45_000,
+      },
       ...(isManualAuthorized ? { receiptDebug } : {}),
       total: payplusPayments.length,
     });
