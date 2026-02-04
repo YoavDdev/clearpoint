@@ -23,24 +23,26 @@ function parsePayPlusDate(value: string): Date | null {
   const raw = String(value || '').trim();
   if (!raw) return null;
 
-  const asDate = new Date(raw);
-  if (!Number.isNaN(asDate.getTime())) return asDate;
-
   const m = raw.match(
     /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
   );
-  if (!m) return null;
+  if (m) {
+    const day = Number(m[1]);
+    const month = Number(m[2]);
+    const year = Number(m[3]);
+    const hour = m[4] ? Number(m[4]) : 0;
+    const minute = m[5] ? Number(m[5]) : 0;
+    const second = m[6] ? Number(m[6]) : 0;
 
-  const day = Number(m[1]);
-  const month = Number(m[2]);
-  const year = Number(m[3]);
-  const hour = m[4] ? Number(m[4]) : 0;
-  const minute = m[5] ? Number(m[5]) : 0;
-  const second = m[6] ? Number(m[6]) : 0;
+    const d = new Date(year, month - 1, day, hour, minute, second);
+    if (Number.isNaN(d.getTime())) return null;
+    return d;
+  }
 
-  const d = new Date(year, month - 1, day, hour, minute, second);
-  if (Number.isNaN(d.getTime())) return null;
-  return d;
+  const asDate = new Date(raw);
+  if (!Number.isNaN(asDate.getTime())) return asDate;
+
+  return null;
 }
 
 export async function GET(req: NextRequest) {
