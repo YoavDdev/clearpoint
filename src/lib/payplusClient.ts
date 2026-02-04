@@ -60,11 +60,16 @@ function parsePayPlusDate(value: unknown): Date | null {
 export class PayPlusClient {
   private apiKey: string;
   private secretKey: string;
-  private baseUrl = 'https://restapi.payplus.co.il/api/v1.0';
+  private baseUrl: string;
 
   constructor() {
     this.apiKey = process.env.PAYPLUS_API_KEY || '';
     this.secretKey = process.env.PAYPLUS_SECRET_KEY || '';
+
+    this.baseUrl =
+      process.env.PAYPLUS_USE_MOCK === 'true'
+        ? 'https://restapidev.payplus.co.il/api/v1.0'
+        : 'https://restapi.payplus.co.il/api/v1.0';
 
     if (!this.apiKey || !this.secretKey) {
       console.warn('⚠️ PayPlus API keys not configured');
@@ -167,10 +172,21 @@ export class PayPlusClient {
       );
 
       if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        console.error(
+          `❌ PayPlus charges list error: ${response.status} ${response.statusText} body=${errorText}`
+        );
         return undefined;
       }
 
       const payload: any = await response.json();
+
+      if (payload?.results?.status === 'error') {
+        console.error(
+          `❌ PayPlus charges list API error: ${payload?.results?.description} (code: ${payload?.results?.code})`
+        );
+        return undefined;
+      }
 
       const maybeCharges =
         payload?.data ??
