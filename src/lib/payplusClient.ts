@@ -33,6 +33,30 @@ interface PayPlusAPIResponse {
   data?: any;
 }
 
+function parsePayPlusDate(value: unknown): Date | null {
+  const raw = String(value ?? '').trim();
+  if (!raw) return null;
+
+  const asDate = new Date(raw);
+  if (!Number.isNaN(asDate.getTime())) return asDate;
+
+  const m = raw.match(
+    /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
+  );
+  if (!m) return null;
+
+  const day = Number(m[1]);
+  const month = Number(m[2]);
+  const year = Number(m[3]);
+  const hour = m[4] ? Number(m[4]) : 0;
+  const minute = m[5] ? Number(m[5]) : 0;
+  const second = m[6] ? Number(m[6]) : 0;
+
+  const d = new Date(year, month - 1, day, hour, minute, second);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
+
 export class PayPlusClient {
   private apiKey: string;
   private secretKey: string;
@@ -94,6 +118,11 @@ export class PayPlusClient {
       const recurringData = data.results.data;
       console.log('📊 Recurring Data:', JSON.stringify(recurringData, null, 2));
 
+      let lastPaymentDate = recurringData.last_payment_date;
+      if (!lastPaymentDate) {
+        lastPaymentDate = await this.getLastChargeDateFromChargesList(recurringUid);
+      }
+
       // Map PayPlus status codes to our status
       let status: 'active' | 'cancelled' | 'suspended' | 'expired' = 'active';
       
@@ -113,13 +142,71 @@ export class PayPlusClient {
         recurring_uid: recurringUid,
         amount: recurringData.amount,
         next_payment_date: recurringData.next_payment_date,
-        last_payment_date: recurringData.last_payment_date,
+        last_payment_date: lastPaymentDate,
         cancelled_at: recurringData.cancelled_date,
         payment_failures: recurringData.payment_failures || 0,
       };
     } catch (error) {
       console.error('❌ PayPlus API error:', error);
       return null;
+    }
+  }
+
+  private async getLastChargeDateFromChargesList(recurringUid: string): Promise<string | undefined> {
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/RecurringPayments/${recurringUid}/ViewRecurringCharge`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'api-key': this.apiKey,
+            'secret-key': this.secretKey,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        return undefined;
+      }
+
+      const payload: any = await response.json();
+
+      const maybeCharges =
+        payload?.data ??
+        payload?.results?.data ??
+        payload?.results?.data?.charges ??
+        payload?.results?.data?.items ??
+        payload?.results?.data?.list;
+
+      const charges: any[] = Array.isArray(maybeCharges)
+        ? maybeCharges
+        : Array.isArray(maybeCharges?.data)
+          ? maybeCharges.data
+          : [];
+
+      const pickDate = (c: any): string | undefined =>
+        c?.last_payment_date ??
+        c?.payment_date ??
+        c?.charge_date ??
+        c?.transaction_date ??
+        c?.created_at ??
+        c?.created_date ??
+        c?.date;
+
+      let best: { date: Date; raw: string } | null = null;
+      for (const c of charges) {
+        const raw = pickDate(c);
+        const parsed = parsePayPlusDate(raw);
+        if (!raw || !parsed) continue;
+        if (!best || parsed.getTime() > best.date.getTime()) {
+          best = { date: parsed, raw: String(raw) };
+        }
+      }
+
+      return best?.raw;
+    } catch {
+      return undefined;
     }
   }
 
