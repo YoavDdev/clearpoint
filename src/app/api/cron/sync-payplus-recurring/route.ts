@@ -19,6 +19,30 @@ function toRecurringMonth(date: Date) {
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}`;
 }
 
+function parsePayPlusDate(value: string): Date | null {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+
+  const asDate = new Date(raw);
+  if (!Number.isNaN(asDate.getTime())) return asDate;
+
+  const m = raw.match(
+    /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
+  );
+  if (!m) return null;
+
+  const day = Number(m[1]);
+  const month = Number(m[2]);
+  const year = Number(m[3]);
+  const hour = m[4] ? Number(m[4]) : 0;
+  const minute = m[5] ? Number(m[5]) : 0;
+  const second = m[6] ? Number(m[6]) : 0;
+
+  const d = new Date(year, month - 1, day, hour, minute, second);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const authHeader = req.headers.get('authorization');
@@ -239,18 +263,25 @@ export async function GET(req: NextRequest) {
 
           const status = await payplusClient.getRecurringStatus(recurringUid);
           if (!status?.last_payment_date) {
+            console.log(`ℹ️ [CRON] Skipping receipts for ${recurringUid}: missing last_payment_date`);
             receiptsSkipped++;
             continue;
           }
 
-          const paidAtDate = new Date(status.last_payment_date);
-          if (Number.isNaN(paidAtDate.getTime())) {
+          const paidAtDate = parsePayPlusDate(status.last_payment_date);
+          if (!paidAtDate) {
+            console.log(
+              `ℹ️ [CRON] Skipping receipts for ${recurringUid}: cannot parse last_payment_date='${status.last_payment_date}'`
+            );
             receiptsSkipped++;
             continue;
           }
 
           const paidMonth = toRecurringMonth(paidAtDate);
           if (paidMonth !== currentMonth) {
+            console.log(
+              `ℹ️ [CRON] Skipping receipts for ${recurringUid}: paidMonth=${paidMonth} currentMonth=${currentMonth} last_payment_date='${status.last_payment_date}'`
+            );
             receiptsSkipped++;
             continue;
           }
