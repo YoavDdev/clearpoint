@@ -110,6 +110,11 @@ export async function GET(req: NextRequest) {
       last_payment_date?: string | null;
       paid_month?: string | null;
       current_month?: string;
+      email?: {
+        status: 'sent' | 'skipped' | 'error';
+        recipient?: string | null;
+        error?: string | null;
+      };
     }> = [];
 
     for (const payment of payplusPayments) {
@@ -548,19 +553,60 @@ export async function GET(req: NextRequest) {
                 .update({ email_sent_at: new Date().toISOString() })
                 .eq('id', createdInvoice.id)
                 .is('email_sent_at', null);
+
+              if (isManualAuthorized) {
+                receiptDebug.push({
+                  recurring_uid: recurringUid,
+                  action: 'created',
+                  last_payment_date: lastPaymentDateStr,
+                  current_month: currentMonth,
+                  paid_month: paidMonth,
+                  email: { status: 'sent', recipient: emailUser.email, error: null },
+                });
+              }
+            } else if (isManualAuthorized) {
+              receiptDebug.push({
+                recurring_uid: recurringUid,
+                action: 'created',
+                last_payment_date: lastPaymentDateStr,
+                current_month: currentMonth,
+                paid_month: paidMonth,
+                email: {
+                  status: 'skipped',
+                  recipient: emailUser?.email ?? null,
+                  error: null,
+                },
+              });
             }
           } catch (emailError) {
             console.error('⚠️ [CRON] Failed to send recurring receipt email:', emailError);
+
+            if (isManualAuthorized) {
+              receiptDebug.push({
+                recurring_uid: recurringUid,
+                action: 'created',
+                last_payment_date: lastPaymentDateStr,
+                current_month: currentMonth,
+                paid_month: paidMonth,
+                email: {
+                  status: 'error',
+                  recipient: null,
+                  error: emailError instanceof Error ? emailError.message : String(emailError),
+                },
+              });
+            }
           }
 
           receiptsCreated++;
-          receiptDebug.push({
-            recurring_uid: recurringUid,
-            action: 'created',
-            last_payment_date: lastPaymentDateStr,
-            current_month: currentMonth,
-            paid_month: paidMonth,
-          });
+          if (!isManualAuthorized) {
+            receiptDebug.push({
+              recurring_uid: recurringUid,
+              action: 'created',
+              last_payment_date: lastPaymentDateStr,
+              current_month: currentMonth,
+              paid_month: paidMonth,
+            });
+          }
         } catch (innerError) {
           console.error('❌ [CRON] Recurring receipt creation error:', innerError);
           receiptDebug.push({
