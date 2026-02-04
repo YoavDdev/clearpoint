@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { FileText, User, Calendar, DollarSign, Eye, Printer, Search, Filter, Trash2, X, Loader2 } from "lucide-react";
+import { FileText, User, Calendar, DollarSign, Eye, Printer, Search, Filter, Ban, X, Loader2, Download } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 
@@ -40,29 +40,106 @@ function AdminInvoicesContent() {
   const router = useRouter();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'accounting' | 'management'>('accounting');
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [documentTypeFilter, setDocumentTypeFilter] = useState("all");
   const [subscriptionFilter, setSubscriptionFilter] = useState<'all' | 'true' | 'false'>('all');
+  const [reportFrom, setReportFrom] = useState<string>("");
+  const [reportTo, setReportTo] = useState<string>("");
+  const [isExporting, setIsExporting] = useState(false);
   const userIdFilter = searchParams.get("user_id");
+
+  const toDateOnly = (d: Date) => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const setPresetRange = (preset: 'current_month' | 'prev_month' | 'current_quarter' | 'current_year') => {
+    const now = new Date();
+
+    if (preset === 'current_month') {
+      const from = new Date(now.getFullYear(), now.getMonth(), 1);
+      const to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      setReportFrom(toDateOnly(from));
+      setReportTo(toDateOnly(to));
+      return;
+    }
+
+    if (preset === 'prev_month') {
+      const from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const to = new Date(now.getFullYear(), now.getMonth(), 0);
+      setReportFrom(toDateOnly(from));
+      setReportTo(toDateOnly(to));
+      return;
+    }
+
+    if (preset === 'current_quarter') {
+      const qStartMonth = Math.floor(now.getMonth() / 3) * 3;
+      const from = new Date(now.getFullYear(), qStartMonth, 1);
+      const to = new Date(now.getFullYear(), qStartMonth + 3, 0);
+      setReportFrom(toDateOnly(from));
+      setReportTo(toDateOnly(to));
+      return;
+    }
+
+    const from = new Date(now.getFullYear(), 0, 1);
+    const to = new Date(now.getFullYear(), 11, 31);
+    setReportFrom(toDateOnly(from));
+    setReportTo(toDateOnly(to));
+  };
 
   useEffect(() => {
     fetchInvoices();
-  }, [statusFilter, documentTypeFilter, subscriptionFilter, userIdFilter]);
+  }, [statusFilter, documentTypeFilter, subscriptionFilter, userIdFilter, activeTab, reportFrom, reportTo]);
+
+  useEffect(() => {
+    if (activeTab !== 'accounting') return;
+
+    setStatusFilter('paid');
+    setDocumentTypeFilter('invoice');
+    setSearchTerm("");
+
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const from = new Date(y, m, 1);
+    const to = new Date(y, m + 1, 0);
+
+    setReportFrom(toDateOnly(from));
+    setReportTo(toDateOnly(to));
+  }, [activeTab]);
 
   const fetchInvoices = async () => {
     setLoading(true);
     try {
       let url = `/api/admin/invoices?status=${statusFilter}`;
-      if (documentTypeFilter !== "all") {
-        url += `&document_type=${documentTypeFilter}`;
+
+      if (activeTab === 'accounting') {
+        url = `/api/admin/invoices?status=paid&document_type=invoice&date_field=paid_at`;
+        if (subscriptionFilter !== 'all') {
+          url += `&subscription=${subscriptionFilter}`;
+        }
+        if (reportFrom) {
+          url += `&date_from=${encodeURIComponent(reportFrom)}`;
+        }
+        if (reportTo) {
+          url += `&date_to=${encodeURIComponent(reportTo)}`;
+        }
+      } else {
+        if (documentTypeFilter !== "all") {
+          url += `&document_type=${documentTypeFilter}`;
+        }
+        if (subscriptionFilter !== 'all') {
+          url += `&subscription=${subscriptionFilter}`;
+        }
+        if (userIdFilter) {
+          url += `&user_id=${userIdFilter}`;
+        }
       }
-      if (subscriptionFilter !== 'all') {
-        url += `&subscription=${subscriptionFilter}`;
-      }
-      if (userIdFilter) {
-        url += `&user_id=${userIdFilter}`;
-      }
+
       const response = await fetch(url);
       const data = await response.json();
 
@@ -80,14 +157,64 @@ function AdminInvoicesContent() {
     router.push('/admin/invoices');
   };
 
-  const handleDeleteInvoice = async (invoiceId: string, invoiceNumber: string, documentType: 'quote' | 'invoice') => {
+  const handleExportCsv = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      let url = `/api/admin/invoices/export?status=paid&document_type=invoice&date_field=paid_at`;
+      if (subscriptionFilter !== 'all') {
+        url += `&subscription=${subscriptionFilter}`;
+      }
+      if (reportFrom) {
+        url += `&date_from=${encodeURIComponent(reportFrom)}`;
+      }
+      if (reportTo) {
+        url += `&date_to=${encodeURIComponent(reportTo)}`;
+      }
+
+      const res = await fetch(url);
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error || 'Export failed');
+      }
+
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+
+      const contentDisposition = res.headers.get('content-disposition') || '';
+      const match = /filename="?([^";]+)"?/i.exec(contentDisposition);
+      const filename = match?.[1] || 'clearpoint-invoices.csv';
+
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (e) {
+      console.error('CSV export error:', e);
+      alert('שגיאה ביצוא CSV');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleCancelInvoice = async (invoiceId: string, invoiceNumber: string, documentType: 'quote' | 'invoice') => {
     const docName = documentType === 'quote' ? 'חשבון עסקה' : 'קבלה';
-    if (!confirm(`האם אתה בטוח שברצונך למחוק את ${docName} #${invoiceNumber}?`)) {
+    if (!confirm(`האם אתה בטוח שברצונך לבטל את ${docName} #${invoiceNumber}?`)) {
+      return;
+    }
+
+    const typed = prompt(`למניעת טעויות, הקלד את מספר המסמך כדי לאשר ביטול: ${invoiceNumber}`);
+    if (typed === null) return;
+    if (typed.trim() !== String(invoiceNumber).trim()) {
+      alert('המספר שהוקלד לא תואם. הביטול בוטל.');
       return;
     }
 
     try {
-      const response = await fetch("/api/admin/delete-invoice", {
+      const response = await fetch("/api/admin/cancel-invoice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ invoiceId }),
@@ -96,16 +223,14 @@ function AdminInvoicesContent() {
       const result = await response.json();
 
       if (result.success) {
-        const docName = documentType === 'quote' ? 'חשבון העסקה' : 'הקבלה';
-        alert(`${docName} נמחקה בהצלחה`);
+        alert('המסמך בוטל בהצלחה');
         fetchInvoices();
       } else {
         alert("שגיאה: " + result.error);
       }
     } catch (error) {
-      console.error("Error deleting invoice:", error);
-      const docName = documentType === 'quote' ? 'חשבון העסקה' : 'הקבלה';
-      alert(`שגיאה במחיקת ${docName}`);
+      console.error("Error cancelling invoice:", error);
+      alert('שגיאה בביטול המסמך');
     }
   };
 
@@ -189,6 +314,18 @@ function AdminInvoicesContent() {
       .reduce((sum, i) => sum + Number(i.total_amount), 0),
   };
 
+  const reportStats = {
+    receipts: invoices.filter((i) => i.document_type === 'invoice').length,
+    totalRevenue: invoices.reduce((sum, i) => sum + Number(i.total_amount), 0),
+    recurringRevenue: invoices
+      .filter((i) => i.has_subscription)
+      .reduce((sum, i) => sum + Number(i.total_amount), 0),
+    oneTimeRevenue: invoices
+      .filter((i) => !i.has_subscription)
+      .reduce((sum, i) => sum + Number(i.total_amount), 0),
+    paidWithoutPayment: invoices.filter((i) => i.status === 'paid' && !i.payment).length,
+  };
+
   return (
     <div dir="rtl" className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-6">
       <div className="max-w-7xl mx-auto">
@@ -213,8 +350,34 @@ function AdminInvoicesContent() {
             </Link>
           </div>
 
+          {/* Tabs */}
+          <div className="bg-white rounded-2xl p-2 shadow-lg border border-slate-200 mb-6">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setActiveTab('accounting')}
+                className={`px-4 py-3 rounded-xl font-bold transition-all ${
+                  activeTab === 'accounting'
+                    ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow'
+                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                דוחות לרו"ח
+              </button>
+              <button
+                onClick={() => setActiveTab('management')}
+                className={`px-4 py-3 rounded-xl font-bold transition-all ${
+                  activeTab === 'management'
+                    ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow'
+                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                ניהול מסמכים
+              </button>
+            </div>
+          </div>
+
           {/* User Filter Banner */}
-          {userIdFilter && invoices.length > 0 && (
+          {activeTab === 'management' && userIdFilter && invoices.length > 0 && (
             <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -236,99 +399,230 @@ function AdminInvoicesContent() {
           )}
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
-              <div className="text-slate-600 text-sm mb-2">סה"כ</div>
-              <div className="text-3xl font-bold text-slate-800">{stats.total}</div>
+          {activeTab === 'management' ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
+                <div className="text-slate-600 text-sm mb-2">סה"כ</div>
+                <div className="text-3xl font-bold text-slate-800">{stats.total}</div>
+              </div>
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-200">
+                <div className="text-blue-600 text-sm mb-2">חשבונות עסקה</div>
+                <div className="text-3xl font-bold text-blue-700">{stats.quotes}</div>
+              </div>
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-200">
+                <div className="text-orange-600 text-sm mb-2">קבלות</div>
+                <div className="text-3xl font-bold text-orange-700">{stats.invoices}</div>
+              </div>
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-emerald-200">
+                <div className="text-emerald-600 text-sm mb-2">חשבונות אושרו</div>
+                <div className="text-3xl font-bold text-emerald-700">{stats.quotesApproved}</div>
+              </div>
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-green-200">
+                <div className="text-green-600 text-sm mb-2">שולמו</div>
+                <div className="text-3xl font-bold text-green-700">{stats.paid}</div>
+              </div>
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-purple-200">
+                <div className="text-purple-600 text-sm mb-2">סה"כ הכנסות</div>
+                <div className="text-3xl font-bold text-purple-700">₪{stats.totalRevenue.toFixed(0)}</div>
+              </div>
             </div>
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-200">
-              <div className="text-blue-600 text-sm mb-2">חשבונות עסקה</div>
-              <div className="text-3xl font-bold text-blue-700">{stats.quotes}</div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
+                <div className="text-slate-600 text-sm mb-2">קבלות בתקופה</div>
+                <div className="text-3xl font-bold text-slate-800">{reportStats.receipts}</div>
+              </div>
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-purple-200">
+                <div className="text-purple-600 text-sm mb-2">סה"כ הכנסות</div>
+                <div className="text-3xl font-bold text-purple-700">₪{reportStats.totalRevenue.toFixed(0)}</div>
+              </div>
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-emerald-200">
+                <div className="text-emerald-600 text-sm mb-2">הוראת קבע</div>
+                <div className="text-3xl font-bold text-emerald-700">₪{reportStats.recurringRevenue.toFixed(0)}</div>
+              </div>
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-200">
+                <div className="text-orange-600 text-sm mb-2">חד-פעמי</div>
+                <div className="text-3xl font-bold text-orange-700">₪{reportStats.oneTimeRevenue.toFixed(0)}</div>
+              </div>
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-red-200">
+                <div className="text-red-600 text-sm mb-2">שולם בלי עסקה</div>
+                <div className="text-3xl font-bold text-red-700">{reportStats.paidWithoutPayment}</div>
+              </div>
             </div>
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-200">
-              <div className="text-orange-600 text-sm mb-2">קבלות</div>
-              <div className="text-3xl font-bold text-orange-700">{stats.invoices}</div>
-            </div>
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-emerald-200">
-              <div className="text-emerald-600 text-sm mb-2">חשבונות אושרו</div>
-              <div className="text-3xl font-bold text-emerald-700">{stats.quotesApproved}</div>
-            </div>
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-green-200">
-              <div className="text-green-600 text-sm mb-2">שולמו</div>
-              <div className="text-3xl font-bold text-green-700">{stats.paid}</div>
-            </div>
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-purple-200">
-              <div className="text-purple-600 text-sm mb-2">סה"כ הכנסות</div>
-              <div className="text-3xl font-bold text-purple-700">₪{stats.totalRevenue.toFixed(0)}</div>
-            </div>
-          </div>
+          )}
 
           {/* Filters */}
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
-            <div className="grid md:grid-cols-4 gap-4">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
-                <input
-                  type="text"
-                  placeholder="חיפוש לפי מספר מסמך, שם לקוח או אימייל..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pr-12 pl-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+            {activeTab === 'management' ? (
+              <div className="grid md:grid-cols-4 gap-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
+                  <input
+                    type="text"
+                    placeholder="חיפוש לפי מספר מסמך, שם לקוח או אימייל..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pr-12 pl-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
 
-              {/* Document Type Filter */}
-              <div className="flex items-center gap-2">
-                <FileText size={20} className="text-slate-600" />
-                <select
-                  value={documentTypeFilter}
-                  onChange={(e) => setDocumentTypeFilter(e.target.value)}
-                  className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">הכל</option>
-                  <option value="quote">📋 חשבונות עסקה</option>
-                  <option value="invoice">🧾 קבלות</option>
-                </select>
-              </div>
+                {/* Document Type Filter */}
+                <div className="flex items-center gap-2">
+                  <FileText size={20} className="text-slate-600" />
+                  <select
+                    value={documentTypeFilter}
+                    onChange={(e) => setDocumentTypeFilter(e.target.value)}
+                    className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">הכל</option>
+                    <option value="quote">📋 חשבונות עסקה</option>
+                    <option value="invoice">🧾 קבלות</option>
+                  </select>
+                </div>
 
-              {/* Subscription Filter */}
-              <div className="flex items-center gap-2">
-                <DollarSign size={20} className="text-slate-600" />
-                <select
-                  value={subscriptionFilter}
-                  onChange={(e) => setSubscriptionFilter(e.target.value as 'all' | 'true' | 'false')}
-                  className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">כל סוגי הקבלות</option>
-                  <option value="false">🧾 קבלות חד-פעמי</option>
-                  <option value="true">💳 קבלות הוראת קבע</option>
-                </select>
-              </div>
+                {/* Subscription Filter */}
+                <div className="flex items-center gap-2">
+                  <DollarSign size={20} className="text-slate-600" />
+                  <select
+                    value={subscriptionFilter}
+                    onChange={(e) => setSubscriptionFilter(e.target.value as 'all' | 'true' | 'false')}
+                    className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">כל סוגי הקבלות</option>
+                    <option value="false">🧾 קבלות חד-פעמי</option>
+                    <option value="true">💳 קבלות הוראת קבע</option>
+                  </select>
+                </div>
 
-              {/* Status Filter */}
-              <div className="flex items-center gap-2">
-                <Filter size={20} className="text-slate-600" />
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">כל הסטטוסים</option>
-                  <optgroup label="הצעות מחיר">
-                    <option value="quote_sent">הצעה נשלחה</option>
-                    <option value="quote_approved">הצעה אושרה</option>
-                    <option value="quote_rejected">הצעה נדחתה</option>
-                  </optgroup>
-                  <optgroup label="קבלות">
-                    <option value="draft">טיוטות</option>
-                    <option value="sent">ממתינות לתשלום</option>
-                    <option value="paid">שולמו</option>
-                    <option value="cancelled">בוטלו</option>
-                  </optgroup>
-                </select>
+                {/* Status Filter */}
+                <div className="flex items-center gap-2">
+                  <Filter size={20} className="text-slate-600" />
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">כל הסטטוסים</option>
+                    <optgroup label="הצעות מחיר">
+                      <option value="quote_sent">הצעה נשלחה</option>
+                      <option value="quote_approved">הצעה אושרה</option>
+                      <option value="quote_rejected">הצעה נדחתה</option>
+                    </optgroup>
+                    <optgroup label="קבלות">
+                      <option value="draft">טיוטות</option>
+                      <option value="sent">ממתינות לתשלום</option>
+                      <option value="paid">שולמו</option>
+                      <option value="cancelled">בוטלו</option>
+                    </optgroup>
+                  </select>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div>
+                    <div className="text-lg font-bold text-slate-800">דוח קבלות לתקופה</div>
+                    <div className="text-sm text-slate-600">ברירת מחדל: קבלות ששולמו לפי תאריך תשלום</div>
+                  </div>
+
+                  <button
+                    onClick={handleExportCsv}
+                    disabled={isExporting}
+                    className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-all shadow-lg ${
+                      isExporting
+                        ? 'bg-slate-300 text-slate-600 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700'
+                    }`}
+                    title='יצוא CSV לרו"ח'
+                  >
+                    <Download size={18} />
+                    <span>{isExporting ? 'מייצא...' : 'Export CSV'}</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => setPresetRange('current_month')}
+                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors"
+                    type="button"
+                  >
+                    חודש נוכחי
+                  </button>
+                  <button
+                    onClick={() => setPresetRange('prev_month')}
+                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors"
+                    type="button"
+                  >
+                    חודש קודם
+                  </button>
+                  <button
+                    onClick={() => setPresetRange('current_quarter')}
+                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors"
+                    type="button"
+                  >
+                    רבעון
+                  </button>
+                  <button
+                    onClick={() => setPresetRange('current_year')}
+                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors"
+                    type="button"
+                  >
+                    שנה
+                  </button>
+                </div>
+
+                <div className="grid md:grid-cols-4 gap-4">
+                  <div className="flex items-center gap-2">
+                    <Calendar size={20} className="text-slate-600" />
+                    <div className="flex-1">
+                      <input
+                        type="date"
+                        value={reportFrom}
+                        onChange={(e) => setReportFrom(e.target.value)}
+                        className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Calendar size={20} className="text-slate-600" />
+                    <div className="flex-1">
+                      <input
+                        type="date"
+                        value={reportTo}
+                        onChange={(e) => setReportTo(e.target.value)}
+                        className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <DollarSign size={20} className="text-slate-600" />
+                    <select
+                      value={subscriptionFilter}
+                      onChange={(e) => setSubscriptionFilter(e.target.value as 'all' | 'true' | 'false')}
+                      className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="all">כל סוגי הקבלות</option>
+                      <option value="false">🧾 קבלות חד-פעמי</option>
+                      <option value="true">💳 קבלות הוראת קבע</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Filter size={20} className="text-slate-600" />
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="paid">רק קבלות ששולמו</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -404,11 +698,11 @@ function AdminInvoicesContent() {
                           </Link>
                           {(invoice.status !== "paid" && invoice.status !== "quote_approved") && (
                             <button
-                              onClick={() => handleDeleteInvoice(invoice.id, invoice.invoice_number, invoice.document_type)}
+                              onClick={() => handleCancelInvoice(invoice.id, invoice.invoice_number, invoice.document_type)}
                               className="p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
-                              title={invoice.document_type === 'quote' ? 'מחיקת חשבון עסקה' : 'מחיקת קבלה'}
+                              title={invoice.document_type === 'quote' ? 'ביטול חשבון עסקה' : 'ביטול קבלה'}
                             >
-                              <Trash2 size={18} />
+                              <Ban size={18} />
                             </button>
                           )}
                         </div>
