@@ -10,7 +10,6 @@ import {
   Monitor,
   Mail,
   Settings,
-  AlertCircle,
   CheckCircle,
   Bell,
   LogOut,
@@ -65,12 +64,6 @@ const navigation = [
     href: "/admin/notifications",
     icon: Mail,
     description: "ניהול הודעות"
-  },
-  {
-    name: "אבחון מערכת",
-    href: "/admin/diagnostics",
-    icon: AlertCircle,
-    description: "בדיקות מערכת"
   },
   {
     name: "תמיכה",

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import Link from "next/link";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import {
   MessageSquare,
   Mail,
@@ -64,23 +66,18 @@ export default function AdminSupportPage() {
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
   return (
-    <main dir="rtl" className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 px-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="text-right">
-              <h1 className="text-4xl font-bold text-slate-800 mb-2">בקשות תמיכה</h1>
-              <p className="text-slate-600">ניהול פניות לקוחות ותמיכה טכנית</p>
-            </div>
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center shadow-lg">
-              <MessageSquare size={32} className="text-white" />
-            </div>
-          </div>
-        </div>
+    <AdminPageShell>
+      <div className="mb-6">
+        <AdminPageHeader
+          title="בקשות תמיכה"
+          subtitle="ניהול פניות לקוחות ותמיכה טכנית"
+          icon={MessageSquare}
+          tone="blue"
+        />
+      </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div className="flex items-center justify-between">
               <div className="text-right">
@@ -242,7 +239,6 @@ export default function AdminSupportPage() {
             ))}
           </div>
         )}
-      </div>
-    </main>
+    </AdminPageShell>
   );
 }

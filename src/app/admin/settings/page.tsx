@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import {
   Settings,
   Bell,
@@ -137,32 +139,27 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 px-6" dir="rtl">
-        <div className="max-w-7xl mx-auto pt-20">
+      <AdminPageShell>
+        <div className="pt-20">
           <div className="bg-white p-12 rounded-2xl shadow-sm border border-slate-200 text-center">
             <RefreshCw size={48} className="mx-auto mb-4 text-blue-600 animate-spin" />
             <p className="text-slate-600 text-lg">טוען הגדרות...</p>
           </div>
         </div>
-      </main>
+      </AdminPageShell>
     );
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 px-6" dir="rtl">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="text-right">
-              <h1 className="text-4xl font-bold text-slate-800 mb-2 flex items-center gap-3">
-                <Settings className="text-blue-600" size={36} />
-                הגדרות מערכת
-              </h1>
-              <p className="text-slate-600">קביעת תצורה ועדכון הגדרות המערכת</p>
-            </div>
-          </div>
-        </div>
+    <AdminPageShell>
+      <div className="mb-6">
+        <AdminPageHeader
+          title="הגדרות מערכת"
+          subtitle="ניהול הגדרות ותצורות המערכת"
+          icon={Settings}
+          tone="blue"
+        />
+      </div>
 
         {/* Settings Sections */}
         <div className="space-y-6">
@@ -437,7 +434,6 @@ export default function SettingsPage() {
             איפוס
           </button>
         </div>
-      </div>
-    </main>
+    </AdminPageShell>
   );
 }

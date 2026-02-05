@@ -5,6 +5,9 @@ import { FileText, User, Calendar, DollarSign, Eye, Printer, Search, Filter, Ban
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { FixedSizeList as List } from "react-window";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
+import { AdminPageTop } from "@/components/admin/AdminPageTop";
 
 interface Invoice {
   id: string;
@@ -345,135 +348,216 @@ function AdminInvoicesContent() {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <FileText size={32} className="text-white" />
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold text-slate-800">ניהול מסמכים</h1>
-                <p className="text-slate-600">כל המסמכים במערכת</p>
-              </div>
-            </div>
-            <Link
-              href="/admin/invoices/create"
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg font-medium"
-            >
-              <FileText size={20} />
-              <span>צור מסמך חדש</span>
-            </Link>
-          </div>
-
-          {/* Tabs */}
-          <div className="bg-white rounded-2xl p-2 shadow-lg border border-slate-200 mb-6">
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setActiveTab('accounting')}
-                className={`px-4 py-3 rounded-xl font-bold transition-all ${
-                  activeTab === 'accounting'
-                    ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow'
-                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
-                }`}
+    <AdminPageShell>
+      <AdminPageTop
+        scrollMode="single"
+        header={(
+          <AdminPageHeader
+            title="ניהול מסמכים"
+            subtitle="כל המסמכים במערכת"
+            icon={FileText}
+            tone="blue"
+            action={(
+              <Link
+                href="/admin/invoices/create"
+                className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-all hover:shadow-lg group"
               >
-                דוחות לרו"ח
-              </button>
-              <button
-                onClick={() => setActiveTab('management')}
-                className={`px-4 py-3 rounded-xl font-bold transition-all ${
-                  activeTab === 'management'
-                    ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow'
-                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                ניהול מסמכים
-              </button>
-            </div>
-          </div>
-
-          {/* User Filter Banner */}
-          {activeTab === 'management' && userIdFilter && invoices.length > 0 && (
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <User size={20} className="text-blue-600" />
-                  <div>
-                    <p className="text-sm font-medium text-blue-900">מציג מסמכים של: {invoices[0]?.user?.full_name || invoices[0]?.user?.email}</p>
-                    <p className="text-xs text-blue-700">נמצאו {invoices.length} מסמכים</p>
-                  </div>
-                </div>
+                <FileText size={20} className="group-hover:scale-110 transition-transform" />
+                <span>צור מסמך חדש</span>
+              </Link>
+            )}
+          />
+        )}
+        stats={(
+          <>
+            {/* Tabs */}
+            <div className="bg-white rounded-2xl p-2 shadow-lg border border-slate-200 mb-4 lg:mb-3">
+              <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={clearUserFilter}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-medium transition-colors"
+                  onClick={() => setActiveTab('accounting')}
+                  className={`px-4 py-2 lg:py-2 rounded-xl font-bold transition-all ${
+                    activeTab === 'accounting'
+                      ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow'
+                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                  }`}
                 >
-                  <X size={16} />
-                  <span>הצג הכל</span>
+                  דוחות לרו"ח
+                </button>
+                <button
+                  onClick={() => setActiveTab('management')}
+                  className={`px-4 py-2 lg:py-2 rounded-xl font-bold transition-all ${
+                    activeTab === 'management'
+                      ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow'
+                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  ניהול מסמכים
                 </button>
               </div>
             </div>
-          )}
 
-          {/* Stats Cards */}
-          {activeTab === 'management' ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
-                <div className="text-slate-600 text-sm mb-2">סה"כ</div>
-                <div className="text-3xl font-bold text-slate-800">{stats.total}</div>
+            {/* User Filter Banner */}
+            {activeTab === 'management' && userIdFilter && invoices.length > 0 && (
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-3 lg:p-3 mb-4 lg:mb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <User size={20} className="text-blue-600" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-900">מציג מסמכים של: {invoices[0]?.user?.full_name || invoices[0]?.user?.email}</p>
+                      <p className="text-xs text-blue-700">נמצאו {invoices.length} מסמכים</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={clearUserFilter}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <X size={16} />
+                    <span>הצג הכל</span>
+                  </button>
+                </div>
               </div>
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-200">
-                <div className="text-blue-600 text-sm mb-2">חשבונות עסקה</div>
-                <div className="text-3xl font-bold text-blue-700">{stats.quotes}</div>
-              </div>
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-200">
-                <div className="text-orange-600 text-sm mb-2">קבלות</div>
-                <div className="text-3xl font-bold text-orange-700">{stats.invoices}</div>
-              </div>
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-emerald-200">
-                <div className="text-emerald-600 text-sm mb-2">חשבונות אושרו</div>
-                <div className="text-3xl font-bold text-emerald-700">{stats.quotesApproved}</div>
-              </div>
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-green-200">
-                <div className="text-green-600 text-sm mb-2">שולמו</div>
-                <div className="text-3xl font-bold text-green-700">{stats.paid}</div>
-              </div>
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-purple-200">
-                <div className="text-purple-600 text-sm mb-2">סה"כ הכנסות</div>
-                <div className="text-3xl font-bold text-purple-700">₪{stats.totalRevenue.toFixed(0)}</div>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
-                <div className="text-slate-600 text-sm mb-2">קבלות בתקופה</div>
-                <div className="text-3xl font-bold text-slate-800">{reportStats.receipts}</div>
-              </div>
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-purple-200">
-                <div className="text-purple-600 text-sm mb-2">סה"כ הכנסות</div>
-                <div className="text-3xl font-bold text-purple-700">₪{reportStats.totalRevenue.toFixed(0)}</div>
-              </div>
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-emerald-200">
-                <div className="text-emerald-600 text-sm mb-2">הוראת קבע</div>
-                <div className="text-3xl font-bold text-emerald-700">₪{reportStats.recurringRevenue.toFixed(0)}</div>
-              </div>
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-200">
-                <div className="text-orange-600 text-sm mb-2">חד-פעמי</div>
-                <div className="text-3xl font-bold text-orange-700">₪{reportStats.oneTimeRevenue.toFixed(0)}</div>
-              </div>
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-red-200">
-                <div className="text-red-600 text-sm mb-2">שולם בלי עסקה</div>
-                <div className="text-3xl font-bold text-red-700">{reportStats.paidWithoutPayment}</div>
-              </div>
-            </div>
-          )}
+            )}
 
-          {/* Filters */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
+            {/* Stats Cards */}
             {activeTab === 'management' ? (
-              <div className="grid md:grid-cols-4 gap-4">
-                {/* Search */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-3">
+                <div className="bg-white p-4 rounded-2xl shadow-lg border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-right">
+                      <p className="text-slate-600 text-sm font-medium">סה"כ</p>
+                      <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
+                    </div>
+                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                      <FileText size={20} className="text-blue-600" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl shadow-lg border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-right">
+                      <p className="text-slate-600 text-sm font-medium">חשבונות עסקה</p>
+                      <p className="text-2xl font-bold text-blue-600">{stats.quotes}</p>
+                    </div>
+                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                      <FileText size={20} className="text-blue-600" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl shadow-lg border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-right">
+                      <p className="text-slate-600 text-sm font-medium">קבלות</p>
+                      <p className="text-2xl font-bold text-orange-600">{stats.invoices}</p>
+                    </div>
+                    <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
+                      <FileText size={20} className="text-orange-600" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl shadow-lg border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-right">
+                      <p className="text-slate-600 text-sm font-medium">חשבונות אושרו</p>
+                      <p className="text-2xl font-bold text-green-600">{stats.quotesApproved}</p>
+                    </div>
+                    <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                      <User size={20} className="text-green-600" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl shadow-lg border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-right">
+                      <p className="text-slate-600 text-sm font-medium">שולמו</p>
+                      <p className="text-2xl font-bold text-green-600">{stats.paid}</p>
+                    </div>
+                    <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                      <DollarSign size={20} className="text-green-600" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl shadow-lg border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-right">
+                      <p className="text-slate-600 text-sm font-medium">סה"כ הכנסות</p>
+                      <p className="text-2xl font-bold text-purple-600">₪{stats.totalRevenue.toFixed(0)}</p>
+                    </div>
+                    <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                      <DollarSign size={20} className="text-purple-600" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 lg:gap-3">
+                <div className="bg-white p-4 rounded-2xl shadow-lg border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-right">
+                      <p className="text-slate-600 text-sm font-medium">קבלות בתקופה</p>
+                      <p className="text-2xl font-bold text-blue-600">{reportStats.receipts}</p>
+                    </div>
+                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                      <FileText size={20} className="text-blue-600" />
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-2xl shadow-lg border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-right">
+                      <p className="text-slate-600 text-sm font-medium">סה"כ הכנסות</p>
+                      <p className="text-2xl font-bold text-purple-600">₪{reportStats.totalRevenue.toFixed(0)}</p>
+                    </div>
+                    <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                      <DollarSign size={20} className="text-purple-600" />
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-2xl shadow-lg border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-right">
+                      <p className="text-slate-600 text-sm font-medium">הוראת קבע</p>
+                      <p className="text-2xl font-bold text-green-600">₪{reportStats.recurringRevenue.toFixed(0)}</p>
+                    </div>
+                    <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                      <DollarSign size={20} className="text-green-600" />
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-2xl shadow-lg border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-right">
+                      <p className="text-slate-600 text-sm font-medium">חד-פעמי</p>
+                      <p className="text-2xl font-bold text-orange-600">₪{reportStats.oneTimeRevenue.toFixed(0)}</p>
+                    </div>
+                    <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
+                      <DollarSign size={20} className="text-orange-600" />
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-2xl shadow-lg border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-right">
+                      <p className="text-slate-600 text-sm font-medium">שולם בלי עסקה</p>
+                      <p className="text-2xl font-bold text-red-600">{reportStats.paidWithoutPayment}</p>
+                    </div>
+                    <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+                      <Ban size={20} className="text-red-600" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        controls={(
+          <div className="bg-white rounded-2xl p-4 lg:p-4 shadow-lg border border-slate-200">
+            {activeTab === 'management' ? (
+              <div className="grid md:grid-cols-4 gap-3 lg:gap-3">
                 <div className="relative">
                   <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
                   <input
@@ -481,17 +565,16 @@ function AdminInvoicesContent() {
                     placeholder="חיפוש לפי מספר מסמך, שם לקוח או אימייל..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pr-12 pl-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pr-12 pl-4 py-2 lg:py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
-                {/* Document Type Filter */}
                 <div className="flex items-center gap-2">
                   <FileText size={20} className="text-slate-600" />
                   <select
                     value={documentTypeFilter}
                     onChange={(e) => setDocumentTypeFilter(e.target.value)}
-                    className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-4 py-2 lg:py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="all">הכל</option>
                     <option value="quote">📋 חשבונות עסקה</option>
@@ -499,13 +582,12 @@ function AdminInvoicesContent() {
                   </select>
                 </div>
 
-                {/* Subscription Filter */}
                 <div className="flex items-center gap-2">
                   <DollarSign size={20} className="text-slate-600" />
                   <select
                     value={subscriptionFilter}
                     onChange={(e) => setSubscriptionFilter(e.target.value as 'all' | 'true' | 'false')}
-                    className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-4 py-2 lg:py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="all">כל סוגי הקבלות</option>
                     <option value="false">🧾 קבלות חד-פעמי</option>
@@ -513,13 +595,12 @@ function AdminInvoicesContent() {
                   </select>
                 </div>
 
-                {/* Status Filter */}
                 <div className="flex items-center gap-2">
                   <Filter size={20} className="text-slate-600" />
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-4 py-2 lg:py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="all">כל הסטטוסים</option>
                     <optgroup label="הצעות מחיר">
@@ -547,7 +628,7 @@ function AdminInvoicesContent() {
                   <button
                     onClick={handleExportCsv}
                     disabled={isExporting}
-                    className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-all shadow-lg ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all shadow-lg ${
                       isExporting
                         ? 'bg-slate-300 text-slate-600 cursor-not-allowed'
                         : 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700'
@@ -562,35 +643,35 @@ function AdminInvoicesContent() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     onClick={() => setPresetRange('current_month')}
-                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors"
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition-colors"
                     type="button"
                   >
                     חודש נוכחי
                   </button>
                   <button
                     onClick={() => setPresetRange('prev_month')}
-                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors"
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition-colors"
                     type="button"
                   >
                     חודש קודם
                   </button>
                   <button
                     onClick={() => setPresetRange('current_quarter')}
-                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors"
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition-colors"
                     type="button"
                   >
                     רבעון
                   </button>
                   <button
                     onClick={() => setPresetRange('current_year')}
-                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors"
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition-colors"
                     type="button"
                   >
                     שנה
                   </button>
                 </div>
 
-                <div className="grid md:grid-cols-4 gap-4">
+                <div className="grid md:grid-cols-4 gap-3 lg:gap-3">
                   <div className="flex items-center gap-2">
                     <Calendar size={20} className="text-slate-600" />
                     <div className="flex-1">
@@ -598,7 +679,7 @@ function AdminInvoicesContent() {
                         type="date"
                         value={reportFrom}
                         onChange={(e) => setReportFrom(e.target.value)}
-                        className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2 lg:py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                   </div>
@@ -610,7 +691,7 @@ function AdminInvoicesContent() {
                         type="date"
                         value={reportTo}
                         onChange={(e) => setReportTo(e.target.value)}
-                        className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2 lg:py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                   </div>
@@ -620,7 +701,7 @@ function AdminInvoicesContent() {
                     <select
                       value={subscriptionFilter}
                       onChange={(e) => setSubscriptionFilter(e.target.value as 'all' | 'true' | 'false')}
-                      className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-4 py-2 lg:py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="all">כל סוגי הקבלות</option>
                       <option value="false">🧾 קבלות חד-פעמי</option>
@@ -633,7 +714,7 @@ function AdminInvoicesContent() {
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-4 py-2 lg:py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="paid">רק קבלות ששולמו</option>
                     </select>
@@ -642,134 +723,132 @@ function AdminInvoicesContent() {
               </div>
             )}
           </div>
-        </div>
+        )}
+      />
 
-        {/* Invoices List */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-          {loading ? (
-            <div className="p-12 text-center text-slate-600">טוען מסמכים...</div>
-          ) : filteredInvoices.length === 0 ? (
-            <div className="p-12 text-center text-slate-600">
-              <FileText size={48} className="mx-auto mb-4 text-slate-400" />
-              <p className="text-xl font-semibold mb-2">לא נמצאו מסמכים</p>
-              <p className="text-sm">נסה לשנות את הפילטרים או החיפוש</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto lg:overflow-x-visible">
-              <div className="w-full min-w-[1100px] lg:min-w-0">
-                <div
-                  dir="rtl"
-                  className="grid grid-cols-[1.1fr_1fr_2.2fr_1.4fr_1fr_1.2fr_1.2fr_1.2fr] gap-3 items-center px-6 py-4 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700"
-                >
-                  <div className="min-w-0 text-right">סוג</div>
-                  <div className="min-w-0 text-right">מספר</div>
-                  <div className="min-w-0 text-right">לקוח</div>
-                  <div className="min-w-0 text-right">תאריך</div>
-                  <div className="min-w-0 text-right">סכום</div>
-                  <div className="min-w-0 text-right">סטטוס</div>
-                  <div className="min-w-0 text-right">עסקה</div>
-                  <div className="min-w-0 text-right">פעולות</div>
-                </div>
+      <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+        {loading ? (
+          <div className="p-12 text-center text-slate-600">טוען מסמכים...</div>
+        ) : filteredInvoices.length === 0 ? (
+          <div className="p-12 text-center text-slate-600">
+            <FileText size={48} className="mx-auto mb-4 text-slate-400" />
+            <p className="text-xl font-semibold mb-2">לא נמצאו מסמכים</p>
+            <p className="text-sm">נסה לשנות את הפילטרים או החיפוש</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto lg:overflow-x-visible">
+            <div className="w-full min-w-[1100px] lg:min-w-0">
+              <div
+                dir="rtl"
+                className="grid grid-cols-[1.1fr_1fr_2.2fr_1.4fr_1fr_1.2fr_1.2fr_1.2fr] gap-3 items-center px-6 py-4 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700"
+              >
+                <div className="min-w-0 text-right">סוג</div>
+                <div className="min-w-0 text-right">מספר</div>
+                <div className="min-w-0 text-right">לקוח</div>
+                <div className="min-w-0 text-right">תאריך</div>
+                <div className="min-w-0 text-right">סכום</div>
+                <div className="min-w-0 text-right">סטטוס</div>
+                <div className="min-w-0 text-right">עסקה</div>
+                <div className="min-w-0 text-right">פעולות</div>
+              </div>
 
-                <List
-                  height={560}
-                  itemCount={filteredInvoices.length}
-                  itemSize={72}
-                  width={'100%'}
-                  outerElementType={ListOuterElement as any}
-                >
-                  {({ index, style }: { index: number; style: any }) => {
-                    const invoice = filteredInvoices[index];
-                    if (!invoice) return null;
+              <List
+                height={560}
+                itemCount={filteredInvoices.length}
+                itemSize={72}
+                width={'100%'}
+                outerElementType={ListOuterElement as any}
+              >
+                {({ index, style }: { index: number; style: any }) => {
+                  const invoice = filteredInvoices[index];
+                  if (!invoice) return null;
 
-                    return (
-                      <div
-                        style={style}
-                        dir="rtl"
-                        className={`grid grid-cols-[1.1fr_1fr_2.2fr_1.4fr_1fr_1.2fr_1.2fr_1.2fr] gap-3 items-center px-6 border-b border-slate-100 hover:bg-slate-50 transition-colors text-sm ${
-                          index % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'
-                        }`}
-                      >
-                        <div className="min-w-0">
-                          <span
-                            className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold ${
-                              invoice.document_type === 'quote'
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-orange-100 text-orange-800'
-                            }`}
-                            title={invoice.document_type}
-                          >
-                            {invoice.document_type === 'quote' ? 'חשבון עסקה' : 'קבלה'}
-                          </span>
-                        </div>
+                  return (
+                    <div
+                      style={style}
+                      dir="rtl"
+                      className={`grid grid-cols-[1.1fr_1fr_2.2fr_1.4fr_1fr_1.2fr_1.2fr_1.2fr] gap-3 items-center px-6 border-b border-slate-100 hover:bg-slate-50 transition-colors text-sm ${
+                        index % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <span
+                          className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold ${
+                            invoice.document_type === 'quote'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-orange-100 text-orange-800'
+                          }`}
+                          title={invoice.document_type}
+                        >
+                          {invoice.document_type === 'quote' ? 'חשבון עסקה' : 'קבלה'}
+                        </span>
+                      </div>
 
-                        <div className="min-w-0 text-right">
-                          <div className="font-bold text-slate-800 truncate" title={invoice.invoice_number}>
-                            #{invoice.invoice_number}
-                          </div>
-                        </div>
-
-                        <div className="min-w-0">
-                          <div
-                            className="font-medium text-slate-800 truncate text-right"
-                            title={invoice.user?.full_name || invoice.user?.email}
-                          >
-                            {invoice.user?.full_name || 'לא ידוע'}
-                          </div>
-                          <div className="text-xs text-slate-600 truncate text-right" title={invoice.user?.email}>
-                            {invoice.user?.email}
-                          </div>
-                        </div>
-
-                        <div className="min-w-0">
-                          <div className="text-slate-700 text-right">
-                            {new Date(invoice.created_at).toLocaleDateString('he-IL')}
-                          </div>
-                          {invoice.paid_at && (
-                            <div className="text-xs text-green-600 mt-1 text-right">
-                              שולם: {new Date(invoice.paid_at).toLocaleDateString('he-IL')}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="min-w-0 text-right">
-                          <div className="font-bold text-slate-800">₪{invoice.total_amount.toFixed(2)}</div>
-                        </div>
-
-                        <div className="min-w-0 text-right">{getStatusBadge(invoice.status)}</div>
-
-                        <div className="min-w-0 text-right">{getPaymentCell(invoice)}</div>
-
-                        <div className="min-w-0" dir="ltr">
-                          <div className="flex gap-2 justify-start" dir="ltr">
-                            <Link
-                              href={invoice.document_type === 'quote' ? `/quote/${invoice.id}` : `/admin/invoices/${invoice.id}`}
-                              className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
-                              title={invoice.document_type === 'quote' ? 'צפייה בחשבון עסקה' : 'צפייה והדפסה'}
-                            >
-                              <Eye size={18} />
-                            </Link>
-                            {invoice.status !== 'paid' && invoice.status !== 'quote_approved' && (
-                              <button
-                                onClick={() => handleCancelInvoice(invoice.id, invoice.invoice_number, invoice.document_type)}
-                                className="p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
-                                title={invoice.document_type === 'quote' ? 'ביטול חשבון עסקה' : 'ביטול קבלה'}
-                              >
-                                <Ban size={18} />
-                              </button>
-                            )}
-                          </div>
+                      <div className="min-w-0 text-right">
+                        <div className="font-bold text-slate-800 truncate" title={invoice.invoice_number}>
+                          #{invoice.invoice_number}
                         </div>
                       </div>
-                    );
-                  }}
-                </List>
-              </div>
+
+                      <div className="min-w-0">
+                        <div
+                          className="font-medium text-slate-800 truncate text-right"
+                          title={invoice.user?.full_name || invoice.user?.email}
+                        >
+                          {invoice.user?.full_name || 'לא ידוע'}
+                        </div>
+                        <div className="text-xs text-slate-600 truncate text-right" title={invoice.user?.email}>
+                          {invoice.user?.email}
+                        </div>
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="text-slate-700 text-right">
+                          {new Date(invoice.created_at).toLocaleDateString('he-IL')}
+                        </div>
+                        {invoice.paid_at && (
+                          <div className="text-xs text-green-600 mt-1 text-right">
+                            שולם: {new Date(invoice.paid_at).toLocaleDateString('he-IL')}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="min-w-0 text-right">
+                        <div className="font-bold text-slate-800">₪{invoice.total_amount.toFixed(2)}</div>
+                      </div>
+
+                      <div className="min-w-0 text-right">{getStatusBadge(invoice.status)}</div>
+                      <div className="min-w-0 text-right">{getPaymentCell(invoice)}</div>
+
+                      <div className="min-w-0" dir="ltr">
+                        <div className="flex gap-2 justify-start" dir="ltr">
+                          <Link
+                            href={invoice.document_type === 'quote' ? `/quote/${invoice.id}` : `/admin/invoices/${invoice.id}`}
+                            className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
+                            title={invoice.document_type === 'quote' ? 'צפייה בחשבון עסקה' : 'צפייה והדפסה'}
+                          >
+                            <Eye size={18} />
+                          </Link>
+                          {invoice.status !== 'paid' && invoice.status !== 'quote_approved' && (
+                            <button
+                              onClick={() => handleCancelInvoice(invoice.id, invoice.invoice_number, invoice.document_type)}
+                              className="p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
+                              title={invoice.document_type === 'quote' ? 'ביטול חשבון עסקה' : 'ביטול קבלה'}
+                            >
+                              <Ban size={18} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }}
+              </List>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-    </div>
+    </AdminPageShell>
   );
 }
 

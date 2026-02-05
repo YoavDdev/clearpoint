@@ -5,6 +5,9 @@ import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { FixedSizeList as List } from "react-window";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
+import { AdminPageTop } from "@/components/admin/AdminPageTop";
 import {
   Users,
   Search,
@@ -288,151 +291,149 @@ export default function CustomersPage() {
   };
 
   return (
-    <main dir="rtl" className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 px-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="text-right">
-              <h1 className="text-4xl font-bold text-slate-800 mb-2">ניהול לקוחות</h1>
-              <p className="text-slate-600">סה"כ {customers.length} לקוחות רשומים במערכת</p>
-            </div>
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center shadow-lg">
-              <Users size={32} className="text-white" />
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <div className="flex items-center justify-between">
-              <div className="text-right">
-                <p className="text-slate-600 text-sm font-medium">סה"כ לקוחות</p>
-                <p className="text-3xl font-bold text-blue-600">{customers.length}</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <Users size={24} className="text-blue-600" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <div className="flex items-center justify-between">
-              <div className="text-right">
-                <p className="text-slate-600 text-sm font-medium">זקוקים לתמיכה</p>
-                <p className="text-3xl font-bold text-orange-600">
-                  {customers.filter(c => c.needs_support).length}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                <AlertTriangle size={24} className="text-orange-600" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <div className="flex items-center justify-between">
-              <div className="text-right">
-                <p className="text-slate-600 text-sm font-medium">פניות פתוחות</p>
-                <p className="text-3xl font-bold text-red-600">
-                  {customers.filter(c => c.has_pending_support).length}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-                <Clock size={24} className="text-red-600" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <div className="flex items-center justify-between">
-              <div className="text-right">
-                <p className="text-slate-600 text-sm font-medium">מנויים פעילים</p>
-                <p className="text-3xl font-bold text-green-600">
-                  {customers.filter(c => c.subscription?.status === 'active').length}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <CreditCard size={24} className="text-green-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4 w-full lg:w-auto">
-              <div className="relative flex-1 lg:w-80">
-                <Search size={20} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="חיפוש לפי שם או אימייל..."
-                  className="w-full pr-10 pl-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-right"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-            </div>
-            
-            <Link
-              href="/admin/customers/new"
-              className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-all hover:shadow-lg group"
-            >
-              <Plus size={20} className="group-hover:scale-110 transition-transform" />
-              <span>לקוח חדש</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* Customers Table */}
-        {loading ? (
-          <div className="bg-white p-12 rounded-2xl shadow-sm border border-slate-200 text-center">
-            <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-slate-600">טוען נתוני לקוחות...</p>
-          </div>
-        ) : filteredCustomers.length === 0 ? (
-          <div className="bg-white p-12 rounded-2xl shadow-sm border border-slate-200 text-center">
-            <Users size={48} className="mx-auto mb-4 text-slate-400" />
-            <h3 className="text-xl font-semibold text-slate-800 mb-2">לא נמצאו לקוחות</h3>
-            <p className="text-slate-600 mb-6">לא נמצאו לקוחות התואמים לחיפוש</p>
-            <Link
-              href="/admin/customers/new"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-all"
-            >
-              <Plus size={20} />
-              <span>הוסף לקוח ראשון</span>
-            </Link>
-          </div>
-        ) : (
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
-            <div className="overflow-x-auto lg:overflow-x-visible">
-              <div className="w-full min-w-[980px] lg:min-w-0">
-                <div dir="rtl" className="grid grid-cols-[3.2fr_2fr_1fr_1.1fr_1.6fr_1.4fr_2fr] gap-3 items-center px-4 py-3 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700">
-                  <div className="min-w-0 text-right">לקוח</div>
-                  <div className="min-w-0 text-right">מסלול</div>
-                  <div className="min-w-0 text-right">מחיר</div>
-                  <div className="min-w-0 text-right">מצלמות</div>
-                  <div className="min-w-0 text-right">הוראת קבע</div>
-                  <div className="min-w-0 text-right">תמיכה</div>
-                  <div className="min-w-0 text-right">פעולות</div>
+    <AdminPageShell>
+      <AdminPageTop
+        spacing="compact"
+        scrollMode="single"
+        header={(
+          <AdminPageHeader
+            title="ניהול לקוחות"
+            subtitle={`סה"כ ${customers.length} לקוחות רשומים במערכת`}
+            icon={Users}
+            tone="blue"
+          />
+        )}
+        stats={(
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <div className="flex items-center justify-between">
+                <div className="text-right">
+                  <p className="text-slate-600 text-sm font-medium">סה"כ לקוחות</p>
+                  <p className="text-3xl font-bold text-blue-600">{customers.length}</p>
                 </div>
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <Users size={24} className="text-blue-600" />
+                </div>
+              </div>
+            </div>
 
-                <List
-                  height={520}
-                  itemCount={filteredCustomers.length}
-                  itemSize={56}
-                  width={'100%'}
-                  outerElementType={ListOuterElement as any}
-                >
-                  {Row as any}
-                </List>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <div className="flex items-center justify-between">
+                <div className="text-right">
+                  <p className="text-slate-600 text-sm font-medium">זקוקים לתמיכה</p>
+                  <p className="text-3xl font-bold text-orange-600">
+                    {customers.filter(c => c.needs_support).length}
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                  <AlertTriangle size={24} className="text-orange-600" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <div className="flex items-center justify-between">
+                <div className="text-right">
+                  <p className="text-slate-600 text-sm font-medium">פניות פתוחות</p>
+                  <p className="text-3xl font-bold text-red-600">
+                    {customers.filter(c => c.has_pending_support).length}
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                  <Clock size={24} className="text-red-600" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <div className="flex items-center justify-between">
+                <div className="text-right">
+                  <p className="text-slate-600 text-sm font-medium">מנויים פעילים</p>
+                  <p className="text-3xl font-bold text-green-600">
+                    {customers.filter(c => c.subscription?.status === 'active').length}
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                  <CreditCard size={24} className="text-green-600" />
+                </div>
               </div>
             </div>
           </div>
         )}
-      </div>
-    </main>
+        controls={(
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4 w-full lg:w-auto">
+                <div className="relative flex-1 lg:w-80">
+                  <Search size={20} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="חיפוש לפי שם או אימייל..."
+                    className="w-full pr-10 pl-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-right"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <Link
+                href="/admin/customers/new"
+                className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-all hover:shadow-lg group"
+              >
+                <Plus size={20} className="group-hover:scale-110 transition-transform" />
+                <span>לקוח חדש</span>
+              </Link>
+            </div>
+          </div>
+        )}
+      />
+
+      {/* Customers Table */}
+      {loading ? (
+        <div className="bg-white p-12 rounded-2xl shadow-sm border border-slate-200 text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-slate-600">טוען נתוני לקוחות...</p>
+        </div>
+      ) : filteredCustomers.length === 0 ? (
+        <div className="bg-white p-12 rounded-2xl shadow-sm border border-slate-200 text-center">
+          <Users size={48} className="mx-auto mb-4 text-slate-400" />
+          <h3 className="text-xl font-semibold text-slate-800 mb-2">לא נמצאו לקוחות</h3>
+          <p className="text-slate-600 mb-6">לא נמצאו לקוחות התואמים לחיפוש</p>
+          <Link
+            href="/admin/customers/new"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-all"
+          >
+            <Plus size={20} />
+            <span>הוסף לקוח ראשון</span>
+          </Link>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+          <div className="overflow-x-auto lg:overflow-x-visible">
+            <div className="w-full min-w-[980px] lg:min-w-0">
+              <div dir="rtl" className="grid grid-cols-[3.2fr_2fr_1fr_1.1fr_1.6fr_1.4fr_2fr] gap-3 items-center px-4 py-3 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700">
+                <div className="min-w-0 text-right">לקוח</div>
+                <div className="min-w-0 text-right">מסלול</div>
+                <div className="min-w-0 text-right">מחיר</div>
+                <div className="min-w-0 text-right">מצלמות</div>
+                <div className="min-w-0 text-right">הוראת קבע</div>
+                <div className="min-w-0 text-right">תמיכה</div>
+                <div className="min-w-0 text-right">פעולות</div>
+              </div>
+
+              <List
+                height={520}
+                itemCount={filteredCustomers.length}
+                itemSize={56}
+                width={'100%'}
+                outerElementType={ListOuterElement as any}
+              >
+                {Row as any}
+              </List>
+            </div>
+          </div>
+        </div>
+      )}
+    </AdminPageShell>
   );
 }

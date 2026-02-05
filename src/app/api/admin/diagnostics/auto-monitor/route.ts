@@ -1,30 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { POST as monitorPOST } from "../monitor/route";
 
 export const dynamic = 'force-dynamic';
 
 // This endpoint will be called automatically every 5 minutes
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
     console.log(`🤖 [AUTO-MONITOR] Starting automatic system monitoring at ${new Date().toISOString()}`);
     
-    // Call the existing monitor route logic
-    const monitorResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/admin/diagnostics/monitor`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ 
-        manual_check: false,
-        auto_monitor: true 
-      })
-    });
-    
+    // Call the monitor route directly instead of HTTP fetch
+    const monitorResponse = await monitorPOST();
     const monitorResult = await monitorResponse.json();
     
     if (monitorResult.success) {

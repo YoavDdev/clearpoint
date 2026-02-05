@@ -4,6 +4,9 @@ import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FixedSizeList as List } from 'react-window';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { AdminPageShell } from '@/components/admin/AdminPageShell';
+import { AdminPageTop } from '@/components/admin/AdminPageTop';
 import { 
   CreditCard, 
   DollarSign, 
@@ -376,53 +379,44 @@ function RecurringPaymentsContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6" dir="rtl">
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">מנויים חוזרים</h1>
-            <p className="text-slate-600">צפייה במנויים חוזרים מ-PayPlus</p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={handleSyncFromPayPlus}
-              disabled={syncing}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-l from-purple-600 to-pink-600 text-white rounded-xl hover:scale-105 transition-all shadow-lg font-bold disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'מסנכרן...' : 'סנכרן מ-PayPlus'}
-            </button>
-            <button
-              onClick={() => fetchPayments(true)}
-              disabled={refreshing}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-              רענן
-            </button>
-          </div>
-        </div>
-
-        {/* Notice about PayPlus management */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-            <div>
-              <h3 className="font-bold text-blue-900 mb-1">ניהול מנויים ב-PayPlus</h3>
-              <p className="text-blue-700 text-sm">
-                מנויים חוזרים מנוהלים ידנית במערכת PayPlus בלבד. 
-                דף זה מציג את המנויים הקיימים לצורך צפייה ומעקב.
-                לחץ על "סנכרן מ-PayPlus" כדי לעדכן את הרשימה.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+    <AdminPageShell>
+      <AdminPageTop
+        spacing="compact"
+        scrollMode="single"
+        header={(
+          <AdminPageHeader
+            title="מנויים חוזרים"
+            subtitle="צפייה במנויים חוזרים מ-PayPlus"
+            icon={CreditCard}
+            tone="purple"
+            action={(
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSyncFromPayPlus}
+                  disabled={syncing}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-l from-purple-600 to-pink-600 text-white rounded-xl hover:scale-105 transition-all shadow-lg font-bold disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                  {syncing ? 'מסנכרן...' : 'סנכרן מ-PayPlus'}
+                </button>
+                <button
+                  onClick={() => fetchPayments(true)}
+                  disabled={refreshing}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                  רענן
+                </button>
+              </div>
+            )}
+          />
+        )}
+        stats={(
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
-                <CreditCard className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <CreditCard className="text-blue-600" size={24} />
               </div>
               <div>
                 <p className="text-slate-600 text-sm">סה"כ מנויים</p>
@@ -434,8 +428,8 @@ function RecurringPaymentsContent() {
 
           <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <CheckCircle className="text-green-600" size={24} />
               </div>
               <div>
                 <p className="text-slate-600 text-sm">פעילים</p>
@@ -446,8 +440,8 @@ function RecurringPaymentsContent() {
 
           <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl flex items-center justify-center">
-                <Clock className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                <Clock className="text-orange-600" size={24} />
               </div>
               <div>
                 <p className="text-slate-600 text-sm">מושהים</p>
@@ -458,8 +452,8 @@ function RecurringPaymentsContent() {
 
           <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl flex items-center justify-center">
-                <Ban className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                <Ban className="text-red-600" size={24} />
               </div>
               <div>
                 <p className="text-slate-600 text-sm">מבוטלים</p>
@@ -470,8 +464,8 @@ function RecurringPaymentsContent() {
 
           <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                <DollarSign className="text-purple-600" size={24} />
               </div>
               <div>
                 <p className="text-slate-600 text-sm">הכנסה חודשית</p>
@@ -479,9 +473,10 @@ function RecurringPaymentsContent() {
               </div>
             </div>
           </div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-4">
+          </div>
+        )}
+        controls={(
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <input
               type="text"
@@ -544,8 +539,9 @@ function RecurringPaymentsContent() {
               </button>
             </div>
           </div>
-        </div>
-      </div>
+          </div>
+        )}
+      />
 
       {userIdFilter && customerInfo && (
         <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
@@ -599,7 +595,7 @@ function RecurringPaymentsContent() {
           </List>
         </div>
       )}
-    </div>
+    </AdminPageShell>
   );
 }
 

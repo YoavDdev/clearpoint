@@ -3,8 +3,8 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
-
-export const dynamic = 'force-dynamic';
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { RealTimeCameraMonitor } from "@/components/admin/RealTimeCameraMonitor";
 import { SystemAlerts } from "@/components/admin/SystemAlerts";
 import { CameraDiagnostic } from "@/components/admin/CameraDiagnostic";
@@ -17,6 +17,8 @@ import {
   UserPlus,
   Plus,
 } from "lucide-react";
+
+export const dynamic = 'force-dynamic';
 
 export default async function AdminPage() {
   // Check if user is admin
@@ -75,23 +77,18 @@ export default async function AdminPage() {
     .limit(3);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 px-4 sm:px-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <div className="text-right">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 mb-2">לוח בקרה ראשי</h1>
-              <p className="text-sm sm:text-base text-slate-600">ניהול מערכת Clearpoint Security</p>
-            </div>
-            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center shadow-lg">
-              <LayoutDashboard size={24} className="sm:w-8 sm:h-8 text-white" />
-            </div>
-          </div>
-        </div>
+    <AdminPageShell>
+      <div className="mb-6">
+        <AdminPageHeader
+          title="לוח בקרה ראשי"
+          subtitle="ניהול מערכת Clearpoint Security"
+          icon={LayoutDashboard}
+          tone="blue"
+        />
+      </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all">
             <div className="flex items-center justify-between">
               <div className="text-right">
@@ -264,9 +261,6 @@ export default async function AdminPage() {
             </div>
           </div>
         </div>
-
-
-      </div>
-    </main>
+    </AdminPageShell>
   );
 }

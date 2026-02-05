@@ -2,6 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import { MiniPCsTable } from "./MiniPCsTable";
 import Link from "next/link";
 import { Monitor, Plus } from "lucide-react";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
 
 export const dynamic = 'force-dynamic';
 
@@ -51,39 +53,17 @@ export default async function MiniPCsPage() {
   })) as MiniPC[];
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 px-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="text-right">
-              <h1 className="text-4xl font-bold text-slate-800 mb-2">ניהול Mini PC</h1>
-              <p className="text-slate-600">מעקב אחר מחשבי Mini PC ובריאותם</p>
-            </div>
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center shadow-lg">
-              <Monitor size={32} className="text-white" />
-            </div>
-          </div>
-          
-          {/* Navigation */}
-          <div className="flex gap-4 mb-6">
-            <Link
-              href="/admin"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors"
-            >
-              <span>חזרה לדשבורד</span>
-            </Link>
-            <Link
-              href="/admin/cameras"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors"
-            >
-              <span>מצלמות</span>
-            </Link>
-          </div>
-        </div>
-
-        <MiniPCsTable miniPCs={miniPCs} />
+    <AdminPageShell>
+      <div className="mb-6">
+        <AdminPageHeader
+          title="ניהול Mini PC"
+          subtitle="מעקב אחר מחשבי Mini PC ובריאותם"
+          icon={Monitor}
+          tone="blue"
+        />
       </div>
-    </main>
+
+      <MiniPCsTable miniPCs={miniPCs} />
+    </AdminPageShell>
   );
 }

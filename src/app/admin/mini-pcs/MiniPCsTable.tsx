@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { forwardRef, useEffect, useMemo, useState } from "react";
 import React from "react";
 import { FixedSizeList as List } from "react-window";
 import {
@@ -59,6 +59,26 @@ export function MiniPCsTable({ miniPCs }: { miniPCs: MiniPC[] }) {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [healthData, setHealthData] = useState<Record<string, MiniPCHealth | null>>({});
+
+  const ListOuterElement = useMemo(() => {
+    const Comp = forwardRef<HTMLDivElement, any>((props, ref) => {
+      return (
+        <div
+          ref={ref}
+          {...props}
+          style={{
+            ...(props.style || {}),
+            scrollbarGutter: "stable",
+          }}
+        />
+      );
+    });
+    Comp.displayName = "MiniPCsListOuterElement";
+    return Comp;
+  }, []);
+
+  const GRID_TEMPLATE =
+    "grid-cols-[1.2fr_1fr_1fr_1.3fr_0.9fr_0.75fr_0.75fr_0.75fr_0.75fr_0.95fr_0.9fr_1fr_0.75fr_0.6fr]";
 
   useEffect(() => {
     async function fetchHealth() {
@@ -129,15 +149,23 @@ export function MiniPCsTable({ miniPCs }: { miniPCs: MiniPC[] }) {
       : null;
 
     return (
-      <div dir="rtl" style={style} className="grid grid-cols-[1fr_1fr_1fr_1fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_1fr_1.2fr_0.8fr_0.8fr_0.8fr] border-b border-slate-200 px-6 py-4 text-sm items-center hover:bg-slate-50 transition-colors">
-        <div className="font-medium text-slate-800">{pc.device_name}</div>
-        <div className="flex items-center gap-2">
+      <div
+        dir="rtl"
+        style={style}
+        className={`grid ${GRID_TEMPLATE} gap-3 items-center border-b border-slate-100 px-4 text-sm hover:bg-slate-50 transition-colors ${
+          index % 2 === 0 ? "bg-white" : "bg-slate-50"
+        }`}
+      >
+        <div className="font-semibold text-slate-900 truncate text-right" title={pc.device_name}>
+          {pc.device_name}
+        </div>
+        <div className="flex items-center gap-2 min-w-0">
           <span className="font-mono text-xs text-slate-600">
             {pc.id?.slice(0, 8)}…
           </span>
           <button
             type="button"
-            className="p-1 text-slate-500 hover:bg-slate-100 rounded transition-colors"
+            className="p-2 bg-slate-50 text-slate-600 rounded-lg hover:bg-slate-100 transition-all"
             title="העתק UUID"
             onClick={async () => {
               try {
@@ -150,8 +178,12 @@ export function MiniPCsTable({ miniPCs }: { miniPCs: MiniPC[] }) {
             <Copy size={14} />
           </button>
         </div>
-        <div className="text-slate-600">{pc.hostname}</div>
-        <div className="text-slate-700">{pc.user?.full_name || "ללא לקוח"}</div>
+        <div className="text-slate-700 truncate" title={pc.hostname}>
+          {pc.hostname}
+        </div>
+        <div className="text-slate-900 truncate text-right" title={pc.user?.full_name || "ללא לקוח"}>
+          {pc.user?.full_name || "ללא לקוח"}
+        </div>
         <div>
           <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium ${
             isHealthy ? "bg-green-100 text-green-700" : 
@@ -245,7 +277,7 @@ export function MiniPCsTable({ miniPCs }: { miniPCs: MiniPC[] }) {
         <div className="flex items-center gap-2">
           <Link
             href={`/admin/mini-pcs/${pc.id}/cameras`}
-            className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 transition-colors"
+            className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg text-xs hover:bg-blue-100 transition-all"
           >
             <Camera size={12} />
             <span>{pc.camera_count}</span>
@@ -256,7 +288,7 @@ export function MiniPCsTable({ miniPCs }: { miniPCs: MiniPC[] }) {
         <div>
           <Link
             href={`/admin/mini-pcs/${pc.id}`}
-            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors group"
+            className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all group"
             title="צפה בפרטים"
           >
             <Eye size={16} className="group-hover:scale-110 transition-transform" />
@@ -361,7 +393,11 @@ export function MiniPCsTable({ miniPCs }: { miniPCs: MiniPC[] }) {
       {/* Mini PCs Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <div dir="rtl" className="grid grid-cols-[1fr_1fr_1fr_1fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_1fr_1.2fr_0.8fr_0.8fr_0.8fr] bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold text-sm px-6 py-4">
+          <div className="w-full min-w-[1200px] lg:min-w-0">
+            <div
+              dir="rtl"
+              className={`grid ${GRID_TEMPLATE} gap-3 items-center bg-slate-50 border-b border-slate-200 text-slate-700 font-bold text-xs px-4 py-3`}
+            >
             <div className="flex items-center gap-2">
               <Monitor size={16} />
               <span>שם Mini PC</span>
@@ -409,15 +445,16 @@ export function MiniPCsTable({ miniPCs }: { miniPCs: MiniPC[] }) {
               <span>מצלמות</span>
             </div>
             <div>פרטים</div>
-          </div>
+            </div>
           
           {sorted.length > 0 ? (
             <List
-              height={Math.min(sorted.length * 80, 600)}
+              height={560}
               itemCount={sorted.length}
               itemSize={80}
               width="100%"
               className="scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100"
+              outerElementType={ListOuterElement as any}
               children={Row}
             />
           ) : (
@@ -427,6 +464,7 @@ export function MiniPCsTable({ miniPCs }: { miniPCs: MiniPC[] }) {
               <p>נסה לשנות את הפילטרים או החיפוש</p>
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>

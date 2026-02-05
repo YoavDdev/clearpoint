@@ -180,6 +180,37 @@ export function UsersCamerasTable({ cameras }: { cameras: CameraRow[] }) {
     return map;
   }, [users, camerasByUserId, healthLoading, healthData]);
 
+  const overviewStats = useMemo(() => {
+    if (healthLoading) {
+      return {
+        users: users.length,
+        cameras: cameras.length,
+        issue: null as number | null,
+        offline: null as number | null,
+        ok: null as number | null,
+      };
+    }
+
+    let ok = 0;
+    let issue = 0;
+    let offline = 0;
+
+    for (const cam of cameras) {
+      const s = getCameraAggregateStatus(cam.id);
+      if (s === 'ok') ok += 1;
+      else if (s === 'issue') issue += 1;
+      else offline += 1;
+    }
+
+    return {
+      users: users.length,
+      cameras: cameras.length,
+      issue,
+      offline,
+      ok,
+    };
+  }, [cameras, users.length, healthLoading, healthData]);
+
   const Row = ({ index, style }: { index: number; style: any }) => {
     const user = filtered[index];
     if (!user) return null;
@@ -283,6 +314,60 @@ export function UsersCamerasTable({ cameras }: { cameras: CameraRow[] }) {
 
   return (
     <div dir="rtl">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-100">
+          <div className="flex items-center justify-between">
+            <div className="text-right">
+              <p className="text-slate-600 text-sm font-medium">סה"כ לקוחות</p>
+              <p className="text-3xl font-bold text-blue-600">{overviewStats.users}</p>
+            </div>
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <UserIcon className="text-blue-600" size={24} />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-100">
+          <div className="flex items-center justify-between">
+            <div className="text-right">
+              <p className="text-slate-600 text-sm font-medium">סה"כ מצלמות</p>
+              <p className="text-3xl font-bold text-blue-600">{overviewStats.cameras}</p>
+            </div>
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <Camera className="text-blue-600" size={24} />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-100">
+          <div className="flex items-center justify-between">
+            <div className="text-right">
+              <p className="text-slate-600 text-sm font-medium">אזהרות</p>
+              <p className="text-3xl font-bold text-orange-600">
+                {overviewStats.issue === null ? '—' : overviewStats.issue}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+              <AlertCircle className="text-orange-600" size={24} />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-100">
+          <div className="flex items-center justify-between">
+            <div className="text-right">
+              <p className="text-slate-600 text-sm font-medium">קריטי</p>
+              <p className="text-3xl font-bold text-red-600">
+                {overviewStats.offline === null ? '—' : overviewStats.offline}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+              <AlertCircle className="text-red-600" size={24} />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 mb-8">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4 w-full lg:w-auto">

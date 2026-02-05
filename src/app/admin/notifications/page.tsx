@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { NotificationsContent } from "./NotificationsContent";
 import { Mail } from "lucide-react";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
 
 export const dynamic = 'force-dynamic';
 
@@ -27,21 +29,17 @@ export default async function NotificationsPage() {
     .order("full_name");
 
   return (
-    <div className="space-y-6" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg">
-            <Mail size={32} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold text-slate-800">התראות ומיילים</h1>
-            <p className="text-slate-600 mt-1">ניהול הודעות והתראות מערכת</p>
-          </div>
-        </div>
+    <AdminPageShell>
+      <div className="mb-6">
+        <AdminPageHeader
+          title="התראות ומיילים"
+          subtitle="ניהול הודעות והתראות מערכת"
+          icon={Mail}
+          tone="blue"
+        />
       </div>
 
       <NotificationsContent alerts={alerts || []} customers={customers || []} />
-    </div>
+    </AdminPageShell>
   );
 }
