@@ -26,11 +26,10 @@ export function DeleteButton({ cameraId }: DeleteButtonProps) {
   return (
     <button
       onClick={handleDelete}
-      className="inline-flex items-center gap-1 px-3 py-1.5 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors text-sm font-medium"
+      className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all"
       title="מחק מצלמה"
     >
-      <Trash2 size={14} />
-      <span>מחק</span>
+      <Trash2 className="w-4 h-4" />
     </button>
   );
 }

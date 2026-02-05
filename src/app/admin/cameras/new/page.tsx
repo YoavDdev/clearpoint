@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   Camera,
   User,
@@ -21,6 +22,8 @@ import {
 const Select = dynamic(() => import('react-select'), { ssr: false });
 
 export default function NewCameraPage() {
+  const searchParams = useSearchParams();
+  const userIdFromUrl = searchParams.get('user_id');
   const [users, setUsers] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [userCameras, setUserCameras] = useState<any[]>([]);
@@ -54,6 +57,23 @@ export default function NewCameraPage() {
 
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    if (!userIdFromUrl) return;
+    if (!users.length) return;
+    if (selectedUser) return;
+
+    const match = users.find((u) => String(u.id) === String(userIdFromUrl));
+    if (!match) return;
+
+    const option = {
+      value: match.id,
+      label: match.full_name ? `${match.full_name} (${match.email})` : match.email,
+      email: match.email,
+    };
+    handleUserSelect(option);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userIdFromUrl, users]);
 
   async function handleUserSelect(option: any) {
     setSelectedUser(option);

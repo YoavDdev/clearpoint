@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { forwardRef, useEffect, useMemo, useState } from "react";
 import { DeleteButton } from "./DeleteButton";
 import React from "react";
 import { FixedSizeList as List } from "react-window";
 import {
   Search,
-  Filter,
   Download,
-  Activity,
   AlertCircle,
   CheckCircle,
   User,
@@ -33,11 +31,34 @@ interface DeviceHealth {
   stream_status: string;
 }
 
-export function CamerasTable({ cameras }: { cameras: Camera[] }) {
+export function CamerasTable({
+  cameras,
+  variant = 'full',
+}: {
+  cameras: Camera[];
+  variant?: 'full' | 'embedded';
+}) {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [healthData, setHealthData] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
+
+  const ListOuterElement = useMemo(() => {
+    const Comp = forwardRef<HTMLDivElement, any>((props, ref) => {
+      return (
+        <div
+          ref={ref}
+          {...props}
+          style={{
+            ...(props.style || {}),
+            scrollbarGutter: 'stable',
+          }}
+        />
+      );
+    });
+    Comp.displayName = 'CamerasListOuterElement';
+    return Comp;
+  }, []);
 
   // Fetch real-time health data for all cameras
   useEffect(() => {
@@ -81,10 +102,33 @@ export function CamerasTable({ cameras }: { cameras: Camera[] }) {
     const camera = sorted[index];
 
     return (
-      <div dir="rtl" style={style} className="grid grid-cols-[2fr_1.5fr_2fr_1fr_1fr_1fr] border-b border-slate-200 px-6 py-4 text-sm items-center hover:bg-slate-50 transition-colors">
-        <div className="font-medium text-slate-800">{camera.name}</div>
-        <div className="text-slate-600">{camera.serial_number}</div>
-        <div className="text-slate-700">{camera.user?.full_name || "ללא לקוח"}</div>
+      <div
+        dir="rtl"
+        style={style}
+        className={`grid grid-cols-[2fr_1.5fr_2fr_1fr_1fr_1fr] gap-3 items-center px-4 border-b border-slate-100 text-sm hover:bg-slate-50 transition-colors ${
+          index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+        }`}
+      >
+        <div className="min-w-0" dir="rtl">
+          <div
+            className="font-bold text-slate-900 truncate text-right"
+            title={camera.name || ''}
+          >
+            {camera.name}
+          </div>
+        </div>
+        <div
+          className="min-w-0 text-sm text-slate-900 truncate text-right"
+          title={camera.serial_number || ''}
+        >
+          {camera.serial_number}
+        </div>
+        <div
+          className="min-w-0 text-sm text-slate-900 truncate text-right"
+          title={camera.user?.full_name || ''}
+        >
+          {camera.user?.full_name || "ללא לקוח"}
+        </div>
         <div>
           {(() => {
             const health = healthData[camera.id];
@@ -92,8 +136,8 @@ export function CamerasTable({ cameras }: { cameras: Camera[] }) {
             // No health data
             if (!health || !health.success) {
               return (
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700">
-                  <AlertCircle size={12} />
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full border text-xs font-medium bg-slate-50 text-slate-700 border-slate-200">
+                  <AlertCircle className="w-3 h-3" />
                   לא מקוון
                 </span>
               );
@@ -104,8 +148,8 @@ export function CamerasTable({ cameras }: { cameras: Camera[] }) {
             // Check stream status
             if (streamStatus === "missing") {
               return (
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium bg-red-100 text-red-700">
-                  <AlertCircle size={12} />
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full border text-xs font-medium bg-red-50 text-red-700 border-red-200">
+                  <AlertCircle className="w-3 h-3" />
                   שגיאה - זרם חסר
                 </span>
               );
@@ -113,8 +157,8 @@ export function CamerasTable({ cameras }: { cameras: Camera[] }) {
             
             if (streamStatus === "stale") {
               return (
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium bg-orange-100 text-orange-700">
-                  <AlertCircle size={12} />
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full border text-xs font-medium bg-orange-50 text-orange-700 border-orange-200">
+                  <AlertCircle className="w-3 h-3" />
                   שגיאה - זרם ישן
                 </span>
               );
@@ -122,8 +166,8 @@ export function CamerasTable({ cameras }: { cameras: Camera[] }) {
             
             if (streamStatus === "error") {
               return (
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium bg-red-100 text-red-700">
-                  <AlertCircle size={12} />
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full border text-xs font-medium bg-red-50 text-red-700 border-red-200">
+                  <AlertCircle className="w-3 h-3" />
                   שגיאה
                 </span>
               );
@@ -136,8 +180,8 @@ export function CamerasTable({ cameras }: { cameras: Camera[] }) {
               
               if (diffMinutes > 60) {
                 return (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700">
-                    <AlertCircle size={12} />
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full border text-xs font-medium bg-slate-50 text-slate-700 border-slate-200">
+                    <AlertCircle className="w-3 h-3" />
                     לא מקוון
                   </span>
                 );
@@ -146,8 +190,8 @@ export function CamerasTable({ cameras }: { cameras: Camera[] }) {
             
             // All good
             return (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-700">
-                <CheckCircle size={12} />
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full border text-xs font-medium bg-green-50 text-green-700 border-green-200">
+                <CheckCircle className="w-3 h-3" />
                 תקין
               </span>
             );
@@ -156,10 +200,10 @@ export function CamerasTable({ cameras }: { cameras: Camera[] }) {
         <div>
           <button
             onClick={() => downloadScript(camera.id, camera.stream_path, camera.user_id, camera.name)}
-            className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors group"
+            className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-all group"
             title="הורד סקריפט מצלמה"
           >
-            <Download size={16} className="group-hover:scale-110 transition-transform" />
+            <Download className="w-4 h-4 group-hover:scale-110 transition-transform" />
           </button>
         </div>
         <div>
@@ -227,6 +271,48 @@ echo "✅ All processes running in background."`;
     URL.revokeObjectURL(url);
     alert(`📄 קובץ camera-${cameraId}.sh נוצר והורד בהצלחה`);
   };
+
+  const table = (
+    <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+      <div className="overflow-x-auto lg:overflow-x-visible">
+        <div className="w-full min-w-[980px] lg:min-w-0">
+          <div
+            dir="rtl"
+            className="grid grid-cols-[2fr_1.5fr_2fr_1fr_1fr_1fr] gap-3 items-center px-4 py-3 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700"
+          >
+            <div className="min-w-0 text-right">שם מצלמה</div>
+            <div className="min-w-0 text-right">מס' סידורי</div>
+            <div className="min-w-0 text-right">לקוח</div>
+            <div className="min-w-0 text-right">סטטוס</div>
+            <div className="min-w-0 text-right">סקריפט</div>
+            <div className="min-w-0 text-right" aria-label="מחיקה" title="מחיקה">
+              <span className="inline-flex items-center" aria-hidden="true">
+                <Trash2 className="w-4 h-4 text-slate-500" />
+              </span>
+            </div>
+          </div>
+
+          <List
+            height={variant === 'embedded' ? 420 : 600}
+            itemCount={sorted.length}
+            itemSize={80}
+            width="100%"
+            outerElementType={ListOuterElement as any}
+          >
+            {Row}
+          </List>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (variant === 'embedded') {
+    return (
+      <div dir="rtl">
+        {table}
+      </div>
+    );
+  }
 
   return (
     <div dir="rtl">
@@ -307,41 +393,7 @@ echo "✅ All processes running in background."`;
       </div>
 
       {/* Cameras Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <div dir="rtl" className="grid grid-cols-[2fr_1.5fr_2fr_1fr_1fr_1fr] bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold text-sm px-6 py-4">
-            <div className="flex items-center gap-2">
-              <Camera size={16} />
-              <span>שם מצלמה</span>
-            </div>
-            <div>מס' סידורי</div>
-            <div className="flex items-center gap-2">
-              <User size={16} />
-              <span>לקוח</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Activity size={16} />
-              <span>סטטוס</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Download size={16} />
-              <span>סקריפט</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Trash2 size={16} />
-              <span>מחק</span>
-            </div>
-          </div>
-          <List
-            height={600}
-            itemCount={sorted.length}
-            itemSize={80}
-            width="100%"
-          >
-            {Row}
-          </List>
-        </div>
-      </div>
+      {table}
     </div>
   );
 }

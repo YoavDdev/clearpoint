@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { CamerasTable } from "./CamerasTable";
+import { UsersCamerasTable } from "./UsersCamerasTable";
 import Link from "next/link";
 import { Camera, Plus } from "lucide-react";
 
@@ -74,8 +75,8 @@ export default async function CamerasPage() {
             </Link>
           </div>
         </div>
-        
-        <CamerasTable cameras={cameras} />
+
+        <UsersCamerasTable cameras={cameras} />
       </div>
     </main>
   );
