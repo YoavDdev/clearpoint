@@ -18,7 +18,8 @@ import {
   Menu,
   X,
   RefreshCw,
-  CreditCard
+  CreditCard,
+  BarChart3
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -28,6 +29,12 @@ const navigation = [
     href: "/admin",
     icon: LayoutDashboard,
     description: "מבט כולל על המערכת"
+  },
+  {
+    name: "System Analytics",
+    href: "/admin/system-overview",
+    icon: BarChart3,
+    description: "סטטיסטיקות ומידע תפעולי"
   },
   {
     name: "לקוחות",
