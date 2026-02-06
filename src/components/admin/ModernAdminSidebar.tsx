@@ -31,12 +31,6 @@ const navigation = [
     description: "מבט כולל על המערכת"
   },
   {
-    name: "System Analytics",
-    href: "/admin/system-overview",
-    icon: BarChart3,
-    description: "סטטיסטיקות ומידע תפעולי"
-  },
-  {
     name: "לקוחות",
     href: "/admin/customers",
     icon: Users,
@@ -77,6 +71,12 @@ const navigation = [
     href: "/admin/support",
     icon: Bell,
     description: "בקשות תמיכה"
+  },
+  {
+    name: "ניתוח מערכת",
+    href: "/admin/system-overview",
+    icon: BarChart3,
+    description: "סטטיסטיקות ומידע תפעולי"
   },
   {
     name: "הגדרות",

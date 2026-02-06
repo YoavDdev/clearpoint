@@ -89,7 +89,7 @@ export default function SystemOverviewPage() {
     <AdminPageShell>
       <div className="mb-6">
         <AdminPageHeader
-          title="System Analytics"
+          title="ניתוח מערכת"
           subtitle="סטטיסטיקות ומידע תפעולי על המערכת"
           icon={BarChart3}
           tone="purple"
