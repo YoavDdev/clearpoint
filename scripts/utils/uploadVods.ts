@@ -144,6 +144,7 @@ async function logVodFile(params: {
   camera_id: string;
   url: string;
   file_id: string;
+  object_key?: string;
   timestamp: string;
   duration?: number;
 }) {
@@ -163,6 +164,7 @@ async function logVodFile(params: {
       camera_id: params.camera_id,
       url: params.url,
       file_id: params.file_id,
+      object_key: params.object_key,
       timestamp: params.timestamp,
       duration: params.duration ?? 900,
     },
@@ -330,6 +332,7 @@ async function processSegments() {
               camera_id: cameraId,
               url: signedUrl,
               file_id: fileId,
+              object_key: b2Key,
               timestamp,
               duration: 900,
             });

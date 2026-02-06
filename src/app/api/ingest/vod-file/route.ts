@@ -53,6 +53,7 @@ type VodFilePayload = {
   camera_id: string;
   url: string;
   file_id: string;
+  object_key?: string | null;
   timestamp: string;
   duration?: number | null;
 };
@@ -135,6 +136,7 @@ export async function POST(req: Request) {
       camera_id: payload.camera_id,
       url: payload.url,
       file_id: payload.file_id,
+      object_key: payload.object_key || null,
       timestamp: payload.timestamp,
       duration: payload.duration ?? 900,
     },

@@ -169,7 +169,7 @@ async function cleanupExpiredVods() {
   while (true) {
     const { data, error } = await supabase
       .from('vod_files')
-      .select('id, url, timestamp, user_id, file_id')
+      .select('id, url, timestamp, user_id, file_id, object_key')
       .lte('timestamp', minCutoffUtc.toISOString())
       .order('timestamp', { ascending: true })
       .range(from, to);
@@ -206,7 +206,8 @@ async function cleanupExpiredVods() {
     await Promise.allSettled(
       batch.map(async (vod) => {
         try {
-          const urlPath = new URL(vod.url).pathname.replace(/^\//, '');
+          const key = (vod as any).object_key as string | null | undefined;
+          const urlPath = key ? key : new URL(vod.url).pathname.replace(/^\//, '');
           await deleteFromB2(urlPath, vod.file_id);
 
           const { error: delErr } = await supabase.from('vod_files').delete().eq('id', vod.id);
