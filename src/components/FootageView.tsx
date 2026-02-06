@@ -68,23 +68,33 @@ export default function FootageView({ cameras }: FootageViewProps) {
   const loadRecordingsForDate = async (date: Date) => {
     setLoading(true);
     const dateStr = format(date, 'yyyy-MM-dd');
-    const allClips: {[cameraId: string]: VodClip[]} = {};
+    const allClips: { [cameraId: string]: VodClip[] } = {};
 
     try {
-      for (const camera of cameras) {
-        const res = await fetch('/api/user-footage', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cameraId: camera.id, date: dateStr }),
-        });
+      const cameraIds = cameras.map(c => c.id);
+      for (const id of cameraIds) allClips[id] = [];
 
-        const data = await res.json();
-        
+      const res = await fetch('/api/user-footage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cameraIds, date: dateStr }),
+      });
+
+      const payload = await res.json();
+
+      // Backward compatibility: if API returns array (legacy single-camera mode), handle it.
+      const clipsByCamera: Record<string, VodClip[]> = Array.isArray(payload)
+        ? { [cameraIds[0] || '']: payload }
+        : (payload?.clipsByCamera as Record<string, VodClip[]>) || {};
+
+      for (const camera of cameras) {
+        const clips = clipsByCamera[camera.id] || [];
+
         // Sort clips by timestamp
-        const sortedClips = (data || []).sort((a: VodClip, b: VodClip) => 
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        const sortedClips = clips.sort(
+          (a: VodClip, b: VodClip) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
-        
+
         allClips[camera.id] = sortedClips;
       }
 

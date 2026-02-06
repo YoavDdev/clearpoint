@@ -13,7 +13,12 @@ export async function POST(req: Request) {
     return NextResponse.json([], { status: 401 });
   }
 
-  const { cameraId, date } = await req.json();
+  const { cameraId, cameraIds, date } = await req.json();
+
+  const isBatch = Array.isArray(cameraIds) && cameraIds.length > 0;
+  if (!isBatch && !cameraId) {
+    return NextResponse.json({ error: 'Missing cameraId or cameraIds' }, { status: 400 });
+  }
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,16 +45,31 @@ export async function POST(req: Request) {
     const start = new Date(`${date}T00:00:00`).toISOString();
     const end = new Date(`${date}T23:59:59`).toISOString();
 
-    const { data, error } = await supabase
+    const query = supabase
       .from("vod_files")
       .select("url, timestamp, camera_id")
-      .eq("user_email", session.user.email)
-      .eq("camera_id", cameraId)
+      .eq("user_id", user.id)
       .gte("timestamp", start)
       .lte("timestamp", end)
       .order("timestamp");
 
-    return NextResponse.json(data || []);
+    const { data, error } = isBatch
+      ? await query.in("camera_id", cameraIds)
+      : await query.eq("camera_id", cameraId);
+
+    if (!isBatch) {
+      return NextResponse.json(data || []);
+    }
+
+    const clipsByCamera: Record<string, any[]> = {};
+    for (const id of cameraIds) clipsByCamera[id] = [];
+    for (const row of data || []) {
+      const id = (row as any).camera_id as string;
+      if (!clipsByCamera[id]) clipsByCamera[id] = [];
+      clipsByCamera[id].push(row);
+    }
+
+    return NextResponse.json({ clipsByCamera });
   }
 
   // בדיקת מנוי פעיל (subscriptions או recurring_payments)
@@ -92,14 +112,29 @@ export async function POST(req: Request) {
     return NextResponse.json([], { status: 403 });
   }
 
-  const { data, error } = await supabase
+  const query = supabase
     .from("vod_files")
     .select("url, timestamp, camera_id")
-    .eq("user_email", session.user.email)
-    .eq("camera_id", cameraId)
+    .eq("user_id", user.id)
     .gte("timestamp", start)
     .lte("timestamp", end)
     .order("timestamp");
 
-  return NextResponse.json(data || []);
+  const { data, error } = isBatch
+    ? await query.in("camera_id", cameraIds)
+    : await query.eq("camera_id", cameraId);
+
+  if (!isBatch) {
+    return NextResponse.json(data || []);
+  }
+
+  const clipsByCamera: Record<string, any[]> = {};
+  for (const id of cameraIds) clipsByCamera[id] = [];
+  for (const row of data || []) {
+    const id = (row as any).camera_id as string;
+    if (!clipsByCamera[id]) clipsByCamera[id] = [];
+    clipsByCamera[id].push(row);
+  }
+
+  return NextResponse.json({ clipsByCamera });
 }
