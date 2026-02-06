@@ -182,7 +182,22 @@ async function processSegments() {
 
       for (const file of files) {
         const filePath = path.join(cameraPath, file);
-        const stats = fs.statSync(filePath);
+        if (!fs.existsSync(filePath)) {
+          console.warn(`⚠️ File disappeared before processing, skipping: ${file}`);
+          continue;
+        }
+
+        let stats: fs.Stats;
+        try {
+          stats = fs.statSync(filePath);
+        } catch (err: any) {
+          if (err?.code === 'ENOENT') {
+            console.warn(`⚠️ File disappeared during stat, skipping: ${file}`);
+            continue;
+          }
+          throw err;
+        }
+
         const modifiedAgo = (Date.now() - stats.mtime.getTime()) / 1000;
 
         if (modifiedAgo < 60) {
@@ -200,7 +215,16 @@ async function processSegments() {
         const timestamp = new Date(`${date}T${time.replace(/-/g, ':')}`).toISOString();
         const b2Key = `${userId}/${cameraId}/${file}`;
 
-        const fileBuffer = fs.readFileSync(filePath);
+        let fileBuffer: Buffer;
+        try {
+          fileBuffer = fs.readFileSync(filePath);
+        } catch (err: any) {
+          if (err?.code === 'ENOENT') {
+            console.warn(`⚠️ File disappeared during read, skipping: ${file}`);
+            continue;
+          }
+          throw err;
+        }
         const sha1 = crypto.createHash('sha1').update(fileBuffer).digest('hex');
 
         const uploadCall = () => axios.post(upload.uploadUrl, fileBuffer, {
@@ -227,7 +251,15 @@ async function processSegments() {
               timestamp,
               duration: 900,
             });
-            fs.unlinkSync(filePath);
+
+            try {
+              fs.unlinkSync(filePath);
+            } catch (err: any) {
+              if (err?.code !== 'ENOENT') {
+                throw err;
+              }
+              console.warn(`⚠️ File already deleted after upload: ${file}`);
+            }
             console.log(`✅ Uploaded: ${file}`);
             break;
           } catch (err: any) {
