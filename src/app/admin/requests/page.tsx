@@ -179,6 +179,7 @@ export default function AdminRequestsPage() {
   return (
     <AdminPageShell>
       <AdminPageTop
+        heightMode="max"
         header={(
           <AdminPageHeader
             title="בקשות הצטרפות"

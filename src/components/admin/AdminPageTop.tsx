@@ -4,6 +4,7 @@ export function AdminPageTop({
   header,
   stats,
   controls,
+  heightMode = "fixed",
   scrollMode = "sections",
   scrollbar = "default",
   spacing = "default",
@@ -11,6 +12,7 @@ export function AdminPageTop({
   header: React.ReactNode;
   stats?: React.ReactNode;
   controls?: React.ReactNode;
+  heightMode?: "fixed" | "max";
   scrollMode?: "sections" | "single" | "none";
   scrollbar?: "default" | "hidden";
   spacing?: "default" | "compact";
@@ -32,9 +34,10 @@ export function AdminPageTop({
 
   const spacingClass = spacing === "compact" ? "mb-6 gap-4" : "mb-8 gap-6";
   const innerStackGapClass = spacing === "compact" ? "gap-4" : "gap-6";
+  const heightClass = heightMode === "max" ? "lg:max-h-[480px]" : "lg:h-[480px]";
 
   return (
-    <div className={`grid lg:h-[480px] ${lgGridRowsClass} ${spacingClass}`}>
+    <div className={`grid ${heightClass} ${lgGridRowsClass} ${spacingClass}`}>
       <div>{header}</div>
 
       {scrollMode === "single" ? (

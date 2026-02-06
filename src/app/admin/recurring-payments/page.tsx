@@ -382,6 +382,7 @@ function RecurringPaymentsContent() {
     <AdminPageShell>
       <AdminPageTop
         spacing="compact"
+        heightMode="max"
         scrollMode="single"
         header={(
           <AdminPageHeader

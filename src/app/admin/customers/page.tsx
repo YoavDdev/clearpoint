@@ -294,6 +294,7 @@ export default function CustomersPage() {
     <AdminPageShell>
       <AdminPageTop
         spacing="compact"
+        heightMode="max"
         scrollMode="single"
         header={(
           <AdminPageHeader
