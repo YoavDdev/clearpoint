@@ -7,7 +7,8 @@ interface VodClip {
   id: string;
   timestamp: string;
   duration: number;
-  url: string;
+  url?: string;
+  object_key?: string | null;
   thumbnail_url?: string;
 }
 
@@ -43,7 +44,57 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
   const [isMouseOverVideo, setIsMouseOverVideo] = useState(false);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const signedUrlCacheRef = useRef<Map<string, { url: string; expiresAtMs: number }>>(new Map());
+  const loadRequestIdRef = useRef(0);
+
   const currentClip = clips[currentClipIndex];
+
+  const resolveClipUrl = async (clip: VodClip): Promise<string> => {
+    if (clip.url && !clip.object_key) {
+      return clip.url;
+    }
+
+    const key = clip.object_key || undefined;
+    if (!key) {
+      if (clip.url) return clip.url;
+      throw new Error('Missing clip url/object_key');
+    }
+
+    const cached = signedUrlCacheRef.current.get(key);
+    const now = Date.now();
+    if (cached && cached.expiresAtMs > now + 30_000) {
+      return cached.url;
+    }
+
+    const res = await fetch('/api/vod/signed-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ objectKey: key }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`Failed to get signed url (${res.status}) ${text}`);
+    }
+
+    const payload = await res.json();
+    const url = payload?.url as string | undefined;
+    if (!url) throw new Error('Signed url response missing url');
+
+    // Cache slightly less than expiry for safety.
+    signedUrlCacheRef.current.set(key, { url, expiresAtMs: now + 55 * 60 * 1000 });
+    return url;
+  };
+
+  const prefetchNextClip = async () => {
+    const next = clips[currentClipIndex + 1];
+    if (!next?.object_key) return;
+    try {
+      await resolveClipUrl(next);
+    } catch {
+      // Ignore prefetch errors; playback will request again on demand.
+    }
+  };
   
   // Calculate total duration of all clips (for day timeline)
   const totalDayDuration = clips.reduce((sum, clip) => sum + (clip.duration || 900), 0); // 900s = 15min default
@@ -61,13 +112,30 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
   // Update video when clip changes
   useEffect(() => {
     if (videoRef.current && currentClip) {
+      const requestId = ++loadRequestIdRef.current;
       setIsLoading(true);
-      videoRef.current.src = currentClip.url;
-      videoRef.current.load();
+
+      (async () => {
+        try {
+          const src = await resolveClipUrl(currentClip);
+          if (loadRequestIdRef.current !== requestId) return;
+          if (!videoRef.current) return;
+
+          videoRef.current.src = src;
+          videoRef.current.load();
+
+          // Apply audio settings
+          videoRef.current.muted = isMuted;
+          videoRef.current.volume = volume;
+        } catch (err) {
+          console.error('Failed to load clip url:', err);
+          if (loadRequestIdRef.current !== requestId) return;
+          setIsLoading(false);
+        }
+      })();
       
       // Apply audio settings
-      videoRef.current.muted = isMuted;
-      videoRef.current.volume = volume;
+      // (audio settings applied when src is set)
       
       const handleLoadedData = () => {
         setIsLoading(false);
@@ -83,6 +151,11 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
       };
     }
   }, [currentClipIndex, clips.length, isMuted, volume]);
+
+  // Prefetch next clip signed url
+  useEffect(() => {
+    prefetchNextClip();
+  }, [currentClipIndex, clips.length]);
 
   // Handle video events
   useEffect(() => {

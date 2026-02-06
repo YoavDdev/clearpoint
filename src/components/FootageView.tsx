@@ -10,7 +10,8 @@ interface VodClip {
   id: string;
   timestamp: string;
   duration: number;
-  url: string;
+  url?: string;
+  object_key?: string | null;
   thumbnail_url?: string;
 }
 

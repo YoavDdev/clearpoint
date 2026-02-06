@@ -47,7 +47,7 @@ export async function POST(req: Request) {
 
     const query = supabase
       .from("vod_files")
-      .select("url, timestamp, camera_id")
+      .select("id, url, object_key, file_id, duration, timestamp, camera_id")
       .eq("user_id", user.id)
       .gte("timestamp", start)
       .lte("timestamp", end)
@@ -114,7 +114,7 @@ export async function POST(req: Request) {
 
   const query = supabase
     .from("vod_files")
-    .select("url, timestamp, camera_id")
+    .select("id, url, object_key, file_id, duration, timestamp, camera_id")
     .eq("user_id", user.id)
     .gte("timestamp", start)
     .lte("timestamp", end)
