@@ -3,6 +3,7 @@ import path from 'path';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
+import { execSync } from 'child_process';
 dotenv.config();
 
 const TEST_MODE = false;
@@ -73,6 +74,22 @@ function acquireLockOrExit() {
     cleanup();
     process.exit(0);
   });
+}
+
+function getVideoDuration(filePath: string): number {
+  try {
+    const output = execSync(
+      `ffprobe -v error -show_entries format=duration -of csv=p=0 "${filePath}"`,
+      { timeout: 15_000 }
+    ).toString().trim();
+    const duration = parseFloat(output);
+    if (Number.isFinite(duration) && duration > 0) {
+      return Math.round(duration);
+    }
+  } catch (err) {
+    console.warn(`⚠️ ffprobe failed for ${filePath}, using default 900s`);
+  }
+  return 900;
 }
 
 function generateSignedBunnyUrl(filePath: string, expiresInSeconds = 1209600): string {
@@ -328,13 +345,15 @@ async function processSegments() {
             const fileId = response.data.fileId;
             const signedUrl = generateSignedBunnyUrl(fullPath);
 
+            const actualDuration = getVideoDuration(filePath);
+
             await logVodFile({
               camera_id: cameraId,
               url: signedUrl,
               file_id: fileId,
               object_key: b2Key,
               timestamp,
-              duration: 900,
+              duration: actualDuration,
             });
 
             try {

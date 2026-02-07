@@ -46,8 +46,22 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
 
   const signedUrlCacheRef = useRef<Map<string, { url: string; expiresAtMs: number }>>(new Map());
   const loadRequestIdRef = useRef(0);
+  const seekOffsetRef = useRef<number | null>(null);
 
   const currentClip = clips[currentClipIndex];
+
+  // Helper: get seconds since midnight from ISO timestamp
+  const getSecondsFromMidnight = (timestamp: string): number => {
+    const date = new Date(timestamp);
+    return date.getHours() * 3600 + date.getMinutes() * 60 + date.getSeconds();
+  };
+
+  // Format seconds since midnight as HH:MM
+  const formatTimeOfDay = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600) % 24;
+    const mins = Math.floor((seconds % 3600) / 60);
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+  };
 
   const resolveClipUrl = async (clip: VodClip): Promise<string> => {
     if (clip.url && !clip.object_key) {
@@ -96,17 +110,65 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
     }
   };
   
-  // Calculate total duration of all clips (for day timeline)
-  const totalDayDuration = clips.reduce((sum, clip) => sum + (clip.duration || 900), 0); // 900s = 15min default
-  
-  // Calculate current position in the day
-  const getDayPosition = () => {
-    let position = 0;
-    for (let i = 0; i < currentClipIndex; i++) {
-      position += clips[i].duration || 900;
+  // Calculate current playback position as seconds since midnight
+  const getDayPosition = (): number => {
+    if (!currentClip) return 0;
+    return getSecondsFromMidnight(currentClip.timestamp) + currentTime;
+  };
+
+  // Timeline range: from first clip start (rounded down to hour) to last clip end (rounded up to hour)
+  const timelineStart = clips.length > 0
+    ? Math.floor(getSecondsFromMidnight(clips[0].timestamp) / 3600) * 3600
+    : 0;
+  const timelineEnd = clips.length > 0
+    ? Math.min(86400, Math.ceil((getSecondsFromMidnight(clips[clips.length - 1].timestamp) + (clips[clips.length - 1].duration || 900)) / 3600) * 3600)
+    : 86400;
+  const timelineRange = Math.max(timelineEnd - timelineStart, 3600);
+
+  // Build recording coverage segments for timeline visualization
+  const coverageSegments = clips.map((clip, idx) => ({
+    start: getSecondsFromMidnight(clip.timestamp),
+    end: getSecondsFromMidnight(clip.timestamp) + (clip.duration || 900),
+    index: idx,
+  }));
+
+  // Seek to a specific time of day (seconds since midnight)
+  const seekToTimeOfDay = (targetSeconds: number) => {
+    for (let i = 0; i < clips.length; i++) {
+      const clipStart = getSecondsFromMidnight(clips[i].timestamp);
+      const clipEnd = clipStart + (clips[i].duration || 900);
+      if (targetSeconds >= clipStart && targetSeconds < clipEnd) {
+        if (i !== currentClipIndex) {
+          seekOffsetRef.current = targetSeconds - clipStart;
+          setCurrentClipIndex(i);
+        } else if (videoRef.current) {
+          videoRef.current.currentTime = targetSeconds - clipStart;
+        }
+        return;
+      }
     }
-    position += currentTime;
-    return position;
+    // Not in any clip - find nearest clip after target
+    for (let i = 0; i < clips.length; i++) {
+      const clipStart = getSecondsFromMidnight(clips[i].timestamp);
+      if (clipStart >= targetSeconds) {
+        seekOffsetRef.current = 0;
+        setCurrentClipIndex(i);
+        return;
+      }
+    }
+    // Target is after all clips - go to last clip
+    if (clips.length > 0) {
+      setCurrentClipIndex(clips.length - 1);
+    }
+  };
+
+  // Generate hour labels for the timeline
+  const getHourLabels = (): number[] => {
+    const labels: number[] = [];
+    for (let h = timelineStart; h <= timelineEnd; h += 3600) {
+      labels.push(h);
+    }
+    return labels;
   };
 
   // Update video when clip changes
@@ -139,6 +201,10 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
       
       const handleLoadedData = () => {
         setIsLoading(false);
+        if (seekOffsetRef.current !== null && videoRef.current) {
+          videoRef.current.currentTime = seekOffsetRef.current;
+          seekOffsetRef.current = null;
+        }
         if (isPlaying && videoRef.current) {
           videoRef.current.play();
         }
@@ -432,62 +498,100 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
 
       {/* Controls - Mobile Responsive */}
       <div className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 bg-gradient-to-b from-white to-slate-50">
-        {/* Day Timeline - Shows progress through entire day - LTR Layout */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-xs sm:text-sm text-slate-700 font-medium mb-1 sm:mb-2">
-            <span className={`font-bold ${isRecording ? 'text-red-600' : 'text-blue-600'}`}>
-              {Math.round((getDayPosition() / totalDayDuration) * 100)}% הושלם
+        {/* 24-Hour Timeline */}
+        <div className="space-y-1">
+          {/* Header: current time + clip info */}
+          <div className="flex justify-between items-center text-xs sm:text-sm text-slate-700 font-medium mb-1">
+            <span className={`text-lg sm:text-xl font-bold tabular-nums ${isRecording ? 'text-red-600' : 'text-blue-600'}`}>
+              {formatTimeOfDay(getDayPosition())}
             </span>
-            <span>כל היום</span>
+            <span className="text-slate-500">
+              קליפ {currentClipIndex + 1} מתוך {clips.length}
+            </span>
           </div>
-          {/* Visual progress bar - LTR */}
-          <div className="h-2 bg-slate-200 rounded-full overflow-hidden" dir="ltr">
-            <div 
-              className={`h-full transition-all duration-300 ${
-                isRecording 
-                  ? 'bg-gradient-to-r from-red-500 to-red-600' 
-                  : 'bg-gradient-to-r from-blue-500 to-blue-600'
-              }`}
-              style={{ width: `${(getDayPosition() / totalDayDuration) * 100}%` }}
-            />
-          </div>
-          <input
-            type="range"
+          
+          {/* Timeline Bar - Click anywhere to seek */}
+          <div 
+            className="relative h-10 sm:h-12 bg-slate-100 rounded-lg cursor-pointer overflow-hidden border border-slate-200"
             dir="ltr"
-            min="0"
-            max={totalDayDuration || 100}
-            value={getDayPosition()}
-            onChange={(e) => {
-              const targetTime = parseFloat(e.target.value);
-              let accumulatedTime = 0;
-              
-              // Find which clip this time falls into
-              for (let i = 0; i < clips.length; i++) {
-                const clipDuration = clips[i].duration || 900;
-                if (targetTime < accumulatedTime + clipDuration) {
-                  // This is the clip we want
-                  setCurrentClipIndex(i);
-                  if (videoRef.current) {
-                    videoRef.current.currentTime = targetTime - accumulatedTime;
-                  }
-                  break;
-                }
-                accumulatedTime += clipDuration;
-              }
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const clickX = e.clientX - rect.left;
+              const ratio = clickX / rect.width;
+              const targetTime = timelineStart + ratio * timelineRange;
+              seekToTimeOfDay(targetTime);
             }}
-            className={`w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer
-              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5
-              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg
-              [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5
-              [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0
-              ${isRecording 
-                ? '[&::-webkit-slider-thumb]:bg-red-600 [&::-moz-range-thumb]:bg-red-600' 
-                : '[&::-webkit-slider-thumb]:bg-blue-600 [&::-moz-range-thumb]:bg-blue-600'
-              }`}
-          />
-          <div className="flex justify-between text-xs sm:text-sm text-slate-600 font-medium">
-            <span>{formatTime(totalDayDuration)}</span>
-            <span>{formatTime(getDayPosition())}</span>
+          >
+            {/* Coverage segments (blue bars for recorded periods) */}
+            {coverageSegments.map((seg, i) => {
+              const left = ((seg.start - timelineStart) / timelineRange) * 100;
+              const width = ((seg.end - seg.start) / timelineRange) * 100;
+              const isActive = i === currentClipIndex;
+              return (
+                <div
+                  key={i}
+                  className={`absolute top-1 bottom-1 rounded-sm transition-colors ${
+                    isActive 
+                      ? 'bg-blue-500 z-10' 
+                      : 'bg-blue-200 hover:bg-blue-300'
+                  }`}
+                  style={{ left: `${left}%`, width: `${Math.max(width, 0.3)}%` }}
+                  title={`${formatTimeOfDay(seg.start)} - ${formatTimeOfDay(seg.end)}`}
+                />
+              );
+            })}
+            
+            {/* Playback position marker */}
+            {currentClip && (
+              <div
+                className="absolute top-0 bottom-0 z-20 pointer-events-none"
+                style={{ 
+                  left: `${Math.min(Math.max(((getDayPosition() - timelineStart) / timelineRange) * 100, 0), 100)}%` 
+                }}
+              >
+                <div className="absolute top-0 bottom-0 w-0.5 bg-red-500 -translate-x-1/2" />
+                <div className="absolute -top-0.5 w-2.5 h-2.5 bg-red-500 rounded-full -translate-x-1/2 shadow" />
+                <div className="absolute -bottom-0.5 w-2.5 h-2.5 bg-red-500 rounded-full -translate-x-1/2 shadow" />
+              </div>
+            )}
+          </div>
+          
+          {/* Hour labels */}
+          <div className="relative h-5" dir="ltr">
+            {getHourLabels().map((h) => {
+              const leftPercent = ((h - timelineStart) / timelineRange) * 100;
+              return (
+                <span
+                  key={h}
+                  className="absolute text-[10px] sm:text-xs text-slate-400 font-medium -translate-x-1/2 select-none"
+                  style={{ left: `${leftPercent}%` }}
+                >
+                  {formatTimeOfDay(h)}
+                </span>
+              );
+            })}
+          </div>
+
+          {/* Clip progress bar (within current clip) */}
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span className="tabular-nums w-10 text-right">{formatTime(currentTime)}</span>
+            <div 
+              className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden cursor-pointer" 
+              dir="ltr"
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const ratio = (e.clientX - rect.left) / rect.width;
+                if (videoRef.current && duration > 0) {
+                  videoRef.current.currentTime = ratio * duration;
+                }
+              }}
+            >
+              <div 
+                className="h-full bg-blue-400 rounded-full transition-all"
+                style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+              />
+            </div>
+            <span className="tabular-nums w-10">{formatTime(duration)}</span>
           </div>
         </div>
 

@@ -281,11 +281,12 @@ mkdir -p \$OUTPUT_DIR
 echo "Starting \$CAMERA_ID recording from \$CAMERA_IP..."
 
 # FFmpeg command optimized for Ubuntu 24.04
-ffmpeg -i "rtsp://admin:admin@\$CAMERA_IP:554/stream" \\
-  -c:v libx264 -preset ultrafast -crf 23 \\
+ffmpeg -rtsp_transport tcp -i "rtsp://admin:admin@\$CAMERA_IP:554/stream" \\
+  -c:v libx264 -preset veryfast -crf 23 \\
   -c:a aac -ar 44100 -ac 2 \\
-  -f segment -segment_time 900 -segment_format mp4 \\
-  -strftime 1 "\$OUTPUT_DIR/\$CAMERA_ID_%Y%m%d_%H%M%S.mp4" \\
+  -movflags +faststart \\
+  -f segment -segment_time 900 -segment_format mp4 -reset_timestamps 1 \\
+  -strftime 1 "\$OUTPUT_DIR/\$CAMERA_ID_%Y-%m-%d_%H-%M-%S.mp4" \\
   -f hls -hls_time 10 -hls_list_size 3 -hls_flags delete_segments \\
   "\$RAM_DIR/\$CAMERA_ID.m3u8" \\
   -y
