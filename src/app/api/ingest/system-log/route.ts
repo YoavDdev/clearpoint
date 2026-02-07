@@ -1,22 +1,41 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
 
 const VALID_CATEGORIES = ["camera", "vod", "minipc", "alert", "system"];
 const VALID_SEVERITIES = ["info", "warning", "error", "critical"];
 
-export async function POST(req: NextRequest) {
-  const deviceToken = req.headers.get("x-clearpoint-device-token");
+function sha256Hex(input: string) {
+  return crypto.createHash("sha256").update(input, "utf8").digest("hex");
+}
 
-  if (!deviceToken || deviceToken !== process.env.CLEARPOINT_DEVICE_TOKEN) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function POST(req: NextRequest) {
+  const deviceToken = req.headers.get("x-clearpoint-device-token")?.trim();
+
+  if (!deviceToken) {
+    return NextResponse.json({ error: "Missing device token" }, { status: 401 });
   }
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
+
+  // Resolve mini_pc_id from token (same as mini-pc-health)
+  const tokenHash = sha256Hex(deviceToken);
+  const { data: tokenRow } = await supabase
+    .from("mini_pc_tokens")
+    .select("mini_pc_id, revoked_at")
+    .eq("token_hash", tokenHash)
+    .maybeSingle();
+
+  if (!tokenRow || tokenRow.revoked_at) {
+    return NextResponse.json({ error: "Invalid or revoked token" }, { status: 403 });
+  }
+
+  const miniPcId = tokenRow.mini_pc_id;
 
   try {
     const body = await req.json();
@@ -37,7 +56,7 @@ export async function POST(req: NextRequest) {
 
       return {
         user_id: log.user_id || null,
-        mini_pc_id: log.mini_pc_id || null,
+        mini_pc_id: miniPcId,
         camera_id: log.camera_id || null,
         category: log.category,
         severity: log.severity || "info",

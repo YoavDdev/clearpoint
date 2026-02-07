@@ -277,8 +277,8 @@ async function sendSystemLog(log: {
       },
       timeout: 10_000,
     });
-  } catch (err) {
-    console.warn('⚠️ Failed to send system log (non-critical)');
+  } catch (err: any) {
+    console.warn('⚠️ Failed to send system log:', err?.response?.status, err?.response?.data || err?.message);
   }
 }
 
@@ -301,6 +301,8 @@ async function processSegments() {
   const folders = fs.existsSync(rootPath) ? fs.readdirSync(rootPath).filter(f => f !== '.DS_Store') : [];
 
   const auth = await getB2Auth(); // ✅ Only once
+
+  const runStats = { uploaded: 0, failed: 0, corrupt: 0, transcoded: 0, totalSizeMB: 0, failedFiles: [] as string[] };
 
   for (const userFolder of folders) {
     const userPath = path.join(rootPath, userFolder, 'footage');
@@ -377,15 +379,7 @@ async function processSegments() {
         if (!isValidMp4(filePath)) {
           console.warn(`🗑️ Corrupt MP4 (missing moov atom), deleting: ${file}`);
           try { fs.unlinkSync(filePath); } catch {}
-          await sendSystemLog({
-            user_id: userId,
-            camera_id: cameraId,
-            category: 'vod',
-            severity: 'warning',
-            event: 'corrupt_file_deleted',
-            message: `קובץ פגום נמחק: ${file}`,
-            metadata: { file },
-          });
+          runStats.corrupt++;
           return;
         }
 
@@ -464,15 +458,8 @@ async function processSegments() {
               console.warn(`⚠️ File already deleted after upload: ${file}`);
             }
             console.log(`✅ Uploaded: ${file}`);
-            await sendSystemLog({
-              user_id: userId,
-              camera_id: cameraId,
-              category: 'vod',
-              severity: 'info',
-              event: 'upload_success',
-              message: `קובץ הועלה בהצלחה: ${file}`,
-              metadata: { file, duration: actualDuration, size_mb: +(fileBuffer.length / 1024 / 1024).toFixed(1) },
-            });
+            runStats.uploaded++;
+            runStats.totalSizeMB += +(fileBuffer.length / 1024 / 1024).toFixed(1);
             return;
           } catch (err: any) {
             const status = err?.response?.status;
@@ -482,15 +469,8 @@ async function processSegments() {
 
             if (attempt === 2) {
               console.error(`❌ Failed after 3 attempts: ${file}:`, err.message || err);
-              await sendSystemLog({
-                user_id: userId,
-                camera_id: cameraId,
-                category: 'vod',
-                severity: 'error',
-                event: 'upload_failed',
-                message: `העלאה נכשלה אחרי 3 ניסיונות: ${file}`,
-                metadata: { file, error: err.message || String(err) },
-              });
+              runStats.failed++;
+              runStats.failedFiles.push(file);
             } else {
               console.warn(`⏳ Retrying upload for ${file} (attempt ${attempt + 2}/3)...`);
               await new Promise(r => setTimeout(r, 2000));
@@ -499,6 +479,33 @@ async function processSegments() {
         }
       });
     }
+  }
+
+  // Send summary log for this run
+  if (runStats.uploaded > 0 || runStats.failed > 0 || runStats.corrupt > 0) {
+    const parts: string[] = [];
+    if (runStats.uploaded > 0) parts.push(`${runStats.uploaded} קבצים הועלו (${runStats.totalSizeMB.toFixed(1)}MB)`);
+    if (runStats.corrupt > 0) parts.push(`${runStats.corrupt} קבצים פגומים נמחקו`);
+    if (runStats.failed > 0) parts.push(`${runStats.failed} נכשלו`);
+
+    const severity = runStats.failed > 0 ? 'error' : runStats.corrupt > 0 ? 'warning' : 'info';
+
+    await sendSystemLog({
+      category: 'vod',
+      severity,
+      event: 'upload_summary',
+      message: `סיכום העלאה: ${parts.join(' | ')}`,
+      metadata: {
+        uploaded: runStats.uploaded,
+        failed: runStats.failed,
+        corrupt: runStats.corrupt,
+        total_size_mb: +runStats.totalSizeMB.toFixed(1),
+        failed_files: runStats.failedFiles,
+      },
+    });
+    console.log(`📊 Summary: ${parts.join(' | ')}`);
+  } else {
+    console.log('📊 No files processed this run.');
   }
 }
 
