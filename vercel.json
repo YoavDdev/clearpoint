@@ -6,6 +6,10 @@
     {
       "path": "/api/cron/sync-payplus-recurring",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-logs",
+      "schedule": "0 3 * * *"
     }
   ]
 }
