@@ -260,6 +260,40 @@ async function runWithConcurrency<T>(
   await Promise.all(runners);
 }
 
+async function sendSystemLog(log: {
+  user_id?: string;
+  camera_id?: string;
+  category: string;
+  severity: string;
+  event: string;
+  message: string;
+  metadata?: Record<string, any>;
+}) {
+  try {
+    await axios.post(`${API_BASE}/api/ingest/system-log`, log, {
+      headers: {
+        'Content-Type': 'application/json',
+        'x-clearpoint-device-token': DEVICE_TOKEN,
+      },
+      timeout: 10_000,
+    });
+  } catch (err) {
+    console.warn('⚠️ Failed to send system log (non-critical)');
+  }
+}
+
+function isValidMp4(filePath: string): boolean {
+  try {
+    execSync(
+      `ffprobe -v error -show_entries format=duration -of csv=p=0 "${filePath}"`,
+      { timeout: 15_000 }
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function processSegments() {
   acquireLockOrExit();
   console.log("🚀 Starting VOD upload script...");
@@ -339,6 +373,22 @@ async function processSegments() {
           return;
         }
 
+        // Validate MP4 file (skip corrupt files with missing moov atom)
+        if (!isValidMp4(filePath)) {
+          console.warn(`🗑️ Corrupt MP4 (missing moov atom), deleting: ${file}`);
+          try { fs.unlinkSync(filePath); } catch {}
+          await sendSystemLog({
+            user_id: userId,
+            camera_id: cameraId,
+            category: 'vod',
+            severity: 'warning',
+            event: 'corrupt_file_deleted',
+            message: `קובץ פגום נמחק: ${file}`,
+            metadata: { file },
+          });
+          return;
+        }
+
         const match = file.match(/(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})/);
         if (!match) {
           console.warn(`⚠️ Skipping unrecognized filename: ${file}`);
@@ -414,6 +464,15 @@ async function processSegments() {
               console.warn(`⚠️ File already deleted after upload: ${file}`);
             }
             console.log(`✅ Uploaded: ${file}`);
+            await sendSystemLog({
+              user_id: userId,
+              camera_id: cameraId,
+              category: 'vod',
+              severity: 'info',
+              event: 'upload_success',
+              message: `קובץ הועלה בהצלחה: ${file}`,
+              metadata: { file, duration: actualDuration, size_mb: +(fileBuffer.length / 1024 / 1024).toFixed(1) },
+            });
             return;
           } catch (err: any) {
             const status = err?.response?.status;
@@ -423,6 +482,15 @@ async function processSegments() {
 
             if (attempt === 2) {
               console.error(`❌ Failed after 3 attempts: ${file}:`, err.message || err);
+              await sendSystemLog({
+                user_id: userId,
+                camera_id: cameraId,
+                category: 'vod',
+                severity: 'error',
+                event: 'upload_failed',
+                message: `העלאה נכשלה אחרי 3 ניסיונות: ${file}`,
+                metadata: { file, error: err.message || String(err) },
+              });
             } else {
               console.warn(`⏳ Retrying upload for ${file} (attempt ${attempt + 2}/3)...`);
               await new Promise(r => setTimeout(r, 2000));

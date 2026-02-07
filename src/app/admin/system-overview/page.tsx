@@ -14,7 +14,15 @@ import {
   Trash2,
   Server,
   Cloud,
-  Activity
+  Activity,
+  ScrollText,
+  AlertCircle,
+  CheckCircle,
+  Info,
+  XCircle,
+  Filter,
+  Camera,
+  Monitor
 } from "lucide-react";
 
 interface SystemStats {
@@ -56,7 +64,11 @@ interface SystemStats {
 export default function SystemOverviewPage() {
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"overview" | "customers" | "tech">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "customers" | "tech" | "logs">("overview");
+  const [logs, setLogs] = useState<any[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logCategory, setLogCategory] = useState<string>("");
+  const [logSeverity, setLogSeverity] = useState<string>("");
 
   const fetchStats = async () => {
     setLoading(true);
@@ -79,10 +91,32 @@ export default function SystemOverviewPage() {
     return () => clearInterval(interval);
   }, []);
 
+  const fetchLogs = async () => {
+    setLogsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (logCategory) params.set("category", logCategory);
+      if (logSeverity) params.set("severity", logSeverity);
+      params.set("limit", "200");
+      const res = await fetch(`/api/admin/system-logs?${params}`);
+      const json = await res.json();
+      if (json.success) setLogs(json.logs || []);
+    } catch (err) {
+      console.error("Failed to fetch logs:", err);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "logs") fetchLogs();
+  }, [activeTab, logCategory, logSeverity]);
+
   const tabs = [
     { id: "overview" as const, label: "סקירה כללית", icon: BarChart3 },
     { id: "customers" as const, label: "שימוש לקוחות", icon: Users },
     { id: "tech" as const, label: "טכנולוגיה", icon: Server },
+    { id: "logs" as const, label: "לוג מערכת", icon: ScrollText },
   ];
 
   return (
@@ -301,6 +335,134 @@ export default function SystemOverviewPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "logs" && (
+            <div className="space-y-4">
+              {/* Filters */}
+              <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-center">
+                <div className="flex items-center gap-2">
+                  <Filter size={18} className="text-slate-400" />
+                  <select
+                    className="pr-8 pl-3 py-2 border border-slate-300 rounded-lg text-sm bg-white text-right"
+                    value={logCategory}
+                    onChange={(e) => setLogCategory(e.target.value)}
+                  >
+                    <option value="">כל הקטגוריות</option>
+                    <option value="camera">מצלמות</option>
+                    <option value="vod">הקלטות (VOD)</option>
+                    <option value="minipc">MiniPC</option>
+                    <option value="alert">התראות</option>
+                    <option value="system">מערכת</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={18} className="text-slate-400" />
+                  <select
+                    className="pr-8 pl-3 py-2 border border-slate-300 rounded-lg text-sm bg-white text-right"
+                    value={logSeverity}
+                    onChange={(e) => setLogSeverity(e.target.value)}
+                  >
+                    <option value="">כל החומרות</option>
+                    <option value="info">מידע</option>
+                    <option value="warning">אזהרה</option>
+                    <option value="error">שגיאה</option>
+                    <option value="critical">קריטי</option>
+                  </select>
+                </div>
+                <button
+                  onClick={fetchLogs}
+                  disabled={logsLoading}
+                  className="flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-lg text-sm hover:bg-slate-200 transition-colors"
+                >
+                  <RefreshCw size={14} className={logsLoading ? "animate-spin" : ""} />
+                  רענן
+                </button>
+                <span className="text-sm text-slate-500 mr-auto">{logs.length} רשומות</span>
+              </div>
+
+              {/* Logs Table */}
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                {logsLoading && logs.length === 0 ? (
+                  <div className="p-12 text-center text-slate-500">
+                    <RefreshCw size={32} className="animate-spin mx-auto mb-3 text-slate-400" />
+                    <p>טוען לוגים...</p>
+                  </div>
+                ) : logs.length === 0 ? (
+                  <div className="p-12 text-center text-slate-500">
+                    <ScrollText size={48} className="mx-auto mb-4 text-slate-300" />
+                    <p className="text-lg font-medium">אין לוגים</p>
+                    <p className="text-sm">לוגים יופיעו כאן כשהמערכת תדווח על אירועים</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-slate-600">זמן</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-slate-600">חומרה</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-slate-600">קטגוריה</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-slate-600">לקוח</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-slate-600">מצלמה</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-slate-600">הודעה</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {logs.map((log: any) => {
+                          const severityConfig: Record<string, { icon: any; color: string; bg: string }> = {
+                            info: { icon: Info, color: "text-blue-600", bg: "bg-blue-50" },
+                            warning: { icon: AlertCircle, color: "text-orange-600", bg: "bg-orange-50" },
+                            error: { icon: XCircle, color: "text-red-600", bg: "bg-red-50" },
+                            critical: { icon: XCircle, color: "text-red-700", bg: "bg-red-100" },
+                          };
+                          const sev = severityConfig[log.severity] || severityConfig.info;
+                          const SevIcon = sev.icon;
+
+                          const categoryLabels: Record<string, { label: string; icon: any }> = {
+                            camera: { label: "מצלמה", icon: Camera },
+                            vod: { label: "VOD", icon: Database },
+                            minipc: { label: "MiniPC", icon: Monitor },
+                            alert: { label: "התראה", icon: AlertCircle },
+                            system: { label: "מערכת", icon: Server },
+                          };
+                          const cat = categoryLabels[log.category] || { label: log.category, icon: Info };
+                          const CatIcon = cat.icon;
+
+                          return (
+                            <tr key={log.id} className="hover:bg-slate-50 transition-colors">
+                              <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                                {new Date(log.created_at).toLocaleString("he-IL")}
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${sev.color} ${sev.bg}`}>
+                                  <SevIcon size={12} />
+                                  {log.severity}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className="inline-flex items-center gap-1 text-xs text-slate-700">
+                                  <CatIcon size={12} />
+                                  {cat.label}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-xs text-slate-700">
+                                {log.user?.full_name || "—"}
+                              </td>
+                              <td className="px-4 py-3 text-xs text-slate-700">
+                                {log.camera?.name || "—"}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-slate-900 max-w-md truncate" title={log.message}>
+                                {log.message}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}
