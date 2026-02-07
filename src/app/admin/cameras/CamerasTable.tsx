@@ -243,9 +243,7 @@ echo "  - \${LIVE_DIR}"
 # ==== VOD Recording ====
 echo "🎥 Starting VOD recording..."
 ffmpeg -rtsp_transport tcp -i "\${RTSP_URL}" \
-  -c:v libx264 -preset veryfast -crf 23 \
-  -c:a aac -ar 44100 \
-  -movflags +faststart \
+  -c:v copy -c:a aac -ar 44100 \
   -f segment -segment_time 900 -reset_timestamps 1 -strftime 1 \
   "\${FOOTAGE_DIR}/%Y-%m-%d_%H-%M-%S.mp4" > /dev/null 2>&1 &
 

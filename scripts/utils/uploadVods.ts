@@ -92,6 +92,51 @@ function getVideoDuration(filePath: string): number {
   return 900;
 }
 
+function getVideoCodec(filePath: string): string {
+  try {
+    const output = execSync(
+      `ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of csv=p=0 "${filePath}"`,
+      { timeout: 15_000 }
+    ).toString().trim();
+    return output.toLowerCase();
+  } catch (err) {
+    console.warn(`⚠️ ffprobe codec check failed for ${filePath}`);
+    return 'unknown';
+  }
+}
+
+function ensureH264(filePath: string): string {
+  const codec = getVideoCodec(filePath);
+  if (codec === 'h264') {
+    console.log(`✅ Already H.264: ${path.basename(filePath)}`);
+    return filePath;
+  }
+
+  console.log(`🔄 Transcoding ${codec}→H.264: ${path.basename(filePath)}...`);
+  const dir = path.dirname(filePath);
+  const ext = path.extname(filePath);
+  const base = path.basename(filePath, ext);
+  const transcodedPath = path.join(dir, `${base}_h264${ext}`);
+
+  try {
+    execSync(
+      `ffmpeg -i "${filePath}" -c:v libx264 -preset veryfast -crf 23 -c:a aac -ar 44100 -movflags +faststart -y "${transcodedPath}"`,
+      { timeout: 600_000, stdio: 'pipe' }
+    );
+
+    // Replace original with transcoded
+    fs.unlinkSync(filePath);
+    fs.renameSync(transcodedPath, filePath);
+    console.log(`✅ Transcoded successfully: ${path.basename(filePath)}`);
+    return filePath;
+  } catch (err) {
+    console.error(`❌ Transcode failed for ${path.basename(filePath)}, uploading as-is`);
+    // Clean up partial transcode
+    try { fs.unlinkSync(transcodedPath); } catch {}
+    return filePath;
+  }
+}
+
 function generateSignedBunnyUrl(filePath: string, expiresInSeconds = 1209600): string {
   const normalizedPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
   const expires = Math.floor(Date.now() / 1000) + expiresInSeconds;
@@ -302,6 +347,10 @@ async function processSegments() {
 
         const [_, date, time] = match;
         const timestamp = new Date(`${date}T${time.replace(/-/g, ':')}`).toISOString();
+
+        // Ensure file is H.264 before uploading (transcodes H.265 if needed)
+        ensureH264(filePath);
+
         const b2Key = `${userId}/${cameraId}/${file}`;
 
         let fileBuffer: Buffer;
