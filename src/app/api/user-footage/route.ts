@@ -2,9 +2,19 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-// ❌ import removed - subscription-check deleted
 
 export const dynamic = 'force-dynamic';
+
+// חישוב גבולות היום לפי שעון ישראל (תומך בשעון קיץ/חורף)
+function getIsraelDayRange(dateStr: string) {
+  const ref = new Date(`${dateStr}T12:00:00Z`);
+  const utcStr = ref.toLocaleString('en-US', { timeZone: 'UTC' });
+  const israelStr = ref.toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' });
+  const offsetMs = new Date(israelStr).getTime() - new Date(utcStr).getTime();
+  const start = new Date(new Date(`${dateStr}T00:00:00Z`).getTime() - offsetMs);
+  const end = new Date(new Date(`${dateStr}T23:59:59.999Z`).getTime() - offsetMs);
+  return { start: start.toISOString(), end: end.toISOString() };
+}
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -42,8 +52,7 @@ export async function POST(req: Request) {
     console.log(`👑 Admin user ${user.id} - granting footage access without subscription check`);
     const retentionDays = user.plan_duration_days ?? 14;
     
-    const start = new Date(`${date}T00:00:00`).toISOString();
-    const end = new Date(`${date}T23:59:59`).toISOString();
+    const { start, end } = getIsraelDayRange(date);
 
     const query = supabase
       .from("vod_files")
@@ -99,8 +108,7 @@ export async function POST(req: Request) {
   const retentionDays = user.plan_duration_days ?? 14;
   console.log(`✅ User ${user.id} has active subscription - footage access granted (${retentionDays} days retention)`);
 
-  const start = new Date(`${date}T00:00:00`).toISOString();
-  const end = new Date(`${date}T23:59:59`).toISOString();
+  const { start, end } = getIsraelDayRange(date);
 
   // בדיקה שהתאריך המבוקש בטווח ימי השמירה
   const requestedDate = new Date(date);
