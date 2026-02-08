@@ -52,7 +52,6 @@ export async function POST(req: NextRequest) {
     const items: any[] = Array.isArray(body) ? body : [body];
 
     const rows = [];
-    const uploadErrors: string[] = [];
     for (const item of items) {
       if (!item.camera_id || !item.detection_type) {
         throw new Error("Missing camera_id or detection_type");
@@ -77,7 +76,6 @@ export async function POST(req: NextRequest) {
 
           if (uploadError) {
             console.error("Snapshot upload error:", JSON.stringify(uploadError));
-            uploadErrors.push(uploadError.message || JSON.stringify(uploadError));
           } else {
             const { data: urlData } = supabase.storage
               .from("alert-snapshots")
@@ -113,7 +111,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, count: rows.length, alerts: data, _debug_upload_errors: uploadErrors.length ? uploadErrors : undefined });
+    return NextResponse.json({ success: true, count: rows.length, alerts: data });
   } catch (err: any) {
     console.error("Alert ingest error:", err);
     return NextResponse.json(
