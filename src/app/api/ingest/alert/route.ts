@@ -8,6 +8,59 @@ function sha256Hex(input: string) {
   return crypto.createHash("sha256").update(input, "utf8").digest("hex");
 }
 
+/**
+ * Check if an alert matches any active rule.
+ * Checks: detection_type, min_confidence, camera_id, schedule, day of week.
+ */
+function findMatchingRule(rules: any[], alert: any): any | null {
+  const now = new Date();
+  // Israel timezone offset (IST = UTC+2, IDT = UTC+3)
+  const israelTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Jerusalem" }));
+  const currentHHMM = `${String(israelTime.getHours()).padStart(2, "0")}:${String(israelTime.getMinutes()).padStart(2, "0")}`;
+  const currentDay = israelTime.getDay(); // 0=Sunday
+
+  for (const rule of rules) {
+    // 1. Detection type check
+    if (rule.detection_type !== "any" && rule.detection_type !== alert.detection_type) {
+      continue;
+    }
+
+    // 2. Min confidence check
+    if (alert.confidence != null && rule.min_confidence != null && alert.confidence < rule.min_confidence) {
+      continue;
+    }
+
+    // 3. Camera check (null = all cameras)
+    if (rule.camera_id && rule.camera_id !== alert.camera_id) {
+      continue;
+    }
+
+    // 4. Day of week check
+    if (rule.days_of_week && rule.days_of_week.length > 0 && !rule.days_of_week.includes(currentDay)) {
+      continue;
+    }
+
+    // 5. Schedule check (start/end times)
+    if (rule.schedule_start && rule.schedule_end) {
+      const start = rule.schedule_start;
+      const end = rule.schedule_end;
+
+      if (start <= end) {
+        // Same-day range (e.g. 08:00 - 18:00)
+        if (currentHHMM < start || currentHHMM > end) continue;
+      } else {
+        // Overnight range (e.g. 22:00 - 06:00)
+        if (currentHHMM < start && currentHHMM > end) continue;
+      }
+    }
+
+    // All checks passed — this rule matches
+    return rule;
+  }
+
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   const deviceToken = req.headers.get("x-clearpoint-device-token")?.trim();
 
@@ -51,10 +104,28 @@ export async function POST(req: NextRequest) {
     // Support single alert or batch
     const items: any[] = Array.isArray(body) ? body : [body];
 
+    // Fetch user's active alert rules
+    const { data: activeRules } = await supabase
+      .from("alert_rules")
+      .select("id, detection_type, min_confidence, camera_id, schedule_start, schedule_end, days_of_week, is_active")
+      .eq("user_id", miniPc.user_id)
+      .eq("is_active", true);
+
+    const rules = activeRules || [];
+
     const rows = [];
+    let skipped = 0;
+
     for (const item of items) {
       if (!item.camera_id || !item.detection_type) {
         throw new Error("Missing camera_id or detection_type");
+      }
+
+      // Check if alert matches any active rule
+      const matchingRule = findMatchingRule(rules, item);
+      if (!matchingRule) {
+        skipped++;
+        continue; // No matching active rule — skip this alert
       }
 
       let snapshotUrl = item.snapshot_url || null;
@@ -90,7 +161,7 @@ export async function POST(req: NextRequest) {
       rows.push({
         user_id: miniPc.user_id,
         camera_id: item.camera_id,
-        rule_id: item.rule_id || null,
+        rule_id: matchingRule.id,
         mini_pc_id: miniPcId,
         detection_type: item.detection_type,
         confidence: item.confidence || null,
@@ -99,6 +170,10 @@ export async function POST(req: NextRequest) {
         message: item.message || null,
         metadata: item.metadata || {},
       });
+    }
+
+    if (rows.length === 0) {
+      return NextResponse.json({ success: true, count: 0, skipped, message: "No matching active rules" });
     }
 
     const { data, error } = await supabase
@@ -111,7 +186,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, count: rows.length, alerts: data });
+    return NextResponse.json({ success: true, count: rows.length, skipped, alerts: data });
   } catch (err: any) {
     console.error("Alert ingest error:", err);
     return NextResponse.json(
