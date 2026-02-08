@@ -20,22 +20,23 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const category = url.searchParams.get("category");
   const severity = url.searchParams.get("severity");
-  const userId = url.searchParams.get("user_id");
-  const limit = Math.min(Number(url.searchParams.get("limit") || 100), 500);
+  const miniPcId = url.searchParams.get("mini_pc_id");
+  const limit = Math.min(Number(url.searchParams.get("limit") || 200), 1000);
 
   let query = supabase
     .from("system_logs")
     .select(`
       *,
       user:users!system_logs_user_id_fkey(full_name, email),
-      camera:cameras!system_logs_camera_id_fkey(name)
+      camera:cameras!system_logs_camera_id_fkey(name),
+      mini_pc:mini_pcs!system_logs_mini_pc_id_fkey(id, device_name, hostname, user_id, user:users!mini_pcs_user_id_fkey(full_name, email))
     `)
     .order("created_at", { ascending: false })
     .limit(limit);
 
   if (category) query = query.eq("category", category);
   if (severity) query = query.eq("severity", severity);
-  if (userId) query = query.eq("user_id", userId);
+  if (miniPcId) query = query.eq("mini_pc_id", miniPcId);
 
   const { data, error } = await query;
 

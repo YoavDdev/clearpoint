@@ -69,6 +69,7 @@ export default function SystemOverviewPage() {
   const [logsLoading, setLogsLoading] = useState(false);
   const [logCategory, setLogCategory] = useState<string>("");
   const [logSeverity, setLogSeverity] = useState<string>("");
+  const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
 
   const fetchStats = async () => {
     setLoading(true);
@@ -339,133 +340,225 @@ export default function SystemOverviewPage() {
             </div>
           )}
 
-          {activeTab === "logs" && (
-            <div className="space-y-4">
-              {/* Filters */}
-              <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-center">
-                <div className="flex items-center gap-2">
-                  <Filter size={18} className="text-slate-400" />
-                  <select
-                    className="pr-8 pl-3 py-2 border border-slate-300 rounded-lg text-sm bg-white text-right"
-                    value={logCategory}
-                    onChange={(e) => setLogCategory(e.target.value)}
-                  >
-                    <option value="">כל הקטגוריות</option>
-                    <option value="camera">מצלמות</option>
-                    <option value="vod">הקלטות (VOD)</option>
-                    <option value="minipc">MiniPC</option>
-                    <option value="alert">התראות</option>
-                    <option value="system">מערכת</option>
-                  </select>
-                </div>
-                <div className="flex items-center gap-2">
-                  <AlertCircle size={18} className="text-slate-400" />
-                  <select
-                    className="pr-8 pl-3 py-2 border border-slate-300 rounded-lg text-sm bg-white text-right"
-                    value={logSeverity}
-                    onChange={(e) => setLogSeverity(e.target.value)}
-                  >
-                    <option value="">כל החומרות</option>
-                    <option value="info">מידע</option>
-                    <option value="warning">אזהרה</option>
-                    <option value="error">שגיאה</option>
-                    <option value="critical">קריטי</option>
-                  </select>
-                </div>
-                <button
-                  onClick={fetchLogs}
-                  disabled={logsLoading}
-                  className="flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-lg text-sm hover:bg-slate-200 transition-colors"
-                >
-                  <RefreshCw size={14} className={logsLoading ? "animate-spin" : ""} />
-                  רענן
-                </button>
-                <span className="text-sm text-slate-500 mr-auto">{logs.length} רשומות</span>
-              </div>
+          {activeTab === "logs" && (() => {
+            // Group logs by customer (via mini_pc)
+            const customerMap = new Map<string, { name: string; email: string; miniPcName: string; miniPcId: string; logs: any[] }>();
+            for (const log of logs) {
+              const mp = log.mini_pc;
+              const key = mp?.user_id || mp?.id || log.user_id || "unknown";
+              if (!customerMap.has(key)) {
+                const customerName = mp?.user?.full_name || log.user?.full_name || "לא ידוע";
+                const customerEmail = mp?.user?.email || log.user?.email || "";
+                customerMap.set(key, {
+                  name: customerName,
+                  email: customerEmail,
+                  miniPcName: mp?.device_name || mp?.hostname || "—",
+                  miniPcId: mp?.id || "",
+                  logs: [],
+                });
+              }
+              customerMap.get(key)!.logs.push(log);
+            }
+            const customers = Array.from(customerMap.entries()).sort((a, b) => {
+              const aTime = a[1].logs[0]?.created_at || "";
+              const bTime = b[1].logs[0]?.created_at || "";
+              return bTime.localeCompare(aTime);
+            });
 
-              {/* Logs Table */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            const severityConfig: Record<string, { icon: any; color: string; bg: string }> = {
+              info: { icon: Info, color: "text-blue-600", bg: "bg-blue-50" },
+              warning: { icon: AlertCircle, color: "text-orange-600", bg: "bg-orange-50" },
+              error: { icon: XCircle, color: "text-red-600", bg: "bg-red-50" },
+              critical: { icon: XCircle, color: "text-red-700", bg: "bg-red-100" },
+            };
+
+            return (
+              <div className="space-y-4">
+                {/* Filters */}
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-center">
+                  <div className="flex items-center gap-2">
+                    <Filter size={18} className="text-slate-400" />
+                    <select
+                      className="pr-8 pl-3 py-2 border border-slate-300 rounded-lg text-sm bg-white text-right"
+                      value={logCategory}
+                      onChange={(e) => setLogCategory(e.target.value)}
+                    >
+                      <option value="">כל הקטגוריות</option>
+                      <option value="camera">מצלמות</option>
+                      <option value="vod">הקלטות (VOD)</option>
+                      <option value="minipc">MiniPC</option>
+                      <option value="alert">התראות</option>
+                      <option value="system">מערכת</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <AlertCircle size={18} className="text-slate-400" />
+                    <select
+                      className="pr-8 pl-3 py-2 border border-slate-300 rounded-lg text-sm bg-white text-right"
+                      value={logSeverity}
+                      onChange={(e) => setLogSeverity(e.target.value)}
+                    >
+                      <option value="">כל החומרות</option>
+                      <option value="info">מידע</option>
+                      <option value="warning">אזהרה</option>
+                      <option value="error">שגיאה</option>
+                      <option value="critical">קריטי</option>
+                    </select>
+                  </div>
+                  <button
+                    onClick={fetchLogs}
+                    disabled={logsLoading}
+                    className="flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-lg text-sm hover:bg-slate-200 transition-colors"
+                  >
+                    <RefreshCw size={14} className={logsLoading ? "animate-spin" : ""} />
+                    רענן
+                  </button>
+                  <span className="text-sm text-slate-500 mr-auto">{customers.length} לקוחות | {logs.length} רשומות (30 יום)</span>
+                </div>
+
+                {/* Customer Cards */}
                 {logsLoading && logs.length === 0 ? (
-                  <div className="p-12 text-center text-slate-500">
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center text-slate-500">
                     <RefreshCw size={32} className="animate-spin mx-auto mb-3 text-slate-400" />
                     <p>טוען לוגים...</p>
                   </div>
-                ) : logs.length === 0 ? (
-                  <div className="p-12 text-center text-slate-500">
+                ) : customers.length === 0 ? (
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center text-slate-500">
                     <ScrollText size={48} className="mx-auto mb-4 text-slate-300" />
                     <p className="text-lg font-medium">אין לוגים</p>
                     <p className="text-sm">לוגים יופיעו כאן כשהמערכת תדווח על אירועים</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-slate-50 border-b border-slate-200">
-                        <tr>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-slate-600">זמן</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-slate-600">חומרה</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-slate-600">קטגוריה</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-slate-600">לקוח</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-slate-600">מצלמה</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-slate-600">הודעה</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {logs.map((log: any) => {
-                          const severityConfig: Record<string, { icon: any; color: string; bg: string }> = {
-                            info: { icon: Info, color: "text-blue-600", bg: "bg-blue-50" },
-                            warning: { icon: AlertCircle, color: "text-orange-600", bg: "bg-orange-50" },
-                            error: { icon: XCircle, color: "text-red-600", bg: "bg-red-50" },
-                            critical: { icon: XCircle, color: "text-red-700", bg: "bg-red-100" },
-                          };
-                          const sev = severityConfig[log.severity] || severityConfig.info;
-                          const SevIcon = sev.icon;
+                  <div className="space-y-3">
+                    {customers.map(([customerId, customer]) => {
+                      const isExpanded = expandedCustomer === customerId;
+                      const latestLog = customer.logs[0];
+                      const latestSev = severityConfig[latestLog?.severity] || severityConfig.info;
+                      const LatestSevIcon = latestSev.icon;
+                      const errorCount = customer.logs.filter((l: any) => l.severity === "error" || l.severity === "critical").length;
+                      const warningCount = customer.logs.filter((l: any) => l.severity === "warning").length;
 
-                          const categoryLabels: Record<string, { label: string; icon: any }> = {
-                            camera: { label: "מצלמה", icon: Camera },
-                            vod: { label: "VOD", icon: Database },
-                            minipc: { label: "MiniPC", icon: Monitor },
-                            alert: { label: "התראה", icon: AlertCircle },
-                            system: { label: "מערכת", icon: Server },
-                          };
-                          const cat = categoryLabels[log.category] || { label: log.category, icon: Info };
-                          const CatIcon = cat.icon;
+                      return (
+                        <div key={customerId} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                          {/* Customer Row */}
+                          <button
+                            onClick={() => setExpandedCustomer(isExpanded ? null : customerId)}
+                            className="w-full flex items-center gap-4 p-5 hover:bg-slate-50 transition-colors text-right"
+                          >
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                              <Users size={20} className="text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-slate-900">{customer.name}</span>
+                                {customer.miniPcName !== "—" && (
+                                  <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                                    <Monitor size={10} className="inline mr-1" />
+                                    {customer.miniPcName}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-slate-500 truncate mt-0.5">{latestLog?.message}</p>
+                            </div>
+                            <div className="flex items-center gap-3 flex-shrink-0">
+                              {errorCount > 0 && (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-red-700 bg-red-50">
+                                  <XCircle size={12} /> {errorCount}
+                                </span>
+                              )}
+                              {warningCount > 0 && (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-orange-700 bg-orange-50">
+                                  <AlertCircle size={12} /> {warningCount}
+                                </span>
+                              )}
+                              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${latestSev.color} ${latestSev.bg}`}>
+                                <LatestSevIcon size={12} />
+                                {latestLog?.severity}
+                              </span>
+                              <span className="text-xs text-slate-400 whitespace-nowrap">
+                                {latestLog && new Date(latestLog.created_at).toLocaleString("he-IL")}
+                              </span>
+                              <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                                {customer.logs.length} לוגים
+                              </span>
+                              <svg className={`w-5 h-5 text-slate-400 transition-transform ${isExpanded ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </div>
+                          </button>
 
-                          return (
-                            <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                              <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
-                                {new Date(log.created_at).toLocaleString("he-IL")}
-                              </td>
-                              <td className="px-4 py-3">
-                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${sev.color} ${sev.bg}`}>
-                                  <SevIcon size={12} />
-                                  {log.severity}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3">
-                                <span className="inline-flex items-center gap-1 text-xs text-slate-700">
-                                  <CatIcon size={12} />
-                                  {cat.label}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-xs text-slate-700">
-                                {log.user?.full_name || "—"}
-                              </td>
-                              <td className="px-4 py-3 text-xs text-slate-700">
-                                {log.camera?.name || "—"}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-slate-900 max-w-md truncate" title={log.message}>
-                                {log.message}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                          {/* Expanded Logs */}
+                          {isExpanded && (
+                            <div className="border-t border-slate-200 bg-slate-50">
+                              <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                                <table className="w-full">
+                                  <thead className="bg-slate-100 sticky top-0">
+                                    <tr>
+                                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-600">זמן</th>
+                                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-600">חומרה</th>
+                                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-600">קטגוריה</th>
+                                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-600">מצלמה</th>
+                                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-600">הודעה</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100">
+                                    {customer.logs.map((log: any) => {
+                                      const sev = severityConfig[log.severity] || severityConfig.info;
+                                      const SevIcon = sev.icon;
+                                      const categoryLabels: Record<string, { label: string; icon: any }> = {
+                                        camera: { label: "מצלמה", icon: Camera },
+                                        vod: { label: "VOD", icon: Database },
+                                        minipc: { label: "MiniPC", icon: Monitor },
+                                        alert: { label: "התראה", icon: AlertCircle },
+                                        system: { label: "מערכת", icon: Server },
+                                      };
+                                      const cat = categoryLabels[log.category] || { label: log.category, icon: Info };
+                                      const CatIcon = cat.icon;
+
+                                      return (
+                                        <tr key={log.id} className="hover:bg-white transition-colors">
+                                          <td className="px-4 py-2.5 text-xs text-slate-600 whitespace-nowrap">
+                                            {new Date(log.created_at).toLocaleString("he-IL")}
+                                          </td>
+                                          <td className="px-4 py-2.5">
+                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${sev.color} ${sev.bg}`}>
+                                              <SevIcon size={11} />
+                                              {log.severity}
+                                            </span>
+                                          </td>
+                                          <td className="px-4 py-2.5">
+                                            <span className="inline-flex items-center gap-1 text-xs text-slate-700">
+                                              <CatIcon size={11} />
+                                              {cat.label}
+                                            </span>
+                                          </td>
+                                          <td className="px-4 py-2.5 text-xs text-slate-700">
+                                            {log.camera?.name || "—"}
+                                          </td>
+                                          <td className="px-4 py-2.5 text-sm text-slate-900" title={log.message}>
+                                            {log.message}
+                                            {log.metadata && Object.keys(log.metadata).length > 0 && (
+                                              <span className="text-xs text-slate-400 mr-2">
+                                                {log.metadata.uploaded != null && `(${log.metadata.uploaded} קבצים, ${log.metadata.total_size_mb}MB)`}
+                                              </span>
+                                            )}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {activeTab === "tech" && (
             <div className="space-y-6">
