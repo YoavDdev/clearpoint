@@ -30,7 +30,6 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.FileHandler(LOG_DIR / "ai-detect.log"),
         logging.StreamHandler(sys.stdout),
     ],
 )
@@ -161,6 +160,7 @@ class YOLOXDetector:
         self.config = config
         self.model = None
         self.use_openvino = False
+        self._lock = threading.Lock()
         self._load_model()
 
     def _load_model(self):
@@ -203,12 +203,13 @@ class YOLOXDetector:
         input_h, input_w = self.config.model_input_size
         img, ratio = self._preprocess(frame, input_h, input_w)
 
-        # Inference
-        if self.use_openvino:
-            output = self.model([img])[self.model.output(0)]
-        else:
-            input_name = self.model.get_inputs()[0].name
-            output = self.model.run(None, {input_name: img})[0]
+        # Inference (thread-safe)
+        with self._lock:
+            if self.use_openvino:
+                output = self.model([img])[self.model.output(0)]
+            else:
+                input_name = self.model.get_inputs()[0].name
+                output = self.model.run(None, {input_name: img})[0]
 
         # Postprocess
         detections = self._postprocess(output, ratio, frame.shape)
@@ -436,8 +437,11 @@ class CameraMonitor(threading.Thread):
         while self.running:
             cap = None
             try:
-                cap = cv2.VideoCapture(self.camera["rtsp_url"])
+                rtsp_url = self.camera["rtsp_url"]
+                cap = cv2.VideoCapture(rtsp_url, cv2.CAP_FFMPEG)
                 cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 15000)
+                cap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 15000)
 
                 if not cap.isOpened():
                     log.warning(f"Cannot open stream: {self.cam_name}")

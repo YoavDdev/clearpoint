@@ -25,7 +25,8 @@ echo "📁 Copied files to $AI_DIR"
 # === Install system dependencies ===
 echo "📦 Installing system packages..."
 sudo apt-get update -qq
-sudo apt-get install -y -qq python3 python3-pip python3-venv libgl1-mesa-glx libglib2.0-0
+sudo apt-get install -y -qq python3 python3-pip python3-venv libglib2.0-0 \
+  libgl1-mesa-glx 2>/dev/null || sudo apt-get install -y -qq libgl1 2>/dev/null || true
 
 # === Create Python venv ===
 if [ ! -d "$VENV_DIR" ]; then
