@@ -26,6 +26,26 @@ fi
 
 echo "🔐 Using device token from: ${ENV_FILE}"
 
+# === System Log Helper ===
+send_system_log() {
+  local category="$1"
+  local severity="$2"
+  local event="$3"
+  local message="$4"
+  local metadata="$5"
+  [[ -z "$metadata" ]] && metadata='{}'
+  curl -s -X POST "$API_BASE/ingest/system-log" \
+    -H "Content-Type: application/json" \
+    -H "x-clearpoint-device-token: $DEVICE_TOKEN" \
+    -d "{
+      \"category\": \"$category\",
+      \"severity\": \"$severity\",
+      \"event\": \"$event\",
+      \"message\": \"$message\",
+      \"metadata\": $metadata
+    }" > /dev/null 2>&1
+}
+
 # === MINI PC SYSTEM METRICS ===
 
 # CPU Temperature
@@ -148,6 +168,50 @@ curl -s -X POST "$API_BASE/ingest/mini-pc-health" \
 
 echo "📊 Mini PC health reported: $MINI_PC_STATUS"
 
+# === Report noteworthy events to System Logs ===
+
+# Reboot detection (uptime < 5 minutes)
+if [[ "$UPTIME_SEC" -lt 300 ]]; then
+  send_system_log "minipc" "warning" "minipc_reboot" \
+    "Mini PC רוסטרט — uptime ${UPTIME_SEC}s" \
+    "{\"uptime_seconds\": $UPTIME_SEC, \"device_name\": \"$DEVICE_NAME\"}"
+  echo "📝 System log: reboot detected (uptime ${UPTIME_SEC}s)"
+fi
+
+# Disk critically full (>90%)
+if [[ "$DISK_ROOT_PCT" -gt 90 ]]; then
+  send_system_log "minipc" "error" "disk_critical" \
+    "דיסק ${DISK_ROOT_PCT}% — קריטי" \
+    "{\"disk_root_pct\": $DISK_ROOT_PCT, \"disk_root_used_gb\": $DISK_ROOT_USED_GB, \"disk_root_total_gb\": $DISK_ROOT_TOTAL_GB}"
+  echo "📝 System log: disk critical ${DISK_ROOT_PCT}%"
+elif [[ "$DISK_ROOT_PCT" -gt 85 ]]; then
+  send_system_log "minipc" "warning" "disk_warning" \
+    "דיסק ${DISK_ROOT_PCT}% — אזהרה" \
+    "{\"disk_root_pct\": $DISK_ROOT_PCT, \"disk_root_used_gb\": $DISK_ROOT_USED_GB, \"disk_root_total_gb\": $DISK_ROOT_TOTAL_GB}"
+  echo "📝 System log: disk warning ${DISK_ROOT_PCT}%"
+fi
+
+# Internet down
+if [[ "$INTERNET_CONNECTED" == "false" ]]; then
+  send_system_log "minipc" "error" "internet_down" \
+    "אין חיבור לאינטרנט" \
+    "{\"ping_gateway_ms\": ${PING_GATEWAY_MS:-null}, \"device_name\": \"$DEVICE_NAME\"}"
+  echo "📝 System log: internet down"
+fi
+
+# Mini PC overall status warning/critical
+if [[ "$MINI_PC_STATUS" == "critical" ]]; then
+  send_system_log "minipc" "critical" "minipc_critical" \
+    "Mini PC במצב קריטי — CPU: ${CPU_TEMP}°C, דיסק: ${DISK_ROOT_PCT}%, RAM: ${RAM_USAGE_PCT}%" \
+    "{\"cpu_temp\": $CPU_TEMP, \"disk_root_pct\": $DISK_ROOT_PCT, \"ram_usage_pct\": $RAM_USAGE_PCT, \"internet\": $INTERNET_CONNECTED}"
+  echo "📝 System log: minipc critical"
+elif [[ "$MINI_PC_STATUS" == "warning" ]]; then
+  send_system_log "minipc" "warning" "minipc_warning" \
+    "Mini PC באזהרה — CPU: ${CPU_TEMP}°C, דיסק: ${DISK_ROOT_PCT}%, RAM: ${RAM_USAGE_PCT}%" \
+    "{\"cpu_temp\": $CPU_TEMP, \"disk_root_pct\": $DISK_ROOT_PCT, \"ram_usage_pct\": $RAM_USAGE_PCT, \"internet\": $INTERNET_CONNECTED}"
+  echo "📝 System log: minipc warning"
+fi
+
 # === Cameras are discovered locally from LIVE_BASE directories ===
 
 # === Loop over each camera for individual health ===
@@ -229,6 +293,11 @@ for CAMERA_DIR in $CAMERA_DIRS; do
       echo "$NOW" > "$LAST_RESTART_FILE"
       echo "🔁 Restarting camera: $CAMERA_DIR ($STREAM_STATUS)..."
       
+      # Report camera restart to system log
+      send_system_log "camera" "warning" "camera_restart" \
+        "מצלמה רוסטרטה ($STREAM_STATUS)" \
+        "{\"camera_id\": \"$CAMERA_UUID\", \"stream_status\": \"$STREAM_STATUS\", \"m3u8_age_sec\": $M3U8_AGE_SEC, \"retry_count\": $((COUNT+1))}"
+      
       # Force kill all related processes
       pkill -9 -f "camera-${CAMERA_DIR}.sh"
       pkill -9 -f "ffmpeg.*${CAMERA_DIR}"
@@ -260,6 +329,11 @@ for CAMERA_DIR in $CAMERA_DIRS; do
         #     \"camera_id\": \"$CAMERA_UUID\",
         #     \"mini_pc_id\": \"$MINI_PC_ID\"
         #   }" > /dev/null
+        
+        # Report permanent camera failure to system log
+        send_system_log "camera" "critical" "camera_failure" \
+          "מצלמה נכשלה סופית אחרי $MAX_RETRIES ניסיונות" \
+          "{\"camera_id\": \"$CAMERA_UUID\", \"stream_status\": \"$STREAM_STATUS\", \"max_retries\": $MAX_RETRIES}"
         
         # Mark as notified to prevent spam
         echo "$NOW" > "$FAILURE_NOTIFIED_FILE"
