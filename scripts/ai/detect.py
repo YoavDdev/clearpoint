@@ -74,7 +74,7 @@ class Config:
         self.device_token = self._load_device_token()
 
         # Detection settings (defaults, can be overridden per camera)
-        self.analysis_fps = 2            # Frames to analyze per second
+        self.analysis_fps = 1            # Frames to analyze per second
         self.motion_threshold = 25       # Pixel diff threshold for motion
         self.motion_min_area = 500       # Min contour area to count as motion
         self.motion_blur_size = 21       # Gaussian blur kernel size
@@ -175,7 +175,9 @@ class YOLOXDetector:
         try:
             from openvino.runtime import Core
             ie = Core()
-            self.model = ie.compile_model(model_path, "AUTO")
+            compiled = ie.compile_model(model_path, "AUTO")
+            self._infer_request = compiled.create_infer_request()
+            self.model = compiled
             self.use_openvino = True
             log.info("Loaded YOLOX-Nano with OpenVINO (Intel optimized)")
             return
@@ -203,13 +205,18 @@ class YOLOXDetector:
         input_h, input_w = self.config.model_input_size
         img, ratio = self._preprocess(frame, input_h, input_w)
 
-        # Inference (thread-safe)
+        # Inference (thread-safe — single lock for all cameras)
         with self._lock:
-            if self.use_openvino:
-                output = self.model([img])[self.model.output(0)]
-            else:
-                input_name = self.model.get_inputs()[0].name
-                output = self.model.run(None, {input_name: img})[0]
+            try:
+                if self.use_openvino:
+                    self._infer_request.infer({0: img})
+                    output = self._infer_request.get_output_tensor(0).data.copy()
+                else:
+                    input_name = self.model.get_inputs()[0].name
+                    output = self.model.run(None, {input_name: img})[0]
+            except Exception as e:
+                log.warning(f"Inference error (skipping frame): {e}")
+                return []
 
         # Postprocess
         detections = self._postprocess(output, ratio, frame.shape)
@@ -473,7 +480,11 @@ class CameraMonitor(threading.Thread):
 
                     if has_motion:
                         # Step 2: YOLOX inference (only on motion)
-                        detections = self.detector.detect(frame)
+                        try:
+                            detections = self.detector.detect(frame)
+                        except Exception as e:
+                            log.warning(f"Detection error on {self.cam_name}: {e}")
+                            detections = []
 
                         for det in detections:
                             # Step 3: Send alert (with cooldown)
