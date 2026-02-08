@@ -63,6 +63,45 @@ for i, cls in enumerate(COCO_CLASSES):
                  "bear", "zebra", "giraffe"):
         COCO_TO_DETECTION[i] = "animal"
 
+# ─── Bounding box colors per detection type ─────────────────
+DETECTION_COLORS = {
+    "person": (255, 100, 50),    # Blue (BGR)
+    "vehicle": (0, 140, 255),    # Orange
+    "animal": (0, 200, 80),      # Green
+}
+DETECTION_LABELS = {
+    "person": "אדם",
+    "vehicle": "רכב",
+    "animal": "חיה",
+}
+
+
+def draw_detections(frame: np.ndarray, detections: list) -> np.ndarray:
+    """Draw bounding boxes + labels on a copy of the frame."""
+    annotated = frame.copy()
+    for det in detections:
+        bbox = det["bbox"]
+        x1, y1, x2, y2 = [int(v) for v in bbox]
+        det_type = det["detection_type"]
+        color = DETECTION_COLORS.get(det_type, (200, 200, 200))
+        label_text = DETECTION_LABELS.get(det_type, det_type)
+        conf = det["confidence"]
+
+        # Draw rectangle
+        cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 2)
+
+        # Label background
+        label = f"{label_text} {conf:.0%}"
+        (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 1)
+        cv2.rectangle(annotated, (x1, y1 - th - 8), (x1 + tw + 6, y1), color, -1)
+
+        # Label text (white on colored background)
+        cv2.putText(annotated, label, (x1 + 3, y1 - 4),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv2.LINE_AA)
+
+    return annotated
+
+
 # ─── Configuration ──────────────────────────────────────────
 class Config:
     def __init__(self):
@@ -486,9 +525,12 @@ class CameraMonitor(threading.Thread):
                             log.warning(f"Detection error on {self.cam_name}: {e}")
                             detections = []
 
-                        for det in detections:
-                            # Step 3: Send alert (with cooldown)
-                            self.sender.send_alert(self.cam_id, det, frame)
+                        if detections:
+                            # Draw all bounding boxes on one annotated frame
+                            annotated = draw_detections(frame, detections)
+                            for det in detections:
+                                # Step 3: Send alert (with cooldown)
+                                self.sender.send_alert(self.cam_id, det, annotated)
 
                     # Maintain target FPS
                     elapsed = time.time() - start
