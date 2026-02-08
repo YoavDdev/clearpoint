@@ -5,8 +5,9 @@ import {
   Bell, Plus, Pencil, Trash2, Power, PowerOff, Save, X,
   Clock, Shield, Car, Bug, Flame, Eye, User, Loader2,
   ChevronDown, ChevronUp, Camera, Mail, MessageSquare, Smartphone,
-  Sparkles
+  Sparkles, Settings
 } from 'lucide-react';
+import AlertsFeed from '@/components/AlertsFeed';
 
 interface AlertRule {
   id: string;
@@ -55,6 +56,7 @@ function getDetectionInfo(type: string) {
 }
 
 export default function AlertsSettingsPage() {
+  const [activeTab, setActiveTab] = useState<'feed' | 'settings'>('feed');
   const [rules, setRules] = useState<AlertRule[]>([]);
   const [cameras, setCameras] = useState<CameraOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -207,25 +209,52 @@ export default function AlertsSettingsPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto" dir="rtl">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
             <Sparkles className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">הגדרות התראות AI</h1>
-            <p className="text-slate-500">הגדר חוקים לזיהוי חכם של אירועים</p>
+            <h1 className="text-2xl font-bold text-slate-900">התראות AI</h1>
+            <p className="text-slate-500">זיהוי חכם של אירועים בזמן אמת</p>
           </div>
         </div>
-        <div className="flex gap-3 mt-4">
-          <div className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium">
-            {rules.length} חוקים
-          </div>
-          <div className="px-4 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium">
-            {activeCount} פעילים
-          </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
+          <button
+            onClick={() => setActiveTab('feed')}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'feed'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Bell className="w-4 h-4" />
+            התראות
+          </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'settings'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Settings className="w-4 h-4" />
+            הגדרות חוקים
+            <span className="px-1.5 py-0.5 bg-slate-200 text-slate-600 text-xs rounded-full">
+              {rules.length}
+            </span>
+          </button>
         </div>
       </div>
+
+      {/* Feed Tab */}
+      {activeTab === 'feed' && <AlertsFeed />}
+
+      {/* Settings Tab */}
+      {activeTab === 'settings' && (<div>
 
       {/* Preset Rules */}
       {presetRules.length > 0 && (
@@ -324,6 +353,7 @@ export default function AlertsSettingsPage() {
           <li>• cooldown מונע הצפה של התראות חוזרות</li>
         </ul>
       </div>
+      </div>)}
     </div>
   );
 }
