@@ -278,6 +278,19 @@ class YOLOXDetector:
 
         return blob, ratio
 
+    def _generate_grids(self, input_h: int, input_w: int):
+        """Generate YOLOX grid offsets and strides for decoding."""
+        strides = [8, 16, 32]
+        grids = []
+        expanded_strides = []
+        for s in strides:
+            gh, gw = input_h // s, input_w // s
+            grid_y, grid_x = np.meshgrid(np.arange(gh), np.arange(gw), indexing="ij")
+            grid = np.stack([grid_x, grid_y], axis=-1).reshape(-1, 2)
+            grids.append(grid)
+            expanded_strides.append(np.full(len(grid), s))
+        return np.concatenate(grids, axis=0), np.concatenate(expanded_strides, axis=0)
+
     def _postprocess(self, output: np.ndarray, ratio: float, img_shape: tuple) -> list:
         """Parse YOLOX output into detections"""
         predictions = output[0]  # (num_boxes, 5+num_classes)
@@ -286,7 +299,16 @@ class YOLOXDetector:
         if len(predictions) == 0:
             return detections
 
-        # YOLOX output: cx, cy, w, h, obj_conf, class_scores...
+        # Decode YOLOX grid-relative output to pixel coordinates
+        input_h, input_w = self.config.model_input_size
+        grids, strides = self._generate_grids(input_h, input_w)
+
+        predictions[:, 0] = (predictions[:, 0] + grids[:, 0]) * strides  # cx
+        predictions[:, 1] = (predictions[:, 1] + grids[:, 1]) * strides  # cy
+        predictions[:, 2] = np.exp(predictions[:, 2]) * strides          # w
+        predictions[:, 3] = np.exp(predictions[:, 3]) * strides          # h
+
+        # cx, cy, w, h → x1, y1, x2, y2
         box_corner = np.zeros_like(predictions[:, :4])
         box_corner[:, 0] = predictions[:, 0] - predictions[:, 2] / 2  # x1
         box_corner[:, 1] = predictions[:, 1] - predictions[:, 3] / 2  # y1
@@ -527,8 +549,9 @@ class CameraMonitor(threading.Thread):
 
                         if detections:
                             # Draw all bounding boxes on one annotated frame
+                            for d in detections:
+                                log.info(f"🎯 {self.cam_name}: {d['detection_type']} {d['confidence']:.0%} bbox={d['bbox']} frame={frame.shape[:2]}")
                             annotated = draw_detections(frame, detections)
-                            log.info(f"🎯 {self.cam_name}: {len(detections)} detection(s) — drawing bbox")
                             for det in detections:
                                 # Step 3: Send alert (with cooldown)
                                 self.sender.send_alert(self.cam_id, det, annotated)
