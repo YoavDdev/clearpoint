@@ -11,7 +11,7 @@ echo "  DEVICE_NAME: '$DEVICE_NAME'"
 echo "  LIVE_BASE: '$LIVE_BASE'"
 echo "  Directory exists: $([ -d "$LIVE_BASE" ] && echo 'YES' || echo 'NO')"
 
-API_BASE="https://clearpoint.co.il/api"
+API_BASE="https://www.clearpoint.co.il/api"
 ENV_FILE="$HOME/clearpoint-core/.env"
 DEVICE_TOKEN="${CLEARPOINT_DEVICE_TOKEN:-}"
 if [[ -z "$DEVICE_TOKEN" && -f "$ENV_FILE" ]]; then
