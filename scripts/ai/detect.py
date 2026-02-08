@@ -550,7 +550,7 @@ class CameraMonitor(threading.Thread):
                         if detections:
                             # Draw all bounding boxes on one annotated frame
                             for d in detections:
-                                log.info(f"🎯 {self.cam_name}: {d['detection_type']} {d['confidence']:.0%} bbox={d['bbox']} frame={frame.shape[:2]}")
+                                log.info(f"🎯 {self.cam_name}: {d['detection_type']} {d['confidence']:.0%}")
                             annotated = draw_detections(frame, detections)
                             for det in detections:
                                 # Step 3: Send alert (with cooldown)
