@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   Bell, BellOff, Check, CheckCheck, Eye, User, Car, Bug,
   Shield, Flame, Clock, Camera, Loader2, RefreshCw, Filter,
-  ChevronDown, ChevronUp, Image as ImageIcon, AlertTriangle, Download
+  ChevronDown, ChevronUp, Image as ImageIcon, AlertTriangle, Download, Trash2
 } from 'lucide-react';
 
 interface Alert {
@@ -169,6 +169,33 @@ export default function AlertsFeed({ isAdmin = false }: { isAdmin?: boolean }) {
     }
   };
 
+  const deleteAlert = async (alertId: string) => {
+    if (!confirm('למחוק את ההתראה?')) return;
+    try {
+      const res = await fetch(`/api/alerts?id=${alertId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setAlerts(prev => prev.filter(a => a.id !== alertId));
+        if (expandedAlert === alertId) setExpandedAlert(null);
+      }
+    } catch (err) {
+      console.error('Delete failed:', err);
+    }
+  };
+
+  const deleteAllAlerts = async () => {
+    if (!confirm('למחוק את כל ההתראות? פעולה זו לא ניתנת לביטול.')) return;
+    try {
+      const res = await fetch('/api/alerts?all=true', { method: 'DELETE' });
+      if (res.ok) {
+        setAlerts([]);
+        setUnacknowledgedCount(0);
+        setExpandedAlert(null);
+      }
+    } catch (err) {
+      console.error('Delete all failed:', err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -209,6 +236,15 @@ export default function AlertsFeed({ isAdmin = false }: { isAdmin?: boolean }) {
             >
               <CheckCheck className="w-3.5 h-3.5" />
               סמן הכל כנקרא
+            </button>
+          )}
+          {alerts.length > 0 && (
+            <button
+              onClick={deleteAllAlerts}
+              className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-700 rounded-lg text-sm hover:bg-red-100 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              מחק הכל
             </button>
           )}
           <button
@@ -283,6 +319,7 @@ export default function AlertsFeed({ isAdmin = false }: { isAdmin?: boolean }) {
                   expanded={expandedAlert === alert.id}
                   onExpand={() => setExpandedAlert(expandedAlert === alert.id ? null : alert.id)}
                   onAcknowledge={() => acknowledgeAlert(alert.id)}
+                  onDelete={() => deleteAlert(alert.id)}
                 />
               ))}
             </div>
@@ -295,12 +332,13 @@ export default function AlertsFeed({ isAdmin = false }: { isAdmin?: boolean }) {
 
 // ─── Alert Card ───────────────────────────────────────────
 function AlertCard({
-  alert, expanded, onExpand, onAcknowledge
+  alert, expanded, onExpand, onAcknowledge, onDelete
 }: {
   alert: Alert;
   expanded: boolean;
   onExpand: () => void;
   onAcknowledge: () => void;
+  onDelete: () => void;
 }) {
   const Icon = DETECTION_ICONS[alert.detection_type] || Shield;
   const label = DETECTION_LABELS[alert.detection_type] || alert.detection_type;
@@ -450,12 +488,16 @@ function AlertCard({
             </div>
           </div>
 
-          {/* Metadata bbox */}
-          {alert.metadata?.bbox && (
-            <div className="text-xs text-slate-400">
-              Bounding Box: [{alert.metadata.bbox.join(', ')}]
-            </div>
-          )}
+          {/* Delete button */}
+          <div className="flex justify-end pt-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs hover:bg-red-100 transition-colors"
+            >
+              <Trash2 className="w-3 h-3" />
+              מחק התראה
+            </button>
+          </div>
         </div>
       )}
     </div>

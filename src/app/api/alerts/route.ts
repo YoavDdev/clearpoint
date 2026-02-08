@@ -137,3 +137,94 @@ export async function PUT(req: NextRequest) {
 
   return NextResponse.json({ success: true });
 }
+
+// DELETE — delete alert(s)
+export async function DELETE(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { data: user } = await supabase
+    .from("users")
+    .select("id")
+    .eq("email", session.user.email)
+    .single();
+
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const deleteAll = searchParams.get("all") === "true";
+  const id = searchParams.get("id");
+
+  if (deleteAll) {
+    // Fetch snapshot URLs before deleting
+    const { data: alerts } = await supabase
+      .from("alerts")
+      .select("snapshot_url")
+      .eq("user_id", user.id);
+
+    // Delete snapshot files from Storage
+    if (alerts && alerts.length > 0) {
+      const filePaths = alerts
+        .filter((a) => a.snapshot_url && a.snapshot_url.includes("/alert-snapshots/"))
+        .map((a) => a.snapshot_url.split("/alert-snapshots/")[1])
+        .filter(Boolean);
+
+      if (filePaths.length > 0) {
+        for (let i = 0; i < filePaths.length; i += 100) {
+          await supabase.storage.from("alert-snapshots").remove(filePaths.slice(i, i + 100));
+        }
+      }
+    }
+
+    const { error, count } = await supabase
+      .from("alerts")
+      .delete({ count: "exact" })
+      .eq("user_id", user.id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, deleted: count || 0 });
+  }
+
+  if (!id) {
+    return NextResponse.json({ error: "Missing alert id" }, { status: 400 });
+  }
+
+  // Fetch snapshot URL before deleting
+  const { data: alert } = await supabase
+    .from("alerts")
+    .select("snapshot_url")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (alert?.snapshot_url && alert.snapshot_url.includes("/alert-snapshots/")) {
+    const filePath = alert.snapshot_url.split("/alert-snapshots/")[1];
+    if (filePath) {
+      await supabase.storage.from("alert-snapshots").remove([filePath]);
+    }
+  }
+
+  const { error } = await supabase
+    .from("alerts")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}
