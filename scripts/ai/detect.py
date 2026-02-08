@@ -70,9 +70,9 @@ DETECTION_COLORS = {
     "animal": (0, 200, 80),      # Green
 }
 DETECTION_LABELS = {
-    "person": "אדם",
-    "vehicle": "רכב",
-    "animal": "חיה",
+    "person": "Person",
+    "vehicle": "Vehicle",
+    "animal": "Animal",
 }
 
 
@@ -528,6 +528,7 @@ class CameraMonitor(threading.Thread):
                         if detections:
                             # Draw all bounding boxes on one annotated frame
                             annotated = draw_detections(frame, detections)
+                            log.info(f"🎯 {self.cam_name}: {len(detections)} detection(s) — drawing bbox")
                             for det in detections:
                                 # Step 3: Send alert (with cooldown)
                                 self.sender.send_alert(self.cam_id, det, annotated)
