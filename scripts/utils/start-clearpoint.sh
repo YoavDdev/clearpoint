@@ -35,4 +35,27 @@ cd ~
 LIVE_DIR="$LIVE_ROOT/$USER_ID/live"
 NODE_ENV=production USER_ID="$USER_ID" node live-server.js "$LIVE_DIR" > ~/express-server-log.txt 2>&1 &
 
-echo "✅ All cameras and Express server are running!"
+# === Wait for cameras to stabilize, then start AI ===
+echo "⏳ Waiting 30s for cameras to stabilize before starting AI..."
+sleep 30
+
+AI_SCRIPT=~/clearpoint-core/detect.py
+AI_VENV=~/clearpoint-core/venv
+
+if [[ -f "$AI_SCRIPT" ]]; then
+  echo "🧹 Stopping old AI process..."
+  pkill -f "detect.py" 2>/dev/null || true
+  sleep 2
+
+  echo "🤖 Starting AI detection engine..."
+  if [[ -d "$AI_VENV" ]]; then
+    source "$AI_VENV/bin/activate"
+  fi
+  cd ~/clearpoint-core
+  python3 detect.py >> ~/clearpoint-logs/ai-detect.log 2>&1 &
+  echo "✅ AI detection started (PID: $!)"
+else
+  echo "⚠️ AI script not found at $AI_SCRIPT — skipping"
+fi
+
+echo "✅ All cameras, Express server, and AI are running!"
