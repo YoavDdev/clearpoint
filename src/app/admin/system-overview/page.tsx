@@ -70,6 +70,7 @@ export default function SystemOverviewPage() {
   const [logCategory, setLogCategory] = useState<string>("");
   const [logSeverity, setLogSeverity] = useState<string>("");
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
+  const [expandedDay, setExpandedDay] = useState<string | null>(null);
 
   const fetchStats = async () => {
     setLoading(true);
@@ -372,6 +373,40 @@ export default function SystemOverviewPage() {
               critical: { icon: XCircle, color: "text-red-700", bg: "bg-red-100" },
             };
 
+            const categoryLabels: Record<string, { label: string; icon: any }> = {
+              camera: { label: "מצלמה", icon: Camera },
+              vod: { label: "VOD", icon: Database },
+              minipc: { label: "MiniPC", icon: Monitor },
+              alert: { label: "התראה", icon: AlertCircle },
+              system: { label: "מערכת", icon: Server },
+            };
+
+            // Group logs by day for a customer
+            const groupByDay = (customerLogs: any[]) => {
+              const dayMap = new Map<string, any[]>();
+              for (const log of customerLogs) {
+                const day = new Date(log.created_at).toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem" });
+                if (!dayMap.has(day)) dayMap.set(day, []);
+                dayMap.get(day)!.push(log);
+              }
+              return Array.from(dayMap.entries());
+            };
+
+            const formatTime = (iso: string) =>
+              new Date(iso).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Jerusalem" });
+
+            const formatMetadata = (log: any) => {
+              const m = log.metadata;
+              if (!m || Object.keys(m).length === 0) return null;
+              const parts: string[] = [];
+              if (m.uploaded != null) parts.push(`${m.uploaded} קבצים`);
+              if (m.total_size_mb != null) parts.push(`${m.total_size_mb}MB`);
+              if (m.failed != null && m.failed > 0) parts.push(`${m.failed} נכשלו`);
+              if (m.corrupt != null && m.corrupt > 0) parts.push(`${m.corrupt} פגומים`);
+              if (m.duration_sec != null) parts.push(`${m.duration_sec}s`);
+              return parts.length > 0 ? parts.join(" | ") : null;
+            };
+
             return (
               <div className="space-y-4">
                 {/* Filters */}
@@ -413,7 +448,7 @@ export default function SystemOverviewPage() {
                     <RefreshCw size={14} className={logsLoading ? "animate-spin" : ""} />
                     רענן
                   </button>
-                  <span className="text-sm text-slate-500 mr-auto">{customers.length} לקוחות | {logs.length} רשומות (30 יום)</span>
+                  <span className="text-sm text-slate-500 mr-auto">{customers.length} לקוחות | {logs.length} רשומות (14 יום)</span>
                 </div>
 
                 {/* Customer Cards */}
@@ -437,6 +472,7 @@ export default function SystemOverviewPage() {
                       const LatestSevIcon = latestSev.icon;
                       const errorCount = customer.logs.filter((l: any) => l.severity === "error" || l.severity === "critical").length;
                       const warningCount = customer.logs.filter((l: any) => l.severity === "warning").length;
+                      const days = groupByDay(customer.logs);
 
                       return (
                         <div key={customerId} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -476,10 +512,10 @@ export default function SystemOverviewPage() {
                                 {latestLog?.severity}
                               </span>
                               <span className="text-xs text-slate-400 whitespace-nowrap">
-                                {latestLog && new Date(latestLog.created_at).toLocaleString("he-IL")}
+                                {latestLog && formatTime(latestLog.created_at)}
                               </span>
                               <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded">
-                                {customer.logs.length} לוגים
+                                {days.length} ימים | {customer.logs.length} לוגים
                               </span>
                               <svg className={`w-5 h-5 text-slate-400 transition-transform ${isExpanded ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -487,67 +523,100 @@ export default function SystemOverviewPage() {
                             </div>
                           </button>
 
-                          {/* Expanded Logs */}
+                          {/* Expanded: Day-based logs */}
                           {isExpanded && (
                             <div className="border-t border-slate-200 bg-slate-50">
-                              <div className="overflow-x-auto max-h-96 overflow-y-auto">
-                                <table className="w-full">
-                                  <thead className="bg-slate-100 sticky top-0">
-                                    <tr>
-                                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-600">זמן</th>
-                                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-600">חומרה</th>
-                                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-600">קטגוריה</th>
-                                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-600">מצלמה</th>
-                                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-600">הודעה</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-slate-100">
-                                    {customer.logs.map((log: any) => {
-                                      const sev = severityConfig[log.severity] || severityConfig.info;
-                                      const SevIcon = sev.icon;
-                                      const categoryLabels: Record<string, { label: string; icon: any }> = {
-                                        camera: { label: "מצלמה", icon: Camera },
-                                        vod: { label: "VOD", icon: Database },
-                                        minipc: { label: "MiniPC", icon: Monitor },
-                                        alert: { label: "התראה", icon: AlertCircle },
-                                        system: { label: "מערכת", icon: Server },
-                                      };
-                                      const cat = categoryLabels[log.category] || { label: log.category, icon: Info };
-                                      const CatIcon = cat.icon;
+                              <div className="max-h-[500px] overflow-y-auto">
+                                {days.map(([dayLabel, dayLogs]) => {
+                                  const dayKey = `${customerId}-${dayLabel}`;
+                                  const isDayExpanded = expandedDay === dayKey;
+                                  const dayErrors = dayLogs.filter((l: any) => l.severity === "error" || l.severity === "critical").length;
+                                  const dayWarnings = dayLogs.filter((l: any) => l.severity === "warning").length;
 
-                                      return (
-                                        <tr key={log.id} className="hover:bg-white transition-colors">
-                                          <td className="px-4 py-2.5 text-xs text-slate-600 whitespace-nowrap">
-                                            {new Date(log.created_at).toLocaleString("he-IL")}
-                                          </td>
-                                          <td className="px-4 py-2.5">
-                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${sev.color} ${sev.bg}`}>
-                                              <SevIcon size={11} />
-                                              {log.severity}
-                                            </span>
-                                          </td>
-                                          <td className="px-4 py-2.5">
-                                            <span className="inline-flex items-center gap-1 text-xs text-slate-700">
-                                              <CatIcon size={11} />
-                                              {cat.label}
-                                            </span>
-                                          </td>
-                                          <td className="px-4 py-2.5 text-xs text-slate-700">
-                                            {log.camera?.name || "—"}
-                                          </td>
-                                          <td className="px-4 py-2.5 text-sm text-slate-900" title={log.message}>
-                                            {log.message}
-                                            {log.metadata && Object.keys(log.metadata).length > 0 && (
-                                              <span className="text-xs text-slate-400 mr-2">
-                                                {log.metadata.uploaded != null && `(${log.metadata.uploaded} קבצים, ${log.metadata.total_size_mb}MB)`}
-                                              </span>
-                                            )}
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
+                                  return (
+                                    <div key={dayKey}>
+                                      {/* Day Header */}
+                                      <button
+                                        onClick={() => setExpandedDay(isDayExpanded ? null : dayKey)}
+                                        className="w-full flex items-center gap-3 px-5 py-3 hover:bg-slate-100 transition-colors border-b border-slate-200"
+                                      >
+                                        <span className="text-sm font-bold text-slate-700">{dayLabel}</span>
+                                        <span className="text-xs text-slate-400">{dayLogs.length} לוגים</span>
+                                        {dayErrors > 0 && (
+                                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-red-700 bg-red-50">
+                                            <XCircle size={10} /> {dayErrors}
+                                          </span>
+                                        )}
+                                        {dayWarnings > 0 && (
+                                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-orange-700 bg-orange-50">
+                                            <AlertCircle size={10} /> {dayWarnings}
+                                          </span>
+                                        )}
+                                        <svg className={`w-4 h-4 text-slate-400 transition-transform mr-auto ${isDayExpanded ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                      </button>
+
+                                      {/* Day Logs Table */}
+                                      {isDayExpanded && (
+                                        <div className="overflow-x-auto">
+                                          <table className="w-full">
+                                            <thead className="bg-slate-100">
+                                              <tr>
+                                                <th className="px-4 py-2 text-right text-xs font-medium text-slate-600">שעת דיווח</th>
+                                                <th className="px-4 py-2 text-right text-xs font-medium text-slate-600">חומרה</th>
+                                                <th className="px-4 py-2 text-right text-xs font-medium text-slate-600">קטגוריה</th>
+                                                <th className="px-4 py-2 text-right text-xs font-medium text-slate-600">הודעה</th>
+                                                <th className="px-4 py-2 text-right text-xs font-medium text-slate-600">פרטים</th>
+                                              </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                              {dayLogs.map((log: any) => {
+                                                const sev = severityConfig[log.severity] || severityConfig.info;
+                                                const SevIcon = sev.icon;
+                                                const cat = categoryLabels[log.category] || { label: log.category, icon: Info };
+                                                const CatIcon = cat.icon;
+                                                const meta = formatMetadata(log);
+
+                                                return (
+                                                  <tr key={log.id} className="hover:bg-white transition-colors">
+                                                    <td className="px-4 py-2.5 text-xs text-slate-700 whitespace-nowrap font-medium">
+                                                      {formatTime(log.created_at)}
+                                                    </td>
+                                                    <td className="px-4 py-2.5">
+                                                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${sev.color} ${sev.bg}`}>
+                                                        <SevIcon size={11} />
+                                                        {log.severity}
+                                                      </span>
+                                                    </td>
+                                                    <td className="px-4 py-2.5">
+                                                      <span className="inline-flex items-center gap-1 text-xs text-slate-700">
+                                                        <CatIcon size={11} />
+                                                        {cat.label}
+                                                      </span>
+                                                    </td>
+                                                    <td className="px-4 py-2.5 text-sm text-slate-900 max-w-md" title={log.message}>
+                                                      <span className="line-clamp-2">{log.message}</span>
+                                                    </td>
+                                                    <td className="px-4 py-2.5 text-xs text-slate-500 whitespace-nowrap">
+                                                      {meta && <span className="bg-slate-100 px-2 py-0.5 rounded">{meta}</span>}
+                                                      {log.camera?.name && (
+                                                        <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded mr-1">
+                                                          <Camera size={10} className="inline mr-0.5" />
+                                                          {log.camera.name}
+                                                        </span>
+                                                      )}
+                                                    </td>
+                                                  </tr>
+                                                );
+                                              })}
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           )}
