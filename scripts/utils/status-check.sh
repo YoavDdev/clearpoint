@@ -34,7 +34,7 @@ send_system_log() {
   local message="$4"
   local metadata="$5"
   [[ -z "$metadata" ]] && metadata='{}'
-  curl -s -X POST "$API_BASE/ingest/system-log" \
+  curl -sL -X POST "$API_BASE/ingest/system-log" \
     -H "Content-Type: application/json" \
     -H "x-clearpoint-device-token: $DEVICE_TOKEN" \
     -d "{
@@ -137,7 +137,7 @@ RETRY_DIR="/tmp/clearpoint-restarts"
 mkdir -p "$RETRY_DIR"
 
 # === Report Mini PC Health to Clearpoint API (POST) ===
-curl -s -X POST "$API_BASE/ingest/mini-pc-health" \
+curl -sL -X POST "$API_BASE/ingest/mini-pc-health" \
   -H "Content-Type: application/json" \
   -H "x-clearpoint-device-token: $DEVICE_TOKEN" \
   -d "{
@@ -370,7 +370,7 @@ for CAMERA_DIR in $CAMERA_DIRS; do
   fi
   
   # Try to update existing record (POST always works for existing records)
-  RESPONSE=$(curl -s -X POST "$API_BASE/ingest/camera-health" \
+  RESPONSE=$(curl -sL -X POST "$API_BASE/ingest/camera-health" \
     -H "Content-Type: application/json" \
     -H "x-clearpoint-device-token: $DEVICE_TOKEN" \
     -d "$JSON_PAYLOAD")
