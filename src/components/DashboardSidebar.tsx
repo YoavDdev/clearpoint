@@ -20,7 +20,7 @@ export default function DashboardSidebar({ isAdmin = false }: { isAdmin?: boolea
   const menuItems = [
     { href: "/dashboard", icon: Home, label: "דף הבית", description: "צפייה חיה במצלמות" },
     { href: "/dashboard?mode=recordings", icon: Video, label: "הקלטות", description: "צפייה בהקלטות קודמות" },
-    { href: "#", icon: Sparkles, label: "התראות AI", description: "זיהוי חכם של אירועים", comingSoon: true },
+    { href: "/dashboard/alerts", icon: Sparkles, label: "התראות AI", description: "זיהוי חכם של אירועים" },
     { href: "/dashboard/subscription", icon: Repeat, label: "המנוי שלי", description: "פרטי התוכנית שלי" },
     { href: "/dashboard/invoices", icon: FileText, label: "מסמכים", description: "כל המסמכים שלי" },
     { href: "/dashboard/support", icon: HelpCircle, label: "עזרה ותמיכה", description: "קבלו עזרה מהצוות" },
@@ -78,32 +78,6 @@ export default function DashboardSidebar({ isAdmin = false }: { isAdmin?: boolea
           {menuItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
-            const isComingSoon = item.comingSoon;
-
-            // Coming soon items are not links
-            if (isComingSoon) {
-              return (
-                <div
-                  key={item.href}
-                  className="relative group block p-4 rounded-xl transition-all duration-200 bg-slate-50 border border-slate-200 cursor-not-allowed opacity-75"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br from-purple-100 to-pink-100">
-                      <Icon className="w-6 h-6 text-purple-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-lg font-bold text-slate-900">{item.label}</p>
-                        <span className="px-2 py-0.5 bg-gradient-to-l from-purple-500 to-pink-500 text-white text-xs font-bold rounded-full">
-                          בקרוב
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-500">{item.description}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
 
             return (
               <Link
