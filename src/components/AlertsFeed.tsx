@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   Bell, BellOff, Check, CheckCheck, Eye, User, Car, Bug,
   Shield, Flame, Clock, Camera, Loader2, RefreshCw, Filter,
-  ChevronDown, ChevronUp, Image as ImageIcon, AlertTriangle
+  ChevronDown, ChevronUp, Image as ImageIcon, AlertTriangle, Download
 } from 'lucide-react';
 
 interface Alert {
@@ -77,6 +77,24 @@ function formatDate(dateStr: string): string {
     month: 'numeric',
     year: 'numeric',
   });
+}
+
+async function downloadSnapshot(url: string, filename: string) {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    // Fallback: open in new tab
+    window.open(url, '_blank');
+  }
 }
 
 export default function AlertsFeed({ isAdmin = false }: { isAdmin?: boolean }) {
@@ -374,12 +392,25 @@ function AlertCard({
 
           {/* Snapshot */}
           {alert.snapshot_url && (
-            <div className="rounded-lg overflow-hidden bg-black">
+            <div className="relative rounded-lg overflow-hidden bg-black group">
               <img
                 src={alert.snapshot_url}
                 alt="Snapshot"
                 className="w-full max-h-64 object-contain"
               />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  downloadSnapshot(
+                    alert.snapshot_url!,
+                    `clearpoint-${alert.detection_type}-${new Date(alert.created_at).toISOString().replace(/[:.]/g, '-')}.jpg`
+                  );
+                }}
+                className="absolute top-2 left-2 p-2 bg-black/60 hover:bg-black/80 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                title="הורד תמונה"
+              >
+                <Download className="w-4 h-4" />
+              </button>
             </div>
           )}
 
