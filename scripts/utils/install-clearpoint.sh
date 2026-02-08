@@ -71,4 +71,12 @@ else
   echo "⚠️ setup-cron.sh not found – CRON not configured"
 fi
 
-echo "✅ Install complete. Cameras are streaming. CRON is active. System is self-healing."
+# === Setup AI Detection ===
+if [[ -f setup-ai.sh ]]; then
+  echo "🤖 Running AI detection setup..."
+  bash setup-ai.sh
+else
+  echo "ℹ️ setup-ai.sh not found – AI detection not configured"
+fi
+
+echo "✅ Install complete. Cameras are streaming. CRON is active. AI is ready. System is self-healing."
