@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
     const items: any[] = Array.isArray(body) ? body : [body];
 
     const rows = [];
+    const uploadErrors: string[] = [];
     for (const item of items) {
       if (!item.camera_id || !item.detection_type) {
         throw new Error("Missing camera_id or detection_type");
@@ -63,27 +64,28 @@ export async function POST(req: NextRequest) {
       if (snapshotUrl && snapshotUrl.startsWith("data:image/")) {
         try {
           const base64Data = snapshotUrl.split(",")[1];
-          const buffer = Buffer.from(base64Data, "base64");
+          const bytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
           const ts = new Date().toISOString().replace(/[:.]/g, "-");
           const filePath = `${miniPc.user_id}/${item.camera_id}/${ts}.jpg`;
 
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from("alert-snapshots")
-            .upload(filePath, buffer, {
+            .upload(filePath, bytes, {
               contentType: "image/jpeg",
               upsert: false,
             });
 
           if (uploadError) {
-            console.error("Snapshot upload error:", uploadError.message);
+            console.error("Snapshot upload error:", JSON.stringify(uploadError));
+            uploadErrors.push(uploadError.message || JSON.stringify(uploadError));
           } else {
             const { data: urlData } = supabase.storage
               .from("alert-snapshots")
               .getPublicUrl(filePath);
             snapshotUrl = urlData.publicUrl;
           }
-        } catch (uploadErr) {
-          console.error("Snapshot processing error:", uploadErr);
+        } catch (uploadErr: any) {
+          console.error("Snapshot processing error:", uploadErr?.message || uploadErr);
         }
       }
 
@@ -111,7 +113,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, count: rows.length, alerts: data });
+    return NextResponse.json({ success: true, count: rows.length, alerts: data, _debug_upload_errors: uploadErrors.length ? uploadErrors : undefined });
   } catch (err: any) {
     console.error("Alert ingest error:", err);
     return NextResponse.json(
