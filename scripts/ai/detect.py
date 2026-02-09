@@ -335,6 +335,13 @@ class YOLOv8Detector:
         for idx in indices:
             i = idx[0] if isinstance(idx, (list, np.ndarray)) else idx
             class_id = int(class_ids_filtered[i])
+
+            # DEBUG: Log top-5 class scores for this detection
+            raw_scores = class_scores[mask][i]
+            top5_idx = np.argsort(raw_scores)[::-1][:5]
+            top5_info = [(int(ci), COCO_CLASSES[ci], f"{raw_scores[ci]:.3f}") for ci in top5_idx]
+            log.info(f"🔍 DEBUG class_id={class_id} ({COCO_CLASSES[class_id]}) top5={top5_info}")
+
             detection_type = COCO_TO_DETECTION.get(class_id)
 
             if detection_type is None:
