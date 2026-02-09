@@ -16,9 +16,10 @@ interface SimpleCameraPlayerProps {
   cameraName: string;
   clips: VodClip[];
   onCutClip?: () => void;
+  initialSeekTime?: number | null; // seconds since midnight to auto-seek on load
 }
 
-export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: SimpleCameraPlayerProps) {
+export default function SimpleCameraPlayer({ cameraName, clips, onCutClip, initialSeekTime }: SimpleCameraPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -217,6 +218,15 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip }: Sim
       };
     }
   }, [currentClipIndex, clips.length, isMuted, volume]);
+
+  // Auto-seek to initialSeekTime when clips load
+  const initialSeekDoneRef = useRef(false);
+  useEffect(() => {
+    if (initialSeekTime != null && clips.length > 0 && !initialSeekDoneRef.current) {
+      initialSeekDoneRef.current = true;
+      seekToTimeOfDay(initialSeekTime);
+    }
+  }, [clips.length, initialSeekTime]);
 
   // Prefetch next clip signed url
   useEffect(() => {

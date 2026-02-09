@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   Bell, BellOff, Check, CheckCheck, Eye, User, Car, Bug,
   Shield, Flame, Clock, Camera, Loader2, RefreshCw, Filter,
-  ChevronDown, ChevronUp, Image as ImageIcon, AlertTriangle, Download, Trash2
+  ChevronDown, ChevronUp, Image as ImageIcon, AlertTriangle, Download, Trash2, Video
 } from 'lucide-react';
 
 interface Alert {
@@ -355,6 +355,15 @@ function AlertCard({
 
   const c = colorClasses[color] || colorClasses.slate;
 
+  // Build link to recordings page, 10 seconds before alert time
+  const getRecordingLink = (a: Alert) => {
+    const d = new Date(a.created_at);
+    const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const secondsSinceMidnight = d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
+    const seekTo = Math.max(0, secondsSinceMidnight - 10); // 10 seconds before
+    return `/dashboard?mode=recordings&camera_id=${a.camera_id}&date=${date}&t=${seekTo}`;
+  };
+
   return (
     <div
       className={`bg-white rounded-xl border transition-all ${
@@ -488,8 +497,16 @@ function AlertCard({
             </div>
           </div>
 
-          {/* Delete button */}
-          <div className="flex justify-end pt-1">
+          {/* Action buttons */}
+          <div className="flex justify-between pt-1">
+            <a
+              href={getRecordingLink(alert)}
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs hover:bg-blue-100 transition-colors"
+            >
+              <Video className="w-3 h-3" />
+              צפה בהקלטה
+            </a>
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
               className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs hover:bg-red-100 transition-colors"

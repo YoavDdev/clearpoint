@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
 import SimpleDateTabs from './SimpleDateTabs';
 import SimpleCameraPlayer from './SimpleCameraPlayer';
@@ -20,8 +21,24 @@ interface FootageViewProps {
 }
 
 export default function FootageView({ cameras }: FootageViewProps) {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedCameraId, setSelectedCameraId] = useState<string>(cameras[0]?.id || '');
+  const searchParams = useSearchParams();
+  const paramCameraId = searchParams.get('camera_id');
+  const paramDate = searchParams.get('date');
+  const paramTime = searchParams.get('t'); // seconds since midnight
+
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    if (paramDate) {
+      const d = new Date(paramDate + 'T12:00:00');
+      if (!isNaN(d.getTime())) return d;
+    }
+    return new Date();
+  });
+  const [selectedCameraId, setSelectedCameraId] = useState<string>(
+    paramCameraId || cameras[0]?.id || ''
+  );
+  const [initialSeekTime] = useState<number | null>(
+    paramTime ? parseInt(paramTime, 10) : null
+  );
   const [allCameraClips, setAllCameraClips] = useState<{[cameraId: string]: VodClip[]}>({});
   const [retentionDays, setRetentionDays] = useState<number>(14);
   const [loading, setLoading] = useState(true);
@@ -250,6 +267,7 @@ export default function FootageView({ cameras }: FootageViewProps) {
                 cameraName={selectedCamera.name}
                 clips={currentClips}
                 onCutClip={() => {}} // Enable cutting button
+                initialSeekTime={selectedCameraId === paramCameraId ? initialSeekTime : null}
               />
             </div>
           )}
