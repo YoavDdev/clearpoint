@@ -504,9 +504,21 @@ class CameraMonitor(threading.Thread):
         self.running = True
         self.cam_id = camera["id"]
         self.cam_name = camera.get("name", self.cam_id[:8])
+        # Thread-safe stats for hourly report
+        self._stats_lock = threading.Lock()
+        self._stats_frames = 0
+        self._stats_detections = 0
 
     def stop(self):
         self.running = False
+
+    def get_and_reset_stats(self) -> tuple[int, int]:
+        """Return (frames, detections) since last call, then reset."""
+        with self._stats_lock:
+            f, d = self._stats_frames, self._stats_detections
+            self._stats_frames = 0
+            self._stats_detections = 0
+            return f, d
 
     def run(self):
         log.info(f"📷 Starting monitor: {self.cam_name} ({self.cam_id[:8]}...)")
@@ -534,9 +546,6 @@ class CameraMonitor(threading.Thread):
                 heartbeat_frames = 0
                 heartbeat_detections = 0
                 heartbeat_time = time.time()
-                api_report_frames = 0
-                api_report_detections = 0
-                api_report_time = time.time()
 
                 while self.running and cap.isOpened():
                     start = time.time()
@@ -552,7 +561,8 @@ class CameraMonitor(threading.Thread):
 
                     consecutive_fails = 0
                     heartbeat_frames += 1
-                    api_report_frames += 1
+                    with self._stats_lock:
+                        self._stats_frames += 1
 
                     # YOLOv8 inference on every frame — no motion gate
                     try:
@@ -563,7 +573,8 @@ class CameraMonitor(threading.Thread):
 
                     if detections:
                         heartbeat_detections += len(detections)
-                        api_report_detections += len(detections)
+                        with self._stats_lock:
+                            self._stats_detections += len(detections)
                         for d in detections:
                             log.info(f"🎯 {self.cam_name}: {d['detection_type']} {d['confidence']:.0%}")
                         annotated = draw_detections(frame, detections)
@@ -576,25 +587,6 @@ class CameraMonitor(threading.Thread):
                         heartbeat_frames = 0
                         heartbeat_detections = 0
                         heartbeat_time = start
-
-                    # API report every 5 minutes (visible in admin dashboard)
-                    if start - api_report_time >= 300:
-                        self.sender.send_system_log(
-                            category="alert",
-                            event="ai_heartbeat",
-                            message=f"AI זיהוי פעיל — {api_report_frames} פריימים נותחו, {api_report_detections} זיהויים ב-5 דקות האחרונות",
-                            severity="info",
-                            camera_id=self.cam_id,
-                            metadata={
-                                "camera_name": self.cam_name,
-                                "frames_analyzed": api_report_frames,
-                                "detections_count": api_report_detections,
-                                "interval_seconds": 300,
-                            },
-                        )
-                        api_report_frames = 0
-                        api_report_detections = 0
-                        api_report_time = start
 
                     # Maintain target FPS
                     elapsed = time.time() - start
@@ -629,6 +621,53 @@ class DetectionEngine:
         for m in self.monitors:
             m.stop()
 
+    def _send_hourly_report(self):
+        """Send ONE summary log to admin dashboard covering all cameras."""
+        total_frames = 0
+        total_detections = 0
+        cam_details = []
+        active_cameras = 0
+
+        for m in self.monitors:
+            frames, detections = m.get_and_reset_stats()
+            total_frames += frames
+            total_detections += detections
+            is_alive = m.is_alive()
+            if is_alive:
+                active_cameras += 1
+            cam_details.append({
+                "name": m.cam_name,
+                "frames": frames,
+                "detections": detections,
+                "active": is_alive,
+            })
+
+        num_cameras = len(self.monitors)
+        message = (
+            f"סיכום שעתי: {active_cameras}/{num_cameras} מצלמות פעילות, "
+            f"{total_frames} פריימים נותחו, {total_detections} זיהויים"
+        )
+
+        severity = "info"
+        if active_cameras < num_cameras:
+            severity = "warning"
+            message += f" ⚠️ {num_cameras - active_cameras} מצלמות לא פעילות"
+
+        self.sender.send_system_log(
+            category="alert",
+            event="ai_hourly_summary",
+            message=message,
+            severity=severity,
+            metadata={
+                "total_frames": total_frames,
+                "total_detections": total_detections,
+                "active_cameras": active_cameras,
+                "total_cameras": num_cameras,
+                "cameras": cam_details,
+            },
+        )
+        log.info(f"📊 Hourly report sent: {message}")
+
     def start(self):
         if not self.config.cameras:
             log.error("No cameras configured. Run setup-ai.sh or create ai-config.json")
@@ -656,6 +695,7 @@ class DetectionEngine:
         # Main loop — periodic maintenance
         cleanup_interval = 3600  # Cleanup snapshots every hour
         last_cleanup = time.time()
+        last_hourly_report = time.time()
 
         try:
             while self.running:
@@ -670,6 +710,12 @@ class DetectionEngine:
                         self.monitors.remove(m)
                         self.monitors.append(new_m)
                         new_m.start()
+
+                # Hourly summary report to admin dashboard (1 log per hour)
+                now = time.time()
+                if now - last_hourly_report >= 3600:
+                    self._send_hourly_report()
+                    last_hourly_report = now
 
                 # Periodic snapshot cleanup
                 if time.time() - last_cleanup > cleanup_interval:
