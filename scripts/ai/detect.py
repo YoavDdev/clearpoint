@@ -289,12 +289,9 @@ class YOLOv8Detector:
         detections = []
 
         # Handle shape: (1, 84, N) → (N, 84)
-        log.info(f"🔍 Raw output shape: {output.shape}")
         preds = output[0]  # (84, 8400)
-        log.info(f"🔍 preds shape after [0]: {preds.shape}")
         if preds.shape[0] < preds.shape[1]:
             preds = preds.T  # (8400, 84)
-        log.info(f"🔍 preds shape after transpose: {preds.shape}")
 
         if len(preds) == 0:
             return detections
@@ -307,13 +304,8 @@ class YOLOv8Detector:
         class_ids = class_scores.argmax(axis=1)
         scores = class_scores[np.arange(len(class_ids)), class_ids]
 
-        top5_idx = np.argsort(scores)[-5:][::-1]
-        for ti in top5_idx:
-            log.info(f"🔍 Top score: {scores[ti]:.4f} class={COCO_CLASSES[class_ids[ti]]} (id={class_ids[ti]})")
-
         # Filter by confidence
         mask = scores > self.config.default_confidence
-        log.info(f"🔍 Detections above {self.config.default_confidence}: {mask.sum()} / {len(scores)}")
         if not mask.any():
             return detections
 
@@ -536,7 +528,6 @@ class CameraMonitor(threading.Thread):
                     has_motion = self.motion.detect(frame)
 
                     if has_motion:
-                        log.info(f"🔵 {self.cam_name}: motion detected, running inference...")
                         # Step 2: YOLOv8 inference (only on motion)
                         try:
                             detections = self.detector.detect(frame)
