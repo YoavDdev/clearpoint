@@ -477,7 +477,7 @@ class AlertSender:
 # ─── Camera Monitor (per camera thread) ───────────────────
 class CameraMonitor(threading.Thread):
     def __init__(self, camera: dict, config: Config,
-                 detector: YOLOXDetector, sender: AlertSender):
+                 detector: YOLOv8Detector, sender: AlertSender):
         super().__init__(daemon=True)
         self.camera = camera
         self.config = config
