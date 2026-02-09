@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
     // Fetch user's active alert rules
     const { data: activeRules } = await supabase
       .from("alert_rules")
-      .select("id, detection_type, min_confidence, camera_id, schedule_start, schedule_end, days_of_week, is_active")
+      .select("id, detection_type, min_confidence, camera_id, schedule_start, schedule_end, days_of_week, cooldown_minutes, is_active")
       .eq("user_id", miniPc.user_id)
       .eq("is_active", true);
 
@@ -126,6 +126,24 @@ export async function POST(req: NextRequest) {
       if (!matchingRule) {
         skipped++;
         continue; // No matching active rule — skip this alert
+      }
+
+      // Enforce rule cooldown: skip if a recent alert exists for same rule+camera
+      if (matchingRule.cooldown_minutes > 0) {
+        const cooldownCutoff = new Date(Date.now() - matchingRule.cooldown_minutes * 60_000).toISOString();
+        const { data: recentAlert } = await supabase
+          .from("alerts")
+          .select("id")
+          .eq("rule_id", matchingRule.id)
+          .eq("camera_id", item.camera_id)
+          .gte("created_at", cooldownCutoff)
+          .limit(1)
+          .maybeSingle();
+
+        if (recentAlert) {
+          skipped++;
+          continue; // Cooldown not expired — skip
+        }
       }
 
       let snapshotUrl = item.snapshot_url || null;

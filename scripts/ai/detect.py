@@ -118,7 +118,7 @@ class Config:
         self.motion_min_area = 500       # Min contour area to count as motion
         self.motion_blur_size = 21       # Gaussian blur kernel size
         self.default_confidence = 0.45   # Min YOLOv8 confidence
-        self.cooldown_seconds = 300      # 5 min cooldown per camera+type
+        self.cooldown_seconds = 60       # 1 min cooldown per camera+type (server enforces rule cooldown)
 
         # Model
         self.model_path = Path(__file__).parent / "models" / "yolov8s.onnx"

@@ -866,6 +866,38 @@ function NewRuleForm({
         </select>
       </div>
 
+      {/* Cooldown + Confidence */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">cooldown (דקות)</label>
+          <input
+            type="number"
+            min="1"
+            max="60"
+            value={newRule.cooldown_minutes}
+            onChange={e => onChange({ ...newRule, cooldown_minutes: parseInt(e.target.value) || 5 })}
+            className="w-full px-3 py-2 border rounded-lg text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">רגישות מינימלית</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="range"
+              min="0.1"
+              max="0.95"
+              step="0.05"
+              value={newRule.min_confidence}
+              onChange={e => onChange({ ...newRule, min_confidence: parseFloat(e.target.value) })}
+              className="flex-1"
+            />
+            <span className="text-sm font-medium text-slate-700 w-10 text-center">
+              {Math.round(newRule.min_confidence * 100)}%
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Notifications */}
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-1">אופן התראה</label>
