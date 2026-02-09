@@ -461,6 +461,29 @@ class AlertSender:
         except Exception as e:
             log.error(f"Failed to send alert: {e}")
 
+    def send_system_log(self, category: str, event: str, message: str,
+                        severity: str = "info", camera_id: str | None = None,
+                        metadata: dict | None = None):
+        """Send a log entry to the system-log API for admin dashboard visibility"""
+        payload = {
+            "category": category,
+            "severity": severity,
+            "event": event,
+            "message": message,
+            "camera_id": camera_id,
+            "metadata": metadata or {},
+        }
+        try:
+            resp = self.session.post(
+                f"{self.config.api_base}/ingest/system-log",
+                json=payload,
+                timeout=10,
+            )
+            if not resp.ok:
+                log.warning(f"System log API error: {resp.status_code}")
+        except Exception as e:
+            log.debug(f"Failed to send system log: {e}")
+
     def cleanup_snapshots(self):
         """Remove old snapshots if over limit"""
         files = sorted(self.config.snapshot_dir.glob("*.jpg"), key=lambda f: f.stat().st_mtime)
@@ -508,6 +531,12 @@ class CameraMonitor(threading.Thread):
                 retry_delay = 5  # Reset on success
                 log.info(f"🟢 Connected: {self.cam_name}")
                 consecutive_fails = 0
+                heartbeat_frames = 0
+                heartbeat_detections = 0
+                heartbeat_time = time.time()
+                api_report_frames = 0
+                api_report_detections = 0
+                api_report_time = time.time()
 
                 while self.running and cap.isOpened():
                     start = time.time()
@@ -522,6 +551,8 @@ class CameraMonitor(threading.Thread):
                         continue
 
                     consecutive_fails = 0
+                    heartbeat_frames += 1
+                    api_report_frames += 1
 
                     # YOLOv8 inference on every frame — no motion gate
                     try:
@@ -531,11 +562,39 @@ class CameraMonitor(threading.Thread):
                         detections = []
 
                     if detections:
+                        heartbeat_detections += len(detections)
+                        api_report_detections += len(detections)
                         for d in detections:
                             log.info(f"🎯 {self.cam_name}: {d['detection_type']} {d['confidence']:.0%}")
                         annotated = draw_detections(frame, detections)
                         for det in detections:
                             self.sender.send_alert(self.cam_id, det, annotated)
+
+                    # Heartbeat log every 30 seconds (local only)
+                    if start - heartbeat_time >= 30:
+                        log.info(f"💓 {self.cam_name}: {heartbeat_frames} frames analyzed, {heartbeat_detections} detections in last 30s")
+                        heartbeat_frames = 0
+                        heartbeat_detections = 0
+                        heartbeat_time = start
+
+                    # API report every 5 minutes (visible in admin dashboard)
+                    if start - api_report_time >= 300:
+                        self.sender.send_system_log(
+                            category="alert",
+                            event="ai_heartbeat",
+                            message=f"AI זיהוי פעיל — {api_report_frames} פריימים נותחו, {api_report_detections} זיהויים ב-5 דקות האחרונות",
+                            severity="info",
+                            camera_id=self.cam_id,
+                            metadata={
+                                "camera_name": self.cam_name,
+                                "frames_analyzed": api_report_frames,
+                                "detections_count": api_report_detections,
+                                "interval_seconds": 300,
+                            },
+                        )
+                        api_report_frames = 0
+                        api_report_detections = 0
+                        api_report_time = start
 
                     # Maintain target FPS
                     elapsed = time.time() - start
