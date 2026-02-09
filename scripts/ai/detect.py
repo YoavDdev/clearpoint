@@ -263,6 +263,8 @@ class YOLOv8Detector:
 
     def _preprocess(self, img: np.ndarray, input_h: int, input_w: int):
         """Resize + letterbox pad + normalize for YOLOv8"""
+        # YOLOv8 expects RGB input, OpenCV reads BGR
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         h, w = img.shape[:2]
         ratio = min(input_h / h, input_w / w)
         new_h, new_w = int(h * ratio), int(w * ratio)
