@@ -6,8 +6,8 @@
 
 set -e
 
-echo "🤖 Clearpoint AI Detection — Setup"
-echo "==================================="
+echo "🤖 Clearpoint AI Detection — Setup (YOLOv8s)"
+echo "========================================"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 AI_DIR="$HOME/clearpoint-ai"
@@ -41,21 +41,34 @@ echo "📦 Installing Python packages..."
 pip install --quiet --upgrade pip
 pip install --quiet -r "$AI_DIR/requirements.txt"
 
-# === Download YOLOX-Nano ONNX model ===
-MODEL_FILE="$MODEL_DIR/yolox_nano.onnx"
+# === Export YOLOv8s ONNX model ===
+MODEL_FILE="$MODEL_DIR/yolov8s.onnx"
 if [ ! -f "$MODEL_FILE" ]; then
-    echo "🧠 Downloading YOLOX-Nano model..."
-    # YOLOX-Nano from official MEGVII release
-    wget -q -O "$MODEL_FILE" \
-        "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_nano.onnx"
+    echo "🧠 Exporting YOLOv8s to ONNX (this may take a minute)..."
+    pip install --quiet ultralytics
+    python3 -c "
+from ultralytics import YOLO
+import shutil
+model = YOLO('yolov8s.pt')
+model.export(format='onnx', imgsz=640, simplify=True)
+import pathlib
+src = pathlib.Path('yolov8s.onnx')
+if src.exists():
+    shutil.move(str(src), '$MODEL_FILE')
+    print('Export complete')
+else:
+    print('Export failed')
+"
+    # Cleanup temp files
+    rm -f yolov8s.pt
     
     if [ -f "$MODEL_FILE" ]; then
         SIZE=$(du -h "$MODEL_FILE" | cut -f1)
-        echo "✅ Model downloaded: $MODEL_FILE ($SIZE)"
+        echo "✅ YOLOv8s model ready: $MODEL_FILE ($SIZE)"
     else
-        echo "❌ Failed to download model"
-        echo "   Download manually from: https://github.com/Megvii-BaseDetection/YOLOX/releases"
-        echo "   Place at: $MODEL_FILE"
+        echo "❌ Failed to export model"
+        echo "   Try manually: pip install ultralytics && yolo export model=yolov8s.pt format=onnx"
+        echo "   Then move yolov8s.onnx to: $MODEL_FILE"
     fi
 else
     echo "✅ Model already exists: $MODEL_FILE"
@@ -84,7 +97,7 @@ StandardError=append:$HOME/clearpoint-logs/ai-detect-error.log
 
 # Resource limits
 CPUQuota=60%
-MemoryMax=512M
+MemoryMax=1G
 
 [Install]
 WantedBy=multi-user.target
@@ -109,7 +122,7 @@ echo "✅ Setup complete!"
 echo ""
 echo "📂 Files:"
 echo "   Script:    $AI_DIR/detect.py"
-echo "   Model:     $MODEL_FILE"
+echo "   Model:     $MODEL_FILE (YOLOv8s)"
 echo "   Snapshots: $HOME/clearpoint-snapshots/"
 echo "   Logs:      $HOME/clearpoint-logs/ai-detect.log"
 echo ""

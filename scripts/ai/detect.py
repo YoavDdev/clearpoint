@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Clearpoint AI Detection Engine
-Runs on Mini PC — motion detection + YOLOX-Nano (OpenVINO)
+Runs on Mini PC — motion detection + YOLOv8s (OpenVINO/ONNX)
 Sends alerts to the Clearpoint API when objects are detected.
 """
 
@@ -36,7 +36,7 @@ logging.basicConfig(
 log = logging.getLogger("clearpoint-ai")
 
 # ─── COCO class mapping ────────────────────────────────────
-# YOLOX/COCO 80 classes → Clearpoint detection types
+# YOLOv8/COCO 80 classes → Clearpoint detection types
 COCO_CLASSES = [
     "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck",
     "boat", "traffic light", "fire hydrant", "stop sign", "parking meter", "bench",
@@ -117,12 +117,12 @@ class Config:
         self.motion_threshold = 25       # Pixel diff threshold for motion
         self.motion_min_area = 500       # Min contour area to count as motion
         self.motion_blur_size = 21       # Gaussian blur kernel size
-        self.default_confidence = 0.45   # Min YOLOX confidence
+        self.default_confidence = 0.45   # Min YOLOv8 confidence
         self.cooldown_seconds = 300      # 5 min cooldown per camera+type
 
         # Model
-        self.model_path = Path(__file__).parent / "models" / "yolox_nano.onnx"
-        self.model_input_size = (416, 416)
+        self.model_path = Path(__file__).parent / "models" / "yolov8s.onnx"
+        self.model_input_size = (640, 640)
 
         # Snapshot
         self.snapshot_dir = Path.home() / "clearpoint-snapshots"
@@ -193,8 +193,8 @@ class Config:
         return None
 
 
-# ─── YOLOX-Nano Model ──────────────────────────────────────
-class YOLOXDetector:
+# ─── YOLOv8s Model ────────────────────────────────────────
+class YOLOv8Detector:
     def __init__(self, config: Config):
         self.config = config
         self.model = None
@@ -207,7 +207,7 @@ class YOLOXDetector:
 
         if not Path(model_path).exists():
             log.warning(f"Model not found at {model_path}")
-            log.warning("Download YOLOX-Nano: see scripts/ai/setup-ai.sh")
+            log.warning("Download YOLOv8s: see scripts/ai/setup-ai.sh")
             return
 
         # Try OpenVINO first (optimized for Intel)
@@ -218,7 +218,7 @@ class YOLOXDetector:
             self._infer_request = compiled.create_infer_request()
             self.model = compiled
             self.use_openvino = True
-            log.info("Loaded YOLOX-Nano with OpenVINO (Intel optimized)")
+            log.info("Loaded YOLOv8s with OpenVINO (Intel optimized)")
             return
         except Exception as e:
             log.info(f"OpenVINO not available ({e}), falling back to ONNX Runtime")
@@ -228,13 +228,13 @@ class YOLOXDetector:
             import onnxruntime as ort
             self.model = ort.InferenceSession(model_path)
             self.use_openvino = False
-            log.info("Loaded YOLOX-Nano with ONNX Runtime")
+            log.info("Loaded YOLOv8s with ONNX Runtime")
         except Exception as e:
             log.error(f"Failed to load model: {e}")
             self.model = None
 
     def detect(self, frame: np.ndarray) -> list:
-        """Run YOLOX-Nano inference on a frame.
+        """Run YOLOv8s inference on a frame.
         Returns list of detections: [{class_id, class_name, detection_type, confidence, bbox}]
         """
         if self.model is None:
@@ -262,7 +262,7 @@ class YOLOXDetector:
         return detections
 
     def _preprocess(self, img: np.ndarray, input_h: int, input_w: int):
-        """Resize + pad + normalize for YOLOX"""
+        """Resize + letterbox pad + normalize for YOLOv8"""
         h, w = img.shape[:2]
         ratio = min(input_h / h, input_w / w)
         new_h, new_w = int(h * ratio), int(w * ratio)
@@ -272,65 +272,51 @@ class YOLOXDetector:
         padded = np.full((input_h, input_w, 3), 114, dtype=np.uint8)
         padded[:new_h, :new_w, :] = resized
 
-        # HWC → CHW, uint8 → float32
-        blob = padded.transpose(2, 0, 1).astype(np.float32)
+        # HWC → CHW, uint8 → float32, normalize to 0-1
+        blob = padded.transpose(2, 0, 1).astype(np.float32) / 255.0
         blob = np.expand_dims(blob, axis=0)
 
         return blob, ratio
 
-    def _generate_grids(self, input_h: int, input_w: int):
-        """Generate YOLOX grid offsets and strides for decoding."""
-        strides = [8, 16, 32]
-        grids = []
-        expanded_strides = []
-        for s in strides:
-            gh, gw = input_h // s, input_w // s
-            grid_y, grid_x = np.meshgrid(np.arange(gh), np.arange(gw), indexing="ij")
-            grid = np.stack([grid_x, grid_y], axis=-1).reshape(-1, 2)
-            grids.append(grid)
-            expanded_strides.append(np.full(len(grid), s))
-        return np.concatenate(grids, axis=0), np.concatenate(expanded_strides, axis=0)
-
     def _postprocess(self, output: np.ndarray, ratio: float, img_shape: tuple) -> list:
-        """Parse YOLOX output into detections"""
-        predictions = output[0]  # (num_boxes, 5+num_classes)
+        """Parse YOLOv8 output into detections.
+        YOLOv8 output shape: (1, 84, 8400) → transpose to (8400, 84)
+        Columns 0-3: cx, cy, w, h (in input-image pixel space)
+        Columns 4-83: class scores (no objectness — scores are direct)
+        """
         detections = []
 
-        if len(predictions) == 0:
+        # Handle shape: (1, 84, N) → (N, 84)
+        preds = output[0]  # (84, 8400)
+        if preds.shape[0] < preds.shape[1]:
+            preds = preds.T  # (8400, 84)
+
+        if len(preds) == 0:
             return detections
 
-        # Decode YOLOX grid-relative output to pixel coordinates
-        input_h, input_w = self.config.model_input_size
-        grids, strides = self._generate_grids(input_h, input_w)
+        # Extract bbox and class scores
+        boxes_cxcywh = preds[:, :4]          # cx, cy, w, h
+        class_scores = preds[:, 4:]          # 80 class scores
 
-        predictions[:, 0] = (predictions[:, 0] + grids[:, 0]) * strides  # cx
-        predictions[:, 1] = (predictions[:, 1] + grids[:, 1]) * strides  # cy
-        predictions[:, 2] = np.exp(predictions[:, 2]) * strides          # w
-        predictions[:, 3] = np.exp(predictions[:, 3]) * strides          # h
-
-        # cx, cy, w, h → x1, y1, x2, y2
-        box_corner = np.zeros_like(predictions[:, :4])
-        box_corner[:, 0] = predictions[:, 0] - predictions[:, 2] / 2  # x1
-        box_corner[:, 1] = predictions[:, 1] - predictions[:, 3] / 2  # y1
-        box_corner[:, 2] = predictions[:, 0] + predictions[:, 2] / 2  # x2
-        box_corner[:, 3] = predictions[:, 1] + predictions[:, 3] / 2  # y2
-
-        obj_conf = predictions[:, 4]
-        class_scores = predictions[:, 5:]
+        # Best class per detection
         class_ids = class_scores.argmax(axis=1)
-        class_conf = class_scores[np.arange(len(class_ids)), class_ids]
-
-        # Combined confidence
-        scores = obj_conf * class_conf
+        scores = class_scores[np.arange(len(class_ids)), class_ids]
 
         # Filter by confidence
         mask = scores > self.config.default_confidence
         if not mask.any():
             return detections
 
-        boxes = box_corner[mask] / ratio
+        boxes_cxcywh = boxes_cxcywh[mask]
         scores_filtered = scores[mask]
         class_ids_filtered = class_ids[mask]
+
+        # cx, cy, w, h → x1, y1, x2, y2 (in input space)
+        x1 = boxes_cxcywh[:, 0] - boxes_cxcywh[:, 2] / 2
+        y1 = boxes_cxcywh[:, 1] - boxes_cxcywh[:, 3] / 2
+        x2 = boxes_cxcywh[:, 0] + boxes_cxcywh[:, 2] / 2
+        y2 = boxes_cxcywh[:, 1] + boxes_cxcywh[:, 3] / 2
+        boxes = np.stack([x1, y1, x2, y2], axis=1) / ratio  # scale to original
 
         # NMS
         indices = cv2.dnn.NMSBoxes(
@@ -351,17 +337,17 @@ class YOLOXDetector:
             if detection_type is None:
                 continue  # Skip objects we don't care about
 
-            x1, y1, x2, y2 = boxes[i].astype(int)
+            bx1, by1, bx2, by2 = boxes[i].astype(int)
             h, w = img_shape[:2]
-            x1, y1 = max(0, x1), max(0, y1)
-            x2, y2 = min(w, x2), min(h, y2)
+            bx1, by1 = max(0, bx1), max(0, by1)
+            bx2, by2 = min(w, bx2), min(h, by2)
 
             detections.append({
                 "class_id": class_id,
                 "class_name": COCO_CLASSES[class_id],
                 "detection_type": detection_type,
                 "confidence": float(scores_filtered[i]),
-                "bbox": [int(x1), int(y1), int(x2), int(y2)],
+                "bbox": [int(bx1), int(by1), int(bx2), int(by2)],
             })
 
         return detections
@@ -575,7 +561,7 @@ class CameraMonitor(threading.Thread):
 class DetectionEngine:
     def __init__(self):
         self.config = Config()
-        self.detector = YOLOXDetector(self.config)
+        self.detector = YOLOv8Detector(self.config)
         self.sender = AlertSender(self.config)
         self.monitors: list[CameraMonitor] = []
         self.running = True
@@ -595,7 +581,7 @@ class DetectionEngine:
             sys.exit(1)
 
         if self.detector.model is None:
-            log.error("YOLOX model not loaded. Run setup-ai.sh to download.")
+            log.error("YOLOv8s model not loaded. Run setup-ai.sh to download.")
             sys.exit(1)
 
         log.info("=" * 50)
