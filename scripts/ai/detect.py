@@ -119,6 +119,7 @@ class Config:
         self.motion_blur_size = 21       # Gaussian blur kernel size
         self.default_confidence = 0.45   # Min YOLOv8 confidence
         self.cooldown_seconds = 60       # 1 min cooldown per camera+type (server enforces rule cooldown)
+        self.periodic_scan_interval = 10  # Run YOLO every N seconds even without motion
 
         # Model
         self.model_path = Path(__file__).parent / "models" / "yolov8s.onnx"
@@ -477,7 +478,6 @@ class CameraMonitor(threading.Thread):
         self.config = config
         self.detector = detector
         self.sender = sender
-        self.motion = MotionDetector(config)
         self.running = True
         self.cam_id = camera["id"]
         self.cam_name = camera.get("name", self.cam_id[:8])
@@ -507,7 +507,6 @@ class CameraMonitor(threading.Thread):
 
                 retry_delay = 5  # Reset on success
                 log.info(f"🟢 Connected: {self.cam_name}")
-                self.motion.reset()
                 consecutive_fails = 0
 
                 while self.running and cap.isOpened():
@@ -524,25 +523,19 @@ class CameraMonitor(threading.Thread):
 
                     consecutive_fails = 0
 
-                    # Step 1: Motion detection (very fast)
-                    has_motion = self.motion.detect(frame)
+                    # YOLOv8 inference on every frame — no motion gate
+                    try:
+                        detections = self.detector.detect(frame)
+                    except Exception as e:
+                        log.warning(f"Detection error on {self.cam_name}: {e}")
+                        detections = []
 
-                    if has_motion:
-                        # Step 2: YOLOv8 inference (only on motion)
-                        try:
-                            detections = self.detector.detect(frame)
-                        except Exception as e:
-                            log.warning(f"Detection error on {self.cam_name}: {e}")
-                            detections = []
-
-                        if detections:
-                            # Draw all bounding boxes on one annotated frame
-                            for d in detections:
-                                log.info(f"🎯 {self.cam_name}: {d['detection_type']} {d['confidence']:.0%}")
-                            annotated = draw_detections(frame, detections)
-                            for det in detections:
-                                # Step 3: Send alert (with cooldown)
-                                self.sender.send_alert(self.cam_id, det, annotated)
+                    if detections:
+                        for d in detections:
+                            log.info(f"🎯 {self.cam_name}: {d['detection_type']} {d['confidence']:.0%}")
+                        annotated = draw_detections(frame, detections)
+                        for det in detections:
+                            self.sender.send_alert(self.cam_id, det, annotated)
 
                     # Maintain target FPS
                     elapsed = time.time() - start
@@ -591,6 +584,7 @@ class DetectionEngine:
         log.info(f"   Cameras: {len(self.config.cameras)}")
         log.info(f"   Analysis FPS: {self.config.analysis_fps}")
         log.info(f"   Cooldown: {self.config.cooldown_seconds}s")
+        log.info(f"   Mode: continuous YOLO (every frame)")
         log.info(f"   Model: {'OpenVINO' if self.detector.use_openvino else 'ONNX Runtime'}")
         log.info("=" * 50)
 
