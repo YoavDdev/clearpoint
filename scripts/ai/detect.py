@@ -492,6 +492,75 @@ class AlertSender:
                 f.unlink()
 
 
+# ─── Frame Grabber (drains RTSP buffer, keeps latest frame) ──
+class FrameGrabber:
+    """Continuously reads RTSP frames in a background thread.
+    Always keeps only the LATEST frame — prevents buffer buildup."""
+
+    def __init__(self, rtsp_url: str, name: str):
+        self.rtsp_url = rtsp_url
+        self.name = name
+        self.frame = None
+        self.ret = False
+        self.lock = threading.Lock()
+        self.running = True
+        self.connected = False
+        self.cap = None
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def _run(self):
+        while self.running:
+            try:
+                self.cap = cv2.VideoCapture(self.rtsp_url, cv2.CAP_FFMPEG)
+                self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                self.cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 15000)
+                self.cap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 15000)
+
+                if not self.cap.isOpened():
+                    time.sleep(5)
+                    continue
+
+                self.connected = True
+                fails = 0
+
+                while self.running and self.cap.isOpened():
+                    ret, frame = self.cap.read()
+                    if not ret:
+                        fails += 1
+                        if fails > 30:
+                            break
+                        time.sleep(0.05)
+                        continue
+                    fails = 0
+                    with self.lock:
+                        self.frame = frame
+                        self.ret = True
+
+            except Exception:
+                pass
+            finally:
+                self.connected = False
+                if self.cap is not None:
+                    self.cap.release()
+                    self.cap = None
+                if self.running:
+                    time.sleep(5)
+
+    def get_latest_frame(self):
+        """Get the most recent frame (non-blocking). Returns (ok, frame)."""
+        with self.lock:
+            if self.ret and self.frame is not None:
+                frame = self.frame.copy()
+                return True, frame
+            return False, None
+
+    def stop(self):
+        self.running = False
+        if self.cap is not None:
+            self.cap.release()
+
+
 # ─── Camera Monitor (per camera thread) ───────────────────
 class CameraMonitor(threading.Thread):
     def __init__(self, camera: dict, config: Config,
@@ -508,9 +577,12 @@ class CameraMonitor(threading.Thread):
         self._stats_lock = threading.Lock()
         self._stats_frames = 0
         self._stats_detections = 0
+        self.grabber = None
 
     def stop(self):
         self.running = False
+        if self.grabber:
+            self.grabber.stop()
 
     def get_and_reset_stats(self) -> tuple[int, int]:
         """Return (frames, detections) since last call, then reset."""
@@ -522,49 +594,54 @@ class CameraMonitor(threading.Thread):
 
     def run(self):
         log.info(f"📷 Starting monitor: {self.cam_name} ({self.cam_id[:8]}...)")
-        frame_interval = 1.0 / self.config.analysis_fps
         retry_delay = 5
 
         while self.running:
-            cap = None
             try:
                 rtsp_url = self.camera["rtsp_url"]
-                cap = cv2.VideoCapture(rtsp_url, cv2.CAP_FFMPEG)
-                cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-                cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 15000)
-                cap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 15000)
+                self.grabber = FrameGrabber(rtsp_url, self.cam_name)
 
-                if not cap.isOpened():
+                # Wait for connection
+                for _ in range(30):
+                    if self.grabber.connected or not self.running:
+                        break
+                    time.sleep(0.5)
+
+                if not self.grabber.connected:
                     log.warning(f"Cannot open stream: {self.cam_name}")
+                    self.grabber.stop()
                     time.sleep(retry_delay)
                     retry_delay = min(retry_delay * 2, 60)
                     continue
 
-                retry_delay = 5  # Reset on success
+                retry_delay = 5
                 log.info(f"🟢 Connected: {self.cam_name}")
-                consecutive_fails = 0
                 heartbeat_frames = 0
                 heartbeat_detections = 0
                 heartbeat_time = time.time()
+                last_frame_id = None
 
-                while self.running and cap.isOpened():
+                while self.running and self.grabber.connected:
                     start = time.time()
 
-                    ret, frame = cap.read()
+                    # Get latest frame (always fresh, no buffer lag)
+                    ret, frame = self.grabber.get_latest_frame()
                     if not ret:
-                        consecutive_fails += 1
-                        if consecutive_fails > 30:
-                            log.warning(f"Too many read failures: {self.cam_name}")
-                            break
-                        time.sleep(0.1)
+                        time.sleep(0.2)
                         continue
 
-                    consecutive_fails = 0
+                    # Skip if same frame (grabber hasn't updated yet)
+                    frame_id = id(frame)
+                    if frame_id == last_frame_id:
+                        time.sleep(0.1)
+                        continue
+                    last_frame_id = frame_id
+
                     heartbeat_frames += 1
                     with self._stats_lock:
                         self._stats_frames += 1
 
-                    # YOLOv8 inference on every frame — no motion gate
+                    # YOLOv8 inference on latest frame
                     try:
                         detections = self.detector.detect(frame)
                     except Exception as e:
@@ -588,19 +665,17 @@ class CameraMonitor(threading.Thread):
                         heartbeat_detections = 0
                         heartbeat_time = start
 
-                    # Maintain target FPS
-                    elapsed = time.time() - start
-                    sleep_time = frame_interval - elapsed
-                    if sleep_time > 0:
-                        time.sleep(sleep_time)
+                # Grabber disconnected — clean up and retry
+                log.warning(f"Stream lost: {self.cam_name}")
 
             except Exception as e:
                 log.error(f"Error in {self.cam_name}: {e}")
                 time.sleep(retry_delay)
                 retry_delay = min(retry_delay * 2, 60)
             finally:
-                if cap is not None:
-                    cap.release()
+                if self.grabber:
+                    self.grabber.stop()
+                    self.grabber = None
 
 
 # ─── Main Engine ───────────────────────────────────────────

@@ -170,6 +170,39 @@ def draw(frame, detections, cam_name, inference_ms):
     return annotated
 
 
+class FrameGrabber:
+    """Drains RTSP buffer, keeps only latest frame."""
+    def __init__(self, rtsp_url):
+        self.cap = cv2.VideoCapture(rtsp_url, cv2.CAP_FFMPEG)
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        self.frame = None
+        self.ret = False
+        self.lock = threading.Lock()
+        self.running = True
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def _run(self):
+        while self.running and self.cap.isOpened():
+            ret, frame = self.cap.read()
+            if ret:
+                with self.lock:
+                    self.frame = frame
+                    self.ret = True
+            else:
+                time.sleep(0.05)
+
+    def get(self):
+        with self.lock:
+            if self.ret and self.frame is not None:
+                return True, self.frame.copy()
+            return False, None
+
+    def stop(self):
+        self.running = False
+        self.cap.release()
+
+
 def main():
     config_path = Path.home() / "clearpoint-core" / "ai-config.json"
     if not config_path.exists():
@@ -192,7 +225,7 @@ def main():
     model_info = load_model(model_path)
 
     current_cam = 0
-    cap = None
+    grabber = None
 
     print(f"\n📷 {len(cameras)} cameras available:")
     for i, c in enumerate(cameras):
@@ -208,14 +241,11 @@ def main():
         cam = cameras[current_cam]
         cam_name = cam.get("name", cam["id"][:8])
 
-        if cap is None or not cap.isOpened():
-            if cap is not None:
-                cap.release()
+        if grabber is None:
             print(f"\n🔌 Connecting to: {cam_name}...")
-            cap = cv2.VideoCapture(cam["rtsp_url"], cv2.CAP_FFMPEG)
-            if not cap.isOpened():
+            grabber = FrameGrabber(cam["rtsp_url"])
+            if not grabber.cap.isOpened():
                 print(f"❌ Failed to connect to {cam_name}")
-                # Show error frame
                 err_frame = np.zeros((720, 1280, 3), dtype=np.uint8)
                 cv2.putText(err_frame, f"Cannot connect to: {cam_name}", (50, 360),
                             cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 2)
@@ -223,12 +253,16 @@ def main():
                 key = cv2.waitKey(2000) & 0xFF
                 if key == ord('q'):
                     break
+                grabber.stop()
+                grabber = None
                 continue
             print(f"🟢 Connected: {cam_name}")
+            time.sleep(0.5)  # Let grabber get first frame
 
-        ret, frame = cap.read()
+        ret, frame = grabber.get()
         if not ret:
             time.sleep(0.1)
+            cv2.waitKey(1)
             continue
 
         # YOLO inference
@@ -253,13 +287,13 @@ def main():
             new_cam = key - ord('1')
             if new_cam < len(cameras) and new_cam != current_cam:
                 current_cam = new_cam
-                if cap is not None:
-                    cap.release()
-                cap = None
+                if grabber is not None:
+                    grabber.stop()
+                grabber = None
                 print(f"🔄 Switching to camera {new_cam + 1}...")
 
-    if cap is not None:
-        cap.release()
+    if grabber is not None:
+        grabber.stop()
     cv2.destroyAllWindows()
     print("🛑 Done")
 
