@@ -59,7 +59,11 @@ for i, cls in enumerate(COCO_CLASSES):
         COCO_TO_DETECTION[i] = "person"
     elif cls in ("car", "motorcycle", "bus", "truck", "bicycle"):
         COCO_TO_DETECTION[i] = "vehicle"
-    elif cls in ("bird", "cat", "dog", "horse", "sheep", "cow", "elephant",
+    elif cls == "dog":
+        COCO_TO_DETECTION[i] = "dog"
+    elif cls == "cat":
+        COCO_TO_DETECTION[i] = "cat"
+    elif cls in ("bird", "horse", "sheep", "cow", "elephant",
                  "bear", "zebra", "giraffe"):
         COCO_TO_DETECTION[i] = "animal"
     elif cls in ("backpack", "suitcase", "handbag"):
@@ -71,13 +75,17 @@ for i, cls in enumerate(COCO_CLASSES):
 DETECTION_COLORS = {
     "person": (255, 100, 50),         # Blue (BGR)
     "vehicle": (0, 140, 255),         # Orange
-    "animal": (0, 200, 80),           # Green
+    "dog": (0, 200, 80),              # Green
+    "cat": (80, 220, 180),            # Light green
+    "animal": (0, 180, 60),           # Dark green
     "suspicious_object": (0, 200, 255),  # Yellow
     "weapon": (0, 0, 255),            # Red
 }
 DETECTION_LABELS = {
     "person": "Person",
     "vehicle": "Vehicle",
+    "dog": "Dog",
+    "cat": "Cat",
     "animal": "Animal",
     "suspicious_object": "Suspicious Object",
     "weapon": "Weapon",

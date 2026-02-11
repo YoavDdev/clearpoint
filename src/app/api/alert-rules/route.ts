@@ -175,6 +175,7 @@ export async function POST(req: NextRequest) {
     camera_id: body.camera_id || null,
     name: body.name,
     detection_type: body.detection_type,
+    exclude_types: body.exclude_types || [],
     schedule_start: body.schedule_start || null,
     schedule_end: body.schedule_end || null,
     days_of_week: body.days_of_week || [0, 1, 2, 3, 4, 5, 6],

@@ -25,6 +25,11 @@ function findMatchingRule(rules: any[], alert: any): any | null {
       continue;
     }
 
+    // 1b. Exclusion check — skip if detection_type is in exclude_types
+    if (rule.exclude_types && Array.isArray(rule.exclude_types) && rule.exclude_types.includes(alert.detection_type)) {
+      continue;
+    }
+
     // 2. Min confidence check
     if (alert.confidence != null && rule.min_confidence != null && alert.confidence < rule.min_confidence) {
       continue;
@@ -107,7 +112,7 @@ export async function POST(req: NextRequest) {
     // Fetch user's active alert rules
     const { data: activeRules } = await supabase
       .from("alert_rules")
-      .select("id, detection_type, min_confidence, camera_id, schedule_start, schedule_end, days_of_week, cooldown_minutes, is_active")
+      .select("id, detection_type, min_confidence, camera_id, schedule_start, schedule_end, days_of_week, cooldown_minutes, exclude_types, is_active")
       .eq("user_id", miniPc.user_id)
       .eq("is_active", true);
 

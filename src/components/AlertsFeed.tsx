@@ -5,7 +5,7 @@ import {
   Bell, BellOff, Check, CheckCheck, Eye, User, Car, Bug,
   Shield, Flame, Clock, Camera, Loader2, RefreshCw, Filter,
   ChevronDown, ChevronUp, Image as ImageIcon, AlertTriangle, Download, Trash2, Video,
-  Briefcase, Sword
+  Briefcase, Sword, Dog, Cat
 } from 'lucide-react';
 
 interface Alert {
@@ -26,6 +26,8 @@ interface Alert {
 const DETECTION_ICONS: Record<string, any> = {
   person: User,
   vehicle: Car,
+  dog: Dog,
+  cat: Cat,
   animal: Bug,
   suspicious_object: Briefcase,
   weapon: Sword,
@@ -37,7 +39,9 @@ const DETECTION_ICONS: Record<string, any> = {
 const DETECTION_LABELS: Record<string, string> = {
   person: 'אדם',
   vehicle: 'רכב',
-  animal: 'חיה',
+  dog: 'כלב',
+  cat: 'חתול',
+  animal: 'חיה אחרת',
   suspicious_object: 'חפץ חשוד',
   weapon: 'נשק',
   motion: 'תנועה',
@@ -48,6 +52,8 @@ const DETECTION_LABELS: Record<string, string> = {
 const DETECTION_COLORS: Record<string, string> = {
   person: 'blue',
   vehicle: 'orange',
+  dog: 'green',
+  cat: 'emerald',
   animal: 'green',
   suspicious_object: 'yellow',
   weapon: 'red',

@@ -5,7 +5,7 @@ import {
   Bell, Plus, Pencil, Trash2, Power, PowerOff, Save, X,
   Clock, Shield, Car, Bug, Flame, Eye, User, Loader2,
   ChevronDown, ChevronUp, Camera, Mail, MessageSquare, Smartphone,
-  Sparkles, Settings, Briefcase, Sword
+  Sparkles, Settings, Briefcase, Sword, Dog, Cat
 } from 'lucide-react';
 import AlertsFeed from '@/components/AlertsFeed';
 
@@ -24,6 +24,7 @@ interface AlertRule {
   is_active: boolean;
   is_preset: boolean;
   preset_key: string | null;
+  exclude_types: string[];
   camera_id: string | null;
   camera?: { id: string; name: string } | null;
   created_at: string;
@@ -37,13 +38,19 @@ interface CameraOption {
 const DETECTION_TYPES = [
   { value: 'person', label: 'אדם', icon: User, color: 'blue' },
   { value: 'vehicle', label: 'רכב', icon: Car, color: 'orange' },
-  { value: 'animal', label: 'חיה', icon: Bug, color: 'green' },
+  { value: 'dog', label: 'כלב', icon: Dog, color: 'green' },
+  { value: 'cat', label: 'חתול', icon: Cat, color: 'emerald' },
+  { value: 'animal', label: 'חיה אחרת', icon: Bug, color: 'green' },
   { value: 'suspicious_object', label: 'חפץ חשוד', icon: Briefcase, color: 'yellow' },
   { value: 'weapon', label: 'נשק', icon: Sword, color: 'red' },
   { value: 'motion', label: 'תנועה', icon: Eye, color: 'purple' },
   { value: 'any', label: 'כל זיהוי', icon: Shield, color: 'red' },
   { value: 'fire', label: 'אש/עשן', icon: Flame, color: 'red' },
 ];
+
+const EXCLUDABLE_TYPES = DETECTION_TYPES.filter(dt =>
+  !['any', 'motion', 'fire'].includes(dt.value)
+);
 
 const DAY_LABELS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
 
@@ -73,6 +80,7 @@ export default function AlertsSettingsPage() {
   const [newRule, setNewRule] = useState({
     name: '',
     detection_type: 'person',
+    exclude_types: [] as string[],
     camera_id: '',
     schedule_start: '22:00',
     schedule_end: '06:00',
@@ -184,7 +192,8 @@ export default function AlertsSettingsPage() {
         await fetchRules();
         setShowNewForm(false);
         setNewRule({
-          name: '', detection_type: 'person', camera_id: '',
+          name: '', detection_type: 'person', exclude_types: [],
+          camera_id: '',
           schedule_start: '22:00', schedule_end: '06:00',
           days_of_week: [0, 1, 2, 3, 4, 5, 6],
           notify_email: true, notify_sms: false, notify_push: true,
@@ -591,7 +600,7 @@ function EditRuleForm({
             {DETECTION_TYPES.map(dt => (
               <button
                 key={dt.value}
-                onClick={() => onChange({ ...editForm, detection_type: dt.value })}
+                onClick={() => onChange({ ...editForm, detection_type: dt.value, exclude_types: dt.value !== 'any' ? [] : (editForm.exclude_types || []) })}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
                   editForm.detection_type === dt.value
                     ? 'bg-blue-600 text-white'
@@ -603,6 +612,42 @@ function EditRuleForm({
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Exclude Types (only when "any" is selected) */}
+      {editForm.detection_type === 'any' && (
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">החרגות (לא להתריע על)</label>
+          <div className="flex flex-wrap gap-2">
+            {EXCLUDABLE_TYPES.map(dt => {
+              const excluded = (editForm.exclude_types || []).includes(dt.value);
+              return (
+                <button
+                  key={dt.value}
+                  onClick={() => {
+                    const current = editForm.exclude_types || [];
+                    onChange({
+                      ...editForm,
+                      exclude_types: excluded
+                        ? current.filter((t: string) => t !== dt.value)
+                        : [...current, dt.value],
+                    });
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                    excluded
+                      ? 'bg-red-100 text-red-700 border border-red-300'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  <dt.icon className="w-3.5 h-3.5" />
+                  {dt.label}
+                  {excluded && <X className="w-3 h-3" />}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-slate-400 mt-1">לחץ כדי להחריג סוג — למשל: החרג &quot;חתול&quot; כדי לא לקבל התראות על חתולים</p>
         </div>
       )}
 
@@ -799,7 +844,7 @@ function NewRuleForm({
           {DETECTION_TYPES.map(dt => (
             <button
               key={dt.value}
-              onClick={() => onChange({ ...newRule, detection_type: dt.value })}
+              onClick={() => onChange({ ...newRule, detection_type: dt.value, exclude_types: dt.value !== 'any' ? [] : newRule.exclude_types })}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
                 newRule.detection_type === dt.value
                   ? 'bg-blue-600 text-white'
@@ -812,6 +857,42 @@ function NewRuleForm({
           ))}
         </div>
       </div>
+
+      {/* Exclude Types (only when "any" is selected) */}
+      {newRule.detection_type === 'any' && (
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">החרגות (לא להתריע על)</label>
+          <div className="flex flex-wrap gap-2">
+            {EXCLUDABLE_TYPES.map(dt => {
+              const excluded = (newRule.exclude_types || []).includes(dt.value);
+              return (
+                <button
+                  key={dt.value}
+                  onClick={() => {
+                    const current = newRule.exclude_types || [];
+                    onChange({
+                      ...newRule,
+                      exclude_types: excluded
+                        ? current.filter((t: string) => t !== dt.value)
+                        : [...current, dt.value],
+                    });
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                    excluded
+                      ? 'bg-red-100 text-red-700 border border-red-300'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border'
+                  }`}
+                >
+                  <dt.icon className="w-3.5 h-3.5" />
+                  {dt.label}
+                  {excluded && <X className="w-3 h-3" />}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-slate-400 mt-1">לחץ כדי להחריג סוג — למשל: החרג &quot;חתול&quot; כדי לא לקבל התראות על חתולים</p>
+        </div>
+      )}
 
       {/* Schedule */}
       <div className="grid grid-cols-2 gap-3">
