@@ -125,7 +125,7 @@ class Config:
         self.motion_threshold = 25       # Pixel diff threshold for motion
         self.motion_min_area = 500       # Min contour area to count as motion
         self.motion_blur_size = 21       # Gaussian blur kernel size
-        self.default_confidence = 0.45   # Min YOLOv8 confidence
+        self.default_confidence = 0.55   # Min YOLOv8 confidence (raised for nano model)
         self.cooldown_seconds = 60       # 1 min cooldown per camera+type (server enforces rule cooldown)
         self.periodic_scan_interval = 10  # Run YOLO every N seconds even without motion
 
