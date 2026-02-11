@@ -505,27 +505,30 @@ class FrameGrabber:
         self.lock = threading.Lock()
         self.running = True
         self.connected = False
-        self.cap = None
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
 
     def _run(self):
         while self.running:
+            cap = None
             try:
-                self.cap = cv2.VideoCapture(self.rtsp_url, cv2.CAP_FFMPEG)
-                self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-                self.cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 15000)
-                self.cap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 15000)
+                cap = cv2.VideoCapture(self.rtsp_url, cv2.CAP_FFMPEG)
+                cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 15000)
+                cap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 15000)
 
-                if not self.cap.isOpened():
+                if not cap.isOpened():
                     time.sleep(5)
                     continue
 
                 self.connected = True
                 fails = 0
 
-                while self.running and self.cap.isOpened():
-                    ret, frame = self.cap.read()
+                while self.running and cap.isOpened():
+                    try:
+                        ret, frame = cap.read()
+                    except Exception:
+                        break
                     if not ret:
                         fails += 1
                         if fails > 30:
@@ -541,9 +544,11 @@ class FrameGrabber:
                 pass
             finally:
                 self.connected = False
-                if self.cap is not None:
-                    self.cap.release()
-                    self.cap = None
+                if cap is not None:
+                    try:
+                        cap.release()
+                    except Exception:
+                        pass
                 if self.running:
                     time.sleep(5)
 
@@ -557,8 +562,7 @@ class FrameGrabber:
 
     def stop(self):
         self.running = False
-        if self.cap is not None:
-            self.cap.release()
+        self._thread.join(timeout=5)
 
 
 # ─── Camera Monitor (per camera thread) ───────────────────

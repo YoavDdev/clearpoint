@@ -183,14 +183,25 @@ class FrameGrabber:
         self._thread.start()
 
     def _run(self):
-        while self.running and self.cap.isOpened():
-            ret, frame = self.cap.read()
-            if ret:
-                with self.lock:
-                    self.frame = frame
-                    self.ret = True
-            else:
-                time.sleep(0.05)
+        while self.running:
+            if self.cap is None or not self.cap.isOpened():
+                break
+            try:
+                ret, frame = self.cap.read()
+                if ret:
+                    with self.lock:
+                        self.frame = frame
+                        self.ret = True
+                else:
+                    time.sleep(0.05)
+            except Exception:
+                break
+        # Release inside the thread that owns it
+        try:
+            if self.cap is not None:
+                self.cap.release()
+        except Exception:
+            pass
 
     def get(self):
         with self.lock:
@@ -200,7 +211,7 @@ class FrameGrabber:
 
     def stop(self):
         self.running = False
-        self.cap.release()
+        self._thread.join(timeout=3)
 
 
 def main():
