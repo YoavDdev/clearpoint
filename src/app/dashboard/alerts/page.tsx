@@ -5,7 +5,7 @@ import {
   Bell, Plus, Pencil, Trash2, Power, PowerOff, Save, X,
   Clock, Shield, Car, Bug, Flame, Eye, User, Loader2,
   ChevronDown, ChevronUp, Camera, Mail, MessageSquare, Smartphone,
-  Sparkles, Settings
+  Sparkles, Settings, Briefcase, Sword
 } from 'lucide-react';
 import AlertsFeed from '@/components/AlertsFeed';
 
@@ -38,6 +38,8 @@ const DETECTION_TYPES = [
   { value: 'person', label: 'אדם', icon: User, color: 'blue' },
   { value: 'vehicle', label: 'רכב', icon: Car, color: 'orange' },
   { value: 'animal', label: 'חיה', icon: Bug, color: 'green' },
+  { value: 'suspicious_object', label: 'חפץ חשוד', icon: Briefcase, color: 'yellow' },
+  { value: 'weapon', label: 'נשק', icon: Sword, color: 'red' },
   { value: 'motion', label: 'תנועה', icon: Eye, color: 'purple' },
   { value: 'any', label: 'כל זיהוי', icon: Shield, color: 'red' },
   { value: 'fire', label: 'אש/עשן', icon: Flame, color: 'red' },
@@ -49,6 +51,8 @@ const PRESET_ICONS: Record<string, string> = {
   night_guard: '🌙',
   intrusion: '🚨',
   vehicle: '🚗',
+  suspicious_object: '🎒',
+  weapon: '🔪',
 };
 
 function getDetectionInfo(type: string) {

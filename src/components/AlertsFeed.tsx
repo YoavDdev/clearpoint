@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   Bell, BellOff, Check, CheckCheck, Eye, User, Car, Bug,
   Shield, Flame, Clock, Camera, Loader2, RefreshCw, Filter,
-  ChevronDown, ChevronUp, Image as ImageIcon, AlertTriangle, Download, Trash2, Video
+  ChevronDown, ChevronUp, Image as ImageIcon, AlertTriangle, Download, Trash2, Video,
+  Briefcase, Sword
 } from 'lucide-react';
 
 interface Alert {
@@ -26,6 +27,8 @@ const DETECTION_ICONS: Record<string, any> = {
   person: User,
   vehicle: Car,
   animal: Bug,
+  suspicious_object: Briefcase,
+  weapon: Sword,
   motion: Eye,
   any: Shield,
   fire: Flame,
@@ -35,6 +38,8 @@ const DETECTION_LABELS: Record<string, string> = {
   person: 'אדם',
   vehicle: 'רכב',
   animal: 'חיה',
+  suspicious_object: 'חפץ חשוד',
+  weapon: 'נשק',
   motion: 'תנועה',
   any: 'כללי',
   fire: 'אש/עשן',
@@ -44,6 +49,8 @@ const DETECTION_COLORS: Record<string, string> = {
   person: 'blue',
   vehicle: 'orange',
   animal: 'green',
+  suspicious_object: 'yellow',
+  weapon: 'red',
   motion: 'purple',
   any: 'red',
   fire: 'red',

@@ -43,6 +43,8 @@ pip install --quiet -r "$AI_DIR/requirements.txt"
 
 # === Export YOLOv8s ONNX model ===
 MODEL_FILE="$MODEL_DIR/yolov8s.onnx"
+IR_FILE="$MODEL_DIR/yolov8s_fp16.xml"
+
 if [ ! -f "$MODEL_FILE" ]; then
     echo "🧠 Exporting YOLOv8s to ONNX (this may take a minute)..."
     pip install --quiet ultralytics
@@ -64,14 +66,39 @@ else:
     
     if [ -f "$MODEL_FILE" ]; then
         SIZE=$(du -h "$MODEL_FILE" | cut -f1)
-        echo "✅ YOLOv8s model ready: $MODEL_FILE ($SIZE)"
+        echo "✅ YOLOv8s ONNX ready: $MODEL_FILE ($SIZE)"
     else
         echo "❌ Failed to export model"
         echo "   Try manually: pip install ultralytics && yolo export model=yolov8s.pt format=onnx"
         echo "   Then move yolov8s.onnx to: $MODEL_FILE"
     fi
 else
-    echo "✅ Model already exists: $MODEL_FILE"
+    echo "✅ ONNX model already exists: $MODEL_FILE"
+fi
+
+# === Convert to OpenVINO IR FP16 (faster inference) ===
+if [ -f "$MODEL_FILE" ] && [ ! -f "$IR_FILE" ]; then
+    echo "⚡ Converting to OpenVINO IR FP16 (2-3x faster)..."
+    python3 -c "
+import openvino as ov
+core = ov.Core()
+model = core.read_model('$MODEL_FILE')
+ov.save_model(model, '$IR_FILE', compress_to_fp16=True)
+print('OpenVINO IR FP16 export complete')
+" 2>/dev/null || python3 -c "
+from openvino.runtime import Core, serialize
+core = Core()
+model = core.read_model('$MODEL_FILE')
+serialize(model, '$IR_FILE')
+print('OpenVINO IR export complete (legacy API)')
+" 2>/dev/null || echo "⚠️  OpenVINO IR conversion failed — will use ONNX (still works)"
+    
+    if [ -f "$IR_FILE" ]; then
+        SIZE=$(du -h "$IR_FILE" | cut -f1)
+        echo "✅ OpenVINO IR FP16 ready: $IR_FILE ($SIZE)"
+    fi
+elif [ -f "$IR_FILE" ]; then
+    echo "✅ OpenVINO IR already exists: $IR_FILE"
 fi
 
 # === Create systemd service ===
@@ -95,8 +122,8 @@ Environment=CLEARPOINT_DEVICE_TOKEN=$(grep -E '^CLEARPOINT_DEVICE_TOKEN=' "$HOME
 StandardOutput=append:$HOME/clearpoint-logs/ai-detect.log
 StandardError=append:$HOME/clearpoint-logs/ai-detect-error.log
 
-# Resource limits
-CPUQuota=60%
+# Resource limits (200% = 2 full CPU cores)
+CPUQuota=200%
 MemoryMax=1G
 
 [Install]

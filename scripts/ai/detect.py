@@ -62,17 +62,25 @@ for i, cls in enumerate(COCO_CLASSES):
     elif cls in ("bird", "cat", "dog", "horse", "sheep", "cow", "elephant",
                  "bear", "zebra", "giraffe"):
         COCO_TO_DETECTION[i] = "animal"
+    elif cls in ("backpack", "suitcase", "handbag"):
+        COCO_TO_DETECTION[i] = "suspicious_object"
+    elif cls in ("knife", "scissors"):
+        COCO_TO_DETECTION[i] = "weapon"
 
 # ─── Bounding box colors per detection type ─────────────────
 DETECTION_COLORS = {
-    "person": (255, 100, 50),    # Blue (BGR)
-    "vehicle": (0, 140, 255),    # Orange
-    "animal": (0, 200, 80),      # Green
+    "person": (255, 100, 50),         # Blue (BGR)
+    "vehicle": (0, 140, 255),         # Orange
+    "animal": (0, 200, 80),           # Green
+    "suspicious_object": (0, 200, 255),  # Yellow
+    "weapon": (0, 0, 255),            # Red
 }
 DETECTION_LABELS = {
     "person": "Person",
     "vehicle": "Vehicle",
     "animal": "Animal",
+    "suspicious_object": "Suspicious Object",
+    "weapon": "Weapon",
 }
 
 
@@ -121,7 +129,8 @@ class Config:
         self.cooldown_seconds = 60       # 1 min cooldown per camera+type (server enforces rule cooldown)
         self.periodic_scan_interval = 10  # Run YOLO every N seconds even without motion
 
-        # Model
+        # Model (prefer OpenVINO IR FP16 if available, fallback to ONNX)
+        self.model_ir_path = Path(__file__).parent / "models" / "yolov8s_fp16.xml"
         self.model_path = Path(__file__).parent / "models" / "yolov8s.onnx"
         self.model_input_size = (640, 640)
 
@@ -204,11 +213,19 @@ class YOLOv8Detector:
         self._load_model()
 
     def _load_model(self):
-        model_path = str(self.config.model_path)
+        ir_path = str(self.config.model_ir_path)
+        onnx_path = str(self.config.model_path)
 
-        if not Path(model_path).exists():
-            log.warning(f"Model not found at {model_path}")
-            log.warning("Download YOLOv8s: see scripts/ai/setup-ai.sh")
+        # Determine which model file to use (prefer IR FP16)
+        if Path(ir_path).exists():
+            model_path = ir_path
+            log.info(f"Found OpenVINO IR FP16 model: {ir_path}")
+        elif Path(onnx_path).exists():
+            model_path = onnx_path
+            log.info(f"Using ONNX model: {onnx_path}")
+        else:
+            log.warning(f"Model not found at {ir_path} or {onnx_path}")
+            log.warning("Run scripts/ai/setup-ai.sh to download the model")
             return
 
         # Try OpenVINO first (optimized for Intel)
@@ -219,17 +236,18 @@ class YOLOv8Detector:
             self._infer_request = compiled.create_infer_request()
             self.model = compiled
             self.use_openvino = True
-            log.info("Loaded YOLOv8s with OpenVINO (Intel optimized)")
+            fmt = "IR FP16" if model_path.endswith(".xml") else "ONNX"
+            log.info(f"✅ Loaded YOLOv8s ({fmt}) with OpenVINO")
             return
         except Exception as e:
             log.info(f"OpenVINO not available ({e}), falling back to ONNX Runtime")
 
-        # Fallback to ONNX Runtime
+        # Fallback to ONNX Runtime (only works with ONNX files)
         try:
             import onnxruntime as ort
-            self.model = ort.InferenceSession(model_path)
+            self.model = ort.InferenceSession(onnx_path)
             self.use_openvino = False
-            log.info("Loaded YOLOv8s with ONNX Runtime")
+            log.info("✅ Loaded YOLOv8s with ONNX Runtime")
         except Exception as e:
             log.error(f"Failed to load model: {e}")
             self.model = None
