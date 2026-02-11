@@ -6,7 +6,7 @@
 
 set -e
 
-echo "🤖 Clearpoint AI Detection — Setup (YOLOv8s)"
+echo "🤖 Clearpoint AI Detection — Setup (YOLOv8n)"
 echo "========================================"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -42,19 +42,19 @@ pip install --quiet --upgrade pip
 pip install --quiet -r "$AI_DIR/requirements.txt"
 
 # === Export YOLOv8s ONNX model ===
-MODEL_FILE="$MODEL_DIR/yolov8s.onnx"
-IR_FILE="$MODEL_DIR/yolov8s_fp16.xml"
+MODEL_FILE="$MODEL_DIR/yolov8n.onnx"
+IR_FILE="$MODEL_DIR/yolov8n_fp16.xml"
 
 if [ ! -f "$MODEL_FILE" ]; then
-    echo "🧠 Exporting YOLOv8s to ONNX (this may take a minute)..."
+    echo "🧠 Exporting YOLOv8n to ONNX (this may take a minute)..."
     pip install --quiet ultralytics
     python3 -c "
 from ultralytics import YOLO
 import shutil
-model = YOLO('yolov8s.pt')
+model = YOLO('yolov8n.pt')
 model.export(format='onnx', imgsz=640, simplify=True)
 import pathlib
-src = pathlib.Path('yolov8s.onnx')
+src = pathlib.Path('yolov8n.onnx')
 if src.exists():
     shutil.move(str(src), '$MODEL_FILE')
     print('Export complete')
@@ -62,11 +62,11 @@ else:
     print('Export failed')
 "
     # Cleanup temp files
-    rm -f yolov8s.pt
+    rm -f yolov8n.pt
     
     if [ -f "$MODEL_FILE" ]; then
         SIZE=$(du -h "$MODEL_FILE" | cut -f1)
-        echo "✅ YOLOv8s ONNX ready: $MODEL_FILE ($SIZE)"
+        echo "✅ YOLOv8n ONNX ready: $MODEL_FILE ($SIZE)"
     else
         echo "❌ Failed to export model"
         echo "   Try manually: pip install ultralytics && yolo export model=yolov8s.pt format=onnx"
@@ -149,7 +149,7 @@ echo "✅ Setup complete!"
 echo ""
 echo "📂 Files:"
 echo "   Script:    $AI_DIR/detect.py"
-echo "   Model:     $MODEL_FILE (YOLOv8s)"
+echo "   Model:     $MODEL_FILE (YOLOv8n)"
 echo "   Snapshots: $HOME/clearpoint-snapshots/"
 echo "   Logs:      $HOME/clearpoint-logs/ai-detect.log"
 echo ""

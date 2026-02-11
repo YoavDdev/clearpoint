@@ -130,8 +130,8 @@ class Config:
         self.periodic_scan_interval = 10  # Run YOLO every N seconds even without motion
 
         # Model (prefer OpenVINO IR FP16 if available, fallback to ONNX)
-        self.model_ir_path = Path(__file__).parent / "models" / "yolov8s_fp16.xml"
-        self.model_path = Path(__file__).parent / "models" / "yolov8s.onnx"
+        self.model_ir_path = Path(__file__).parent / "models" / "yolov8n_fp16.xml"
+        self.model_path = Path(__file__).parent / "models" / "yolov8n.onnx"
         self.model_input_size = (640, 640)
 
         # Snapshot
