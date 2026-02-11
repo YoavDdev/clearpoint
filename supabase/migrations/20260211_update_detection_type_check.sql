@@ -6,6 +6,7 @@ ALTER TABLE alert_rules ADD CONSTRAINT alert_rules_detection_type_check
   CHECK (detection_type IN (
     'person', 'vehicle', 'animal', 'dog', 'cat',
     'suspicious_object', 'weapon',
-    'motion', 'any', 'fire', 'smoke',
+    'fire', 'smoke',
+    'motion', 'any',
     'face_unknown', 'loitering', 'line_cross'
   ));

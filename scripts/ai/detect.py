@@ -71,6 +71,10 @@ for i, cls in enumerate(COCO_CLASSES):
     elif cls in ("knife", "scissors"):
         COCO_TO_DETECTION[i] = "weapon"
 
+# Fire/smoke model classes (secondary model)
+FIRE_CLASSES = ["fire", "smoke"]
+FIRE_CLASS_MAP = {0: "fire", 1: "smoke"}
+
 # ─── Bounding box colors per detection type ─────────────────
 DETECTION_COLORS = {
     "person": (255, 100, 50),         # Blue (BGR)
@@ -80,6 +84,8 @@ DETECTION_COLORS = {
     "animal": (0, 180, 60),           # Dark green
     "suspicious_object": (0, 200, 255),  # Yellow
     "weapon": (0, 0, 255),            # Red
+    "fire": (0, 69, 255),             # Deep orange
+    "smoke": (180, 180, 180),         # Gray
 }
 DETECTION_LABELS = {
     "person": "Person",
@@ -88,7 +94,9 @@ DETECTION_LABELS = {
     "cat": "Cat",
     "animal": "Animal",
     "suspicious_object": "Suspicious Object",
-    "weapon": "Weapon",
+    "weapon": "Knife/Sharp",
+    "fire": "Fire",
+    "smoke": "Smoke",
 }
 
 
@@ -141,6 +149,12 @@ class Config:
         self.model_ir_path = Path(__file__).parent / "models" / "yolov8n_fp16.xml"
         self.model_path = Path(__file__).parent / "models" / "yolov8n.onnx"
         self.model_input_size = (640, 640)
+
+        # Secondary fire/smoke model
+        self.fire_model_ir_path = Path(__file__).parent / "models" / "fire_smoke_fp16.xml"
+        self.fire_model_onnx_path = Path(__file__).parent / "models" / "fire_smoke.onnx"
+        self.fire_model_pt_path = Path(__file__).parent / "models" / "fire_smoke.pt"
+        self.fire_scan_interval = 10  # Run fire model every N frames
 
         # Snapshot
         self.snapshot_dir = Path.home() / "clearpoint-snapshots"
@@ -211,29 +225,34 @@ class Config:
         return None
 
 
-# ─── YOLOv8s Model ────────────────────────────────────────
+# ─── YOLOv8 Model (generic — supports COCO + custom models) ──
 class YOLOv8Detector:
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, ir_path=None, onnx_path=None,
+                 class_map=None, class_names=None, name="main"):
         self.config = config
         self.model = None
         self.use_openvino = False
         self._lock = threading.Lock()
+        self.name = name
+        self.class_map = class_map if class_map is not None else COCO_TO_DETECTION
+        self.class_names = class_names if class_names is not None else COCO_CLASSES
+        self._ir_path = ir_path or str(config.model_ir_path)
+        self._onnx_path = onnx_path or str(config.model_path)
         self._load_model()
 
     def _load_model(self):
-        ir_path = str(self.config.model_ir_path)
-        onnx_path = str(self.config.model_path)
+        ir_path = self._ir_path
+        onnx_path = self._onnx_path
 
         # Determine which model file to use (prefer IR FP16)
         if Path(ir_path).exists():
             model_path = ir_path
-            log.info(f"Found OpenVINO IR FP16 model: {ir_path}")
+            log.info(f"[{self.name}] Found OpenVINO IR FP16 model: {ir_path}")
         elif Path(onnx_path).exists():
             model_path = onnx_path
-            log.info(f"Using ONNX model: {onnx_path}")
+            log.info(f"[{self.name}] Using ONNX model: {onnx_path}")
         else:
-            log.warning(f"Model not found at {ir_path} or {onnx_path}")
-            log.warning("Run scripts/ai/setup-ai.sh to download the model")
+            log.warning(f"[{self.name}] Model not found at {ir_path} or {onnx_path}")
             return
 
         # Try OpenVINO first (optimized for Intel)
@@ -245,7 +264,7 @@ class YOLOv8Detector:
             self.model = compiled
             self.use_openvino = True
             fmt = "IR FP16" if model_path.endswith(".xml") else "ONNX"
-            log.info(f"✅ Loaded YOLOv8s ({fmt}) with OpenVINO")
+            log.info(f"✅ Loaded {self.name} model ({fmt}) with OpenVINO")
             return
         except Exception as e:
             log.info(f"OpenVINO not available ({e}), falling back to ONNX Runtime")
@@ -255,9 +274,9 @@ class YOLOv8Detector:
             import onnxruntime as ort
             self.model = ort.InferenceSession(onnx_path)
             self.use_openvino = False
-            log.info("✅ Loaded YOLOv8s with ONNX Runtime")
+            log.info(f"✅ Loaded {self.name} model with ONNX Runtime")
         except Exception as e:
-            log.error(f"Failed to load model: {e}")
+            log.error(f"Failed to load {self.name} model: {e}")
             self.model = None
 
     def detect(self, frame: np.ndarray) -> list:
@@ -361,7 +380,7 @@ class YOLOv8Detector:
         for idx in indices:
             i = idx[0] if isinstance(idx, (list, np.ndarray)) else idx
             class_id = int(class_ids_filtered[i])
-            detection_type = COCO_TO_DETECTION.get(class_id)
+            detection_type = self.class_map.get(class_id)
 
             if detection_type is None:
                 continue  # Skip objects we don't care about
@@ -371,9 +390,10 @@ class YOLOv8Detector:
             bx1, by1 = max(0, bx1), max(0, by1)
             bx2, by2 = min(w, bx2), min(h, by2)
 
+            class_name = self.class_names[class_id] if class_id < len(self.class_names) else str(class_id)
             detections.append({
                 "class_id": class_id,
-                "class_name": COCO_CLASSES[class_id],
+                "class_name": class_name,
                 "detection_type": detection_type,
                 "confidence": float(scores_filtered[i]),
                 "bbox": [int(bx1), int(by1), int(bx2), int(by2)],
@@ -594,11 +614,13 @@ class FrameGrabber:
 # ─── Camera Monitor (per camera thread) ───────────────────
 class CameraMonitor(threading.Thread):
     def __init__(self, camera: dict, config: Config,
-                 detector: YOLOv8Detector, sender: AlertSender):
+                 detector: YOLOv8Detector, sender: AlertSender,
+                 fire_detector: YOLOv8Detector | None = None):
         super().__init__(daemon=True)
         self.camera = camera
         self.config = config
         self.detector = detector
+        self.fire_detector = fire_detector
         self.sender = sender
         self.running = True
         self.cam_id = camera["id"]
@@ -650,6 +672,7 @@ class CameraMonitor(threading.Thread):
                 heartbeat_detections = 0
                 heartbeat_time = time.time()
                 last_frame_id = None
+                fire_frame_counter = 0
 
                 while self.running and self.grabber.connected:
                     start = time.time()
@@ -668,15 +691,27 @@ class CameraMonitor(threading.Thread):
                     last_frame_id = frame_id
 
                     heartbeat_frames += 1
+                    fire_frame_counter += 1
                     with self._stats_lock:
                         self._stats_frames += 1
 
-                    # YOLOv8 inference on latest frame
+                    # YOLOv8 inference on latest frame (main COCO model)
                     try:
                         detections = self.detector.detect(frame)
                     except Exception as e:
                         log.warning(f"Detection error on {self.cam_name}: {e}")
                         detections = []
+
+                    # Fire/smoke detection (secondary model, every N frames)
+                    if self.fire_detector and self.fire_detector.model and \
+                       fire_frame_counter >= self.config.fire_scan_interval:
+                        fire_frame_counter = 0
+                        try:
+                            fire_dets = self.fire_detector.detect(frame)
+                            if fire_dets:
+                                detections.extend(fire_dets)
+                        except Exception as e:
+                            log.warning(f"Fire detection error on {self.cam_name}: {e}")
 
                     if detections:
                         heartbeat_detections += len(detections)
@@ -713,6 +748,21 @@ class DetectionEngine:
     def __init__(self):
         self.config = Config()
         self.detector = YOLOv8Detector(self.config)
+
+        # Load fire/smoke model (optional — runs if model files exist)
+        self.fire_detector = YOLOv8Detector(
+            self.config,
+            ir_path=str(self.config.fire_model_ir_path),
+            onnx_path=str(self.config.fire_model_onnx_path),
+            class_map=FIRE_CLASS_MAP,
+            class_names=FIRE_CLASSES,
+            name="fire/smoke",
+        )
+        if self.fire_detector.model:
+            log.info(f"🔥 Fire/smoke detection enabled (every {self.config.fire_scan_interval} frames)")
+        else:
+            log.info("🔥 Fire/smoke model not found — fire detection disabled")
+
         self.sender = AlertSender(self.config)
         self.monitors: list[CameraMonitor] = []
         self.running = True
@@ -792,8 +842,9 @@ class DetectionEngine:
         log.info("=" * 50)
 
         # Start a monitor thread per camera
+        fire_det = self.fire_detector if self.fire_detector.model else None
         for cam in self.config.cameras:
-            monitor = CameraMonitor(cam, self.config, self.detector, self.sender)
+            monitor = CameraMonitor(cam, self.config, self.detector, self.sender, fire_detector=fire_det)
             self.monitors.append(monitor)
             monitor.start()
 
@@ -811,7 +862,8 @@ class DetectionEngine:
                     if not m.is_alive() and self.running:
                         log.warning(f"Restarting dead monitor: {m.cam_name}")
                         new_m = CameraMonitor(m.camera, self.config,
-                                              self.detector, self.sender)
+                                              self.detector, self.sender,
+                                              fire_detector=fire_det)
                         self.monitors.remove(m)
                         self.monitors.append(new_m)
                         new_m.start()

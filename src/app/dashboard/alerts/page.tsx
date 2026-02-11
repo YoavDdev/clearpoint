@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   Bell, Plus, Pencil, Trash2, Power, PowerOff, Save, X,
-  Clock, Shield, Car, Bug, Flame, Eye, User, Loader2,
+  Clock, Shield, Car, Bug, Flame, User, Loader2,
   ChevronDown, ChevronUp, Camera, Mail, MessageSquare, Smartphone,
   Sparkles, Settings, Briefcase, Sword, Dog, Cat
 } from 'lucide-react';
@@ -42,14 +42,14 @@ const DETECTION_TYPES = [
   { value: 'cat', label: 'חתול', icon: Cat, color: 'emerald' },
   { value: 'animal', label: 'חיה אחרת', icon: Bug, color: 'green' },
   { value: 'suspicious_object', label: 'חפץ חשוד', icon: Briefcase, color: 'yellow' },
-  { value: 'weapon', label: 'נשק', icon: Sword, color: 'red' },
-  { value: 'motion', label: 'תנועה', icon: Eye, color: 'purple' },
+  { value: 'weapon', label: 'סכין / חפץ חד', icon: Sword, color: 'red' },
+  { value: 'fire', label: 'אש', icon: Flame, color: 'red' },
+  { value: 'smoke', label: 'עשן', icon: Flame, color: 'gray' },
   { value: 'any', label: 'כל זיהוי', icon: Shield, color: 'red' },
-  { value: 'fire', label: 'אש/עשן', icon: Flame, color: 'red' },
 ];
 
 const EXCLUDABLE_TYPES = DETECTION_TYPES.filter(dt =>
-  !['any', 'motion', 'fire'].includes(dt.value)
+  !['any'].includes(dt.value)
 );
 
 const DAY_LABELS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];

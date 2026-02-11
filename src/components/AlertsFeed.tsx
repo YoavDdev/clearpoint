@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import {
-  Bell, BellOff, Check, CheckCheck, Eye, User, Car, Bug,
+  Bell, BellOff, Check, CheckCheck, User, Car, Bug,
   Shield, Flame, Clock, Camera, Loader2, RefreshCw, Filter,
   ChevronDown, ChevronUp, Image as ImageIcon, AlertTriangle, Download, Trash2, Video,
   Briefcase, Sword, Dog, Cat
@@ -31,9 +31,9 @@ const DETECTION_ICONS: Record<string, any> = {
   animal: Bug,
   suspicious_object: Briefcase,
   weapon: Sword,
-  motion: Eye,
-  any: Shield,
   fire: Flame,
+  smoke: Flame,
+  any: Shield,
 };
 
 const DETECTION_LABELS: Record<string, string> = {
@@ -43,10 +43,10 @@ const DETECTION_LABELS: Record<string, string> = {
   cat: 'חתול',
   animal: 'חיה אחרת',
   suspicious_object: 'חפץ חשוד',
-  weapon: 'נשק',
-  motion: 'תנועה',
+  weapon: 'סכין / חפץ חד',
+  fire: 'אש',
+  smoke: 'עשן',
   any: 'כללי',
-  fire: 'אש/עשן',
 };
 
 const DETECTION_COLORS: Record<string, string> = {
@@ -57,9 +57,9 @@ const DETECTION_COLORS: Record<string, string> = {
   animal: 'green',
   suspicious_object: 'yellow',
   weapon: 'red',
-  motion: 'purple',
-  any: 'red',
   fire: 'red',
+  smoke: 'gray',
+  any: 'red',
 };
 
 function timeAgo(dateStr: string): string {
