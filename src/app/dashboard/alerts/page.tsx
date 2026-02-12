@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   Bell, Plus, Pencil, Trash2, Power, PowerOff, Save, X,
-  Clock, Shield, Car, Bug, Flame, Crosshair, User, Loader2,
+  Clock, Shield, Car, Bug, Flame, User, Loader2,
   ChevronDown, ChevronUp, Camera, Mail, MessageSquare, Smartphone,
   Sparkles, Settings, Briefcase, Sword, Dog, Cat
 } from 'lucide-react';

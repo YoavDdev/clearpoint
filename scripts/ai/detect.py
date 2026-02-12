@@ -75,11 +75,6 @@ for i, cls in enumerate(COCO_CLASSES):
 FIRE_CLASSES = ["fire", "smoke"]
 FIRE_CLASS_MAP = {0: "fire", 1: "smoke"}
 
-# Weapons model classes (secondary model)
-# Maps ALL weapon model classes → "firearm" detection type
-WEAPON_CLASS_MAP = {i: "firearm" for i in range(20)}
-WEAPON_CLASSES = [f"weapon_{i}" for i in range(20)]
-
 # ─── Bounding box colors per detection type ─────────────────
 DETECTION_COLORS = {
     "person": (255, 100, 50),         # Blue (BGR)
@@ -91,7 +86,6 @@ DETECTION_COLORS = {
     "weapon": (0, 0, 255),            # Red
     "fire": (0, 69, 255),             # Deep orange
     "smoke": (180, 180, 180),         # Gray
-    "firearm": (0, 0, 200),            # Dark red
 }
 DETECTION_LABELS = {
     "person": "Person",
@@ -103,7 +97,6 @@ DETECTION_LABELS = {
     "weapon": "Knife/Sharp",
     "fire": "Fire",
     "smoke": "Smoke",
-    "firearm": "Firearm",
 }
 
 
@@ -163,10 +156,6 @@ class Config:
         self.fire_model_pt_path = Path(__file__).parent / "models" / "fire_smoke.pt"
         self.fire_scan_interval = 10  # Run fire model every N frames
 
-        # Weapons model (gun/rifle detection)
-        self.weapon_model_ir_path = Path(__file__).parent / "models" / "weapons_fp16.xml"
-        self.weapon_model_onnx_path = Path(__file__).parent / "models" / "weapons.onnx"
-        self.weapon_scan_interval = 10  # Run weapon model every N frames
 
         # Snapshot
         self.snapshot_dir = Path.home() / "clearpoint-snapshots"
@@ -627,14 +616,12 @@ class FrameGrabber:
 class CameraMonitor(threading.Thread):
     def __init__(self, camera: dict, config: Config,
                  detector: YOLOv8Detector, sender: AlertSender,
-                 fire_detector: YOLOv8Detector | None = None,
-                 weapon_detector: YOLOv8Detector | None = None):
+                 fire_detector: YOLOv8Detector | None = None):
         super().__init__(daemon=True)
         self.camera = camera
         self.config = config
         self.detector = detector
         self.fire_detector = fire_detector
-        self.weapon_detector = weapon_detector
         self.sender = sender
         self.running = True
         self.cam_id = camera["id"]
@@ -687,7 +674,6 @@ class CameraMonitor(threading.Thread):
                 heartbeat_time = time.time()
                 last_frame_id = None
                 fire_frame_counter = 0
-                weapon_frame_counter = 0
 
                 while self.running and self.grabber.connected:
                     start = time.time()
@@ -707,7 +693,6 @@ class CameraMonitor(threading.Thread):
 
                     heartbeat_frames += 1
                     fire_frame_counter += 1
-                    weapon_frame_counter += 1
                     with self._stats_lock:
                         self._stats_frames += 1
 
@@ -728,17 +713,6 @@ class CameraMonitor(threading.Thread):
                                 detections.extend(fire_dets)
                         except Exception as e:
                             log.warning(f"Fire detection error on {self.cam_name}: {e}")
-
-                    # Weapon detection (secondary model, every N frames)
-                    if self.weapon_detector and self.weapon_detector.model and \
-                       weapon_frame_counter >= self.config.weapon_scan_interval:
-                        weapon_frame_counter = 0
-                        try:
-                            weapon_dets = self.weapon_detector.detect(frame)
-                            if weapon_dets:
-                                detections.extend(weapon_dets)
-                        except Exception as e:
-                            log.warning(f"Weapon detection error on {self.cam_name}: {e}")
 
                     if detections:
                         heartbeat_detections += len(detections)
@@ -789,20 +763,6 @@ class DetectionEngine:
             log.info(f"🔥 Fire/smoke detection enabled (every {self.config.fire_scan_interval} frames)")
         else:
             log.info("🔥 Fire/smoke model not found — fire detection disabled")
-
-        # Load weapons model (optional — runs if model files exist)
-        self.weapon_detector = YOLOv8Detector(
-            self.config,
-            ir_path=str(self.config.weapon_model_ir_path),
-            onnx_path=str(self.config.weapon_model_onnx_path),
-            class_map=WEAPON_CLASS_MAP,
-            class_names=WEAPON_CLASSES,
-            name="weapons",
-        )
-        if self.weapon_detector.model:
-            log.info(f"🔫 Weapon detection enabled (every {self.config.weapon_scan_interval} frames)")
-        else:
-            log.info("🔫 Weapon model not found — weapon detection disabled")
 
         self.sender = AlertSender(self.config)
         self.monitors: list[CameraMonitor] = []
@@ -884,10 +844,9 @@ class DetectionEngine:
 
         # Start a monitor thread per camera
         fire_det = self.fire_detector if self.fire_detector.model else None
-        weapon_det = self.weapon_detector if self.weapon_detector.model else None
         for cam in self.config.cameras:
             monitor = CameraMonitor(cam, self.config, self.detector, self.sender,
-                                    fire_detector=fire_det, weapon_detector=weapon_det)
+                                    fire_detector=fire_det)
             self.monitors.append(monitor)
             monitor.start()
 
@@ -906,8 +865,7 @@ class DetectionEngine:
                         log.warning(f"Restarting dead monitor: {m.cam_name}")
                         new_m = CameraMonitor(m.camera, self.config,
                                               self.detector, self.sender,
-                                              fire_detector=fire_det,
-                                              weapon_detector=weapon_det)
+                                              fire_detector=fire_det)
                         self.monitors.remove(m)
                         self.monitors.append(new_m)
                         new_m.start()
