@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import { ArrowRight, Monitor, Camera, User, Calendar, Wifi, Activity, Eye, Settings } from "lucide-react";
 import { notFound } from "next/navigation";
-import { MiniPCDiagnostics } from "@/components/admin/MiniPCDiagnostics";
+
 
 export const dynamic = 'force-dynamic';
 
