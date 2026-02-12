@@ -151,9 +151,17 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Auto-create presets if user has no rules yet
-  if (!rules || rules.length === 0) {
-    const presetRows = SYSTEM_PRESETS.map((p) => ({
+  // Auto-create missing presets (works for new AND existing users)
+  const existingPresetKeys = (rules || [])
+    .filter((r: any) => r.is_preset && r.preset_key)
+    .map((r: any) => `${r.preset_key}__${r.detection_type}`);
+
+  const missingPresets = SYSTEM_PRESETS.filter(
+    (p) => !existingPresetKeys.includes(`${p.preset_key}__${p.detection_type}`)
+  );
+
+  if (missingPresets.length > 0) {
+    const presetRows = missingPresets.map((p) => ({
       ...p,
       user_id: user.id,
       camera_id: null,
@@ -165,17 +173,16 @@ export async function GET() {
 
     if (insertError) {
       console.error("Failed to create presets:", insertError);
-      return NextResponse.json({ error: insertError.message }, { status: 500 });
+    } else {
+      // Re-fetch with new presets
+      const { data: updatedRules } = await supabase
+        .from("alert_rules")
+        .select("*, camera:cameras(id, name)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
+
+      return NextResponse.json({ success: true, rules: updatedRules || [] });
     }
-
-    // Re-fetch
-    const { data: newRules } = await supabase
-      .from("alert_rules")
-      .select("*, camera:cameras(id, name)")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: true });
-
-    return NextResponse.json({ success: true, rules: newRules || [] });
   }
 
   return NextResponse.json({ success: true, rules });
