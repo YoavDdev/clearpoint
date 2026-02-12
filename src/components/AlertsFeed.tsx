@@ -33,6 +33,7 @@ const DETECTION_ICONS: Record<string, any> = {
   weapon: Sword,
   fire: Flame,
   smoke: Flame,
+  fire_smoke: Flame,
   any: Shield,
 };
 
@@ -46,6 +47,7 @@ const DETECTION_LABELS: Record<string, string> = {
   weapon: 'סכין / חפץ חד',
   fire: 'אש',
   smoke: 'עשן',
+  fire_smoke: 'אש ועשן',
   any: 'כללי',
 };
 
@@ -59,6 +61,7 @@ const DETECTION_COLORS: Record<string, string> = {
   weapon: 'red',
   fire: 'red',
   smoke: 'gray',
+  fire_smoke: 'red',
   any: 'red',
 };
 

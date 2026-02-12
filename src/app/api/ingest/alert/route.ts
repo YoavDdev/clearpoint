@@ -21,7 +21,9 @@ function findMatchingRule(rules: any[], alert: any): any | null {
 
   for (const rule of rules) {
     // 1. Detection type check
-    if (rule.detection_type !== "any" && rule.detection_type !== alert.detection_type) {
+    if (rule.detection_type === "fire_smoke") {
+      if (alert.detection_type !== "fire" && alert.detection_type !== "smoke") continue;
+    } else if (rule.detection_type !== "any" && rule.detection_type !== alert.detection_type) {
       continue;
     }
 
