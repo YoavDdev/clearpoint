@@ -60,6 +60,7 @@ const PRESET_ICONS: Record<string, string> = {
   vehicle: '🚗',
   suspicious_object: '🎒',
   weapon: '🔪',
+  fire_smoke: '🔥',
 };
 
 function getDetectionInfo(type: string) {
