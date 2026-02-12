@@ -45,7 +45,6 @@ const DETECTION_TYPES = [
   { value: 'weapon', label: 'סכין / חפץ חד', icon: Sword, color: 'red' },
   { value: 'fire', label: 'אש', icon: Flame, color: 'red' },
   { value: 'smoke', label: 'עשן', icon: Flame, color: 'gray' },
-  { value: 'firearm', label: 'נשק חם', icon: Crosshair, color: 'red' },
   { value: 'any', label: 'כל זיהוי', icon: Shield, color: 'red' },
 ];
 
