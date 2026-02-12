@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   Bell, BellOff, Check, CheckCheck, User, Car, Bug,
-  Shield, Flame, Clock, Camera, Loader2, RefreshCw, Filter,
+  Shield, Flame, Crosshair, Clock, Camera, Loader2, RefreshCw, Filter,
   ChevronDown, ChevronUp, Image as ImageIcon, AlertTriangle, Download, Trash2, Video,
   Briefcase, Sword, Dog, Cat
 } from 'lucide-react';
@@ -33,6 +33,7 @@ const DETECTION_ICONS: Record<string, any> = {
   weapon: Sword,
   fire: Flame,
   smoke: Flame,
+  firearm: Crosshair,
   any: Shield,
 };
 
@@ -46,6 +47,7 @@ const DETECTION_LABELS: Record<string, string> = {
   weapon: 'סכין / חפץ חד',
   fire: 'אש',
   smoke: 'עשן',
+  firearm: 'נשק חם',
   any: 'כללי',
 };
 
@@ -59,6 +61,7 @@ const DETECTION_COLORS: Record<string, string> = {
   weapon: 'red',
   fire: 'red',
   smoke: 'gray',
+  firearm: 'red',
   any: 'red',
 };
 

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   Bell, Plus, Pencil, Trash2, Power, PowerOff, Save, X,
-  Clock, Shield, Car, Bug, Flame, User, Loader2,
+  Clock, Shield, Car, Bug, Flame, Crosshair, User, Loader2,
   ChevronDown, ChevronUp, Camera, Mail, MessageSquare, Smartphone,
   Sparkles, Settings, Briefcase, Sword, Dog, Cat
 } from 'lucide-react';
@@ -45,6 +45,7 @@ const DETECTION_TYPES = [
   { value: 'weapon', label: 'סכין / חפץ חד', icon: Sword, color: 'red' },
   { value: 'fire', label: 'אש', icon: Flame, color: 'red' },
   { value: 'smoke', label: 'עשן', icon: Flame, color: 'gray' },
+  { value: 'firearm', label: 'נשק חם', icon: Crosshair, color: 'red' },
   { value: 'any', label: 'כל זיהוי', icon: Shield, color: 'red' },
 ];
 

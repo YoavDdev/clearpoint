@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI training notebook (contains API key)
+scripts/ai/train_fire_smoke.ipynb
