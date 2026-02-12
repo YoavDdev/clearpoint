@@ -202,8 +202,8 @@ export function MiniPCsTable({ miniPCs }: { miniPCs: MiniPC[] }) {
         {/* CPU Temperature */}
         <div className="text-slate-600">
           <span className={`font-medium ${
-            (health?.cpu_temp_celsius ?? 0) > 80 ? "text-red-600" :
-            (health?.cpu_temp_celsius ?? 0) > 70 ? "text-orange-600" :
+            (health?.cpu_temp_celsius ?? 0) > 100 ? "text-red-600" :
+            (health?.cpu_temp_celsius ?? 0) > 93 ? "text-orange-600" :
             "text-slate-700"
           }`}>
             {health?.cpu_temp_celsius ? `${health.cpu_temp_celsius}°C` : "—"}

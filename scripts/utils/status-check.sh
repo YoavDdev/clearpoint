@@ -120,13 +120,13 @@ TOTAL_VIDEO_FILES=$(find ~/clearpoint-recordings -name "*.mp4" 2>/dev/null | wc 
 
 # Overall Mini PC Status
 MINI_PC_STATUS="healthy"
-if [[ "$CPU_TEMP" != "null" && "$CPU_TEMP" -gt 80 ]]; then
+if [[ "$CPU_TEMP" != "null" && "$CPU_TEMP" -gt 100 ]]; then
   MINI_PC_STATUS="critical"
 elif [[ "$DISK_ROOT_PCT" -gt 90 || "$RAM_USAGE_PCT" > 90 ]]; then
   MINI_PC_STATUS="critical"
 elif [[ "$INTERNET_CONNECTED" == "false" ]]; then
   MINI_PC_STATUS="warning"
-elif [[ "$CPU_TEMP" != "null" && "$CPU_TEMP" -gt 70 ]] || [[ "$DISK_ROOT_PCT" -gt 75 ]]; then
+elif [[ "$CPU_TEMP" != "null" && "$CPU_TEMP" -gt 93 ]] || [[ "$DISK_ROOT_PCT" -gt 75 ]]; then
   MINI_PC_STATUS="warning"
 fi
 

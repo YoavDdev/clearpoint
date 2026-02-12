@@ -575,7 +575,7 @@ export async function POST() {
         }
 
         // Check CPU temperature
-        if (miniPcHealthData.cpu_temp_celsius && miniPcHealthData.cpu_temp_celsius > 80) {
+        if (miniPcHealthData.cpu_temp_celsius && miniPcHealthData.cpu_temp_celsius > 100) {
           const { data: existingAlert } = await supabase
             .from("system_alerts")
             .select("id")
