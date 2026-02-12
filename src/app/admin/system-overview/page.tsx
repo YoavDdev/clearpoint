@@ -22,7 +22,12 @@ import {
   XCircle,
   Filter,
   Camera,
-  Monitor
+  Monitor,
+  Brain,
+  Flame,
+  Eye,
+  Cpu,
+  Layers
 } from "lucide-react";
 
 interface SystemStats {
@@ -688,6 +693,97 @@ export default function SystemOverviewPage() {
                 </div>
               </div>
 
+              {/* AI Detection Engine */}
+              <div className="bg-gradient-to-br from-red-50 to-orange-50 p-8 rounded-2xl border-2 border-red-200">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center">
+                    <Brain size={32} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-900">AI Detection Engine</h3>
+                    <p className="text-slate-600">מערכת זיהוי חכמה בזמן אמת</p>
+                  </div>
+                </div>
+                <div className="space-y-3 text-slate-700">
+                  <p>• <strong>תפקיד:</strong> ניתוח וידאו בזמן אמת מכל המצלמות, זיהוי אובייקטים ושליחת התראות</p>
+                  <p>• <strong>ריצה:</strong> על ה-Mini PC של הלקוח (Edge AI) — ללא תלות באינטרנט לזיהוי</p>
+                  <p>• <strong>שירות:</strong> <code className="bg-white px-2 py-1 rounded">clearpoint-ai.service</code> — systemd, רץ 24/7, restart אוטומטי</p>
+                  <p>• <strong>סקריפט:</strong> <code className="bg-white px-2 py-1 rounded">detect.py</code> — Python, thread אחד לכל מצלמה</p>
+                  <p>• <strong>משאבים:</strong> ~77% CPU, ~500MB RAM על Intel N150 (4 cores, 8GB)</p>
+                </div>
+              </div>
+
+              {/* AI Models */}
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-8 rounded-2xl border-2 border-amber-200">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-16 h-16 bg-amber-600 rounded-2xl flex items-center justify-center">
+                    <Layers size={32} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-900">מודלים (Models)</h3>
+                    <p className="text-slate-600">רשתות נוירונים לזיהוי אובייקטים</p>
+                  </div>
+                </div>
+                <div className="space-y-4 text-slate-700">
+                  <div className="bg-white p-4 rounded-xl border border-amber-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Eye size={18} className="text-blue-600" />
+                      <p className="font-bold text-amber-900">מודל ראשי — YOLOv8n COCO</p>
+                    </div>
+                    <p className="text-sm mb-2">מודל כללי (80 קטגוריות), אנחנו משתמשים ב-7:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {["אדם","רכב","כלב","חתול","חיה אחרת","חפץ חשוד","סכין/חפץ חד"].map(t=>(
+                        <span key={t} className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium">{t}</span>
+                      ))}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">רץ על <strong>כל פריים</strong> • ~6MB • מקור: COCO dataset</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-amber-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Flame size={18} className="text-red-600" />
+                      <p className="font-bold text-amber-900">מודל משני — אש ועשן</p>
+                    </div>
+                    <p className="text-sm mb-2">מודל מותאם אישית, אומן על Roboflow + Google Colab:</p>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-2 py-1 bg-red-50 text-red-700 rounded text-xs font-medium">אש (fire)</span>
+                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">עשן (smoke)</span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">רץ כל <strong>10 פריימים</strong> (חוסך CPU) • ~6MB • אומן על Colab</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Tech Stack */}
+              <div className="bg-gradient-to-br from-slate-50 to-gray-50 p-8 rounded-2xl border-2 border-slate-200">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-16 h-16 bg-slate-700 rounded-2xl flex items-center justify-center">
+                    <Cpu size={32} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-900">AI Tech Stack</h3>
+                    <p className="text-slate-600">הטכנולוגיות מאחורי מנוע הזיהוי</p>
+                  </div>
+                </div>
+                <div className="space-y-4 text-slate-700">
+                  <div className="bg-white p-4 rounded-xl border border-slate-200">
+                    <p className="font-bold text-slate-900 mb-1">YOLOv8n (Ultralytics)</p>
+                    <p className="text-sm">ארכיטקטורת YOLO nano — הגרסה הקלה ביותר. זיהוי בזמן אמת בלי GPU.</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-slate-200">
+                    <p className="font-bold text-slate-900 mb-1">OpenVINO (Intel)</p>
+                    <p className="text-sm">פריימוורק של אינטל — ממיר מודל לפורמט IR FP16, חוסך ~50% זיכרון ומאיץ ריצה על מעבדי Intel.</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-slate-200">
+                    <p className="font-bold text-slate-900 mb-1">Roboflow + Google Colab</p>
+                    <p className="text-sm">Roboflow = ניהול datasets מתוייגים. Colab = אימון בענן עם GPU חינמי. התוצאה: מודל ONNX מוכן.</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-slate-200">
+                    <p className="font-bold text-slate-900 mb-1">תהליך: אימון → המרה → פריסה</p>
+                    <p className="text-sm">Roboflow (data) → Colab (train YOLOv8n) → ONNX → OpenVINO IR FP16 → Mini PC</p>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-8 rounded-2xl border-2 border-purple-200">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-16 h-16 bg-purple-600 rounded-2xl flex items-center justify-center">
@@ -708,7 +804,11 @@ export default function SystemOverviewPage() {
                     <p className="text-sm">UI מבקש <code>/api/vod/signed-url</code>, השרת חותם URL ל-60 דק', משתמש צופה דרך Bunny</p>
                   </div>
                   <div className="bg-white p-4 rounded-xl border border-purple-200">
-                    <p className="font-bold text-purple-900 mb-2">3️⃣ מחיקה (Cron → B2 + Supabase)</p>
+                    <p className="font-bold text-purple-900 mb-2">3️⃣ זיהוי AI (MiniPC → detect.py → Supabase)</p>
+                    <p className="text-sm">detect.py מנתח פריימים מכל מצלמה בזמן אמת, מזהה אובייקטים (YOLO + OpenVINO), ושולח התראות דרך <code>/api/ingest/alert</code></p>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-purple-200">
+                    <p className="font-bold text-purple-900 mb-2">4️⃣ מחיקה (Cron → B2 + Supabase)</p>
                     <p className="text-sm">Cleanup script רץ כל לילה, מוחק קבצים שעברו את ה-retention מ-B2 ומ-Supabase</p>
                   </div>
                 </div>
