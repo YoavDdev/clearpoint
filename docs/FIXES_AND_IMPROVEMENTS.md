@@ -216,6 +216,24 @@
 - [x] מחיקת `/api/test-payplus` (1 קובץ)
 - [x] סה"כ 692 שורות קוד מת הוסרו
 
+### 24. ✅ Security Audit — Auth Guards
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] סריקת כל 80 routes לאימות auth check
+- [x] יצירת `src/lib/admin-auth.ts` עם `requireAdmin()` helper
+- [x] הוספת auth guard ל-46 admin routes + 2 user routes + 1 mini-pc-health
+- [x] 48 חורי אבטחה נסגרו
+- [x] 7 routes נשארו ציבוריים בכוונה (auth, plans, webhooks, quotes, subscribe)
+
+### 25. ✅ Flat Routes → Nested RESTful Structure
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] העברת 8 user flat routes → `/api/user/...`
+- [x] העברת 14 admin flat routes → nested תחת `invoices/`, `users/`, `system/`
+- [x] מחיקת 5 routes לא בשימוש (calculate-price, payments, payplus-customers וכו')
+- [x] עדכון 14+ frontend files עם נתיבים חדשים
+- [x] מבנה API סופי: admin/ (17 groups), user/ (10 endpoints), ingest/, cron/, webhooks/, public/
+
 ---
 
 ## סטטוס ביצוע
@@ -245,6 +263,8 @@
 | 21 | Zod validation | ✅ בוצע | 2026-07-18 |
 | 22 | Unit tests (Vitest) | ✅ בוצע | 2026-07-18 |
 | 23 | Dead code cleanup | ✅ בוצע | 2026-07-18 |
+| 24 | Security audit (auth guards) | ✅ בוצע | 2026-07-18 |
+| 25 | Flat → nested routes | ✅ בוצע | 2026-07-18 |
 
 ---
 

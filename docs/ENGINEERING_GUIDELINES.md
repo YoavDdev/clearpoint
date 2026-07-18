@@ -41,12 +41,24 @@ owner: Engineering Lead
 src/
 ├── app/                    # Next.js App Router
 │   ├── api/               # API routes (serverless functions)
-│   │   ├── admin/         # Admin-only endpoints (RESTful, nested)
+│   │   ├── admin/         # Admin-only endpoints (nested RESTful)
+│   │   │   ├── users/     #   CRUD + payments, send-email, update-price
+│   │   │   ├── invoices/  #   CRUD + cancel, export, send-email
+│   │   │   ├── cameras/   #   CRUD
+│   │   │   ├── alerts/    #   CRUD + toggle, bulk-delete
+│   │   │   ├── recurring-payments/  #   PayPlus recurring
+│   │   │   ├── diagnostics/  #   Debug & monitoring tools
+│   │   │   ├── system/    #   cleanup, storage-usage
+│   │   │   └── ...        #   settings, support, notifications
+│   │   ├── user/          # Authenticated user endpoints
+│   │   │   ├── cameras/   #   user's cameras
+│   │   │   ├── footage/   #   VOD footage
+│   │   │   ├── alerts/    #   user's alerts
+│   │   │   └── ...        #   plan, support, invoices
 │   │   ├── cron/          # Scheduled jobs
 │   │   ├── ingest/        # Device-to-cloud endpoints
 │   │   ├── webhooks/      # External service callbacks
-│   │   ├── public/        # Unauthenticated endpoints
-│   │   └── user*/         # User-facing endpoints
+│   │   └── public/        # Unauthenticated endpoints
 │   ├── admin/             # Admin dashboard pages
 │   ├── dashboard/         # Customer dashboard pages
 │   └── (public pages)     # Login, subscribe, etc.
@@ -58,6 +70,8 @@ src/
 │   ├── payplusClient.ts   # PayPlus client class
 │   ├── device-auth.ts     # Device token validation (shared)
 │   ├── rate-limit.ts      # In-memory rate limiter
+│   ├── admin-auth.ts      # requireAdmin() auth guard
+│   ├── validations.ts     # Zod schemas + parseBody() helper
 │   ├── notifications.ts   # Email/WhatsApp sending
 │   ├── logger.ts          # System logging utility
 │   ├── email-service.ts   # Email templates
