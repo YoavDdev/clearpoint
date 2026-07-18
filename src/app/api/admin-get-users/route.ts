@@ -10,7 +10,7 @@ export async function GET() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // Step 1: Fetch users + cameras as nested relation
+  // Step 1: Fetch users + cameras as nested relation (exclude soft-deleted)
   const { data: users, error } = await supabase
     .from("users")
     .select(`
@@ -34,7 +34,8 @@ export async function GET() {
       subscription_status,
       initial_camera_count,
       cameras (id)
-    `);
+    `)
+    .is("deleted_at", null);
 
   if (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

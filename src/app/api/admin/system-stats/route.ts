@@ -57,6 +57,7 @@ export async function GET() {
     const { data: allUsers } = await supabase
       .from("users")
       .select("id, full_name, email, plan_duration_days, created_at")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
     const { data: allCameras } = await supabase
