@@ -11,7 +11,7 @@ related_docs:
   - SECURITY.md (auth patterns)
 source_of_truth_for: Code conventions, project patterns, development workflow
 confidence: Descriptive — documents actual patterns in use (not aspirational)
-last_verified: 2026-07-17
+last_verified: 2026-07-18
 owner: Engineering Lead
 -->
 
@@ -57,10 +57,14 @@ src/
 │   ├── supabaseClient.ts  # Client-side Supabase (anon key)
 │   ├── payplus.ts         # PayPlus API functions
 │   ├── payplusClient.ts   # PayPlus client class
+│   ├── device-auth.ts     # Device token validation (shared)
+│   ├── rate-limit.ts      # In-memory rate limiter
 │   ├── notifications.ts   # Email/WhatsApp sending
 │   ├── logger.ts          # System logging utility
 │   ├── email-service.ts   # Email templates
 │   └── utils.ts           # General utilities
+├── types/
+│   └── api.ts             # Shared API response types
 ├── middleware/            # (Unused — middleware.ts is at src root)
 └── scripts/               # Server-side scripts
 ```
@@ -92,6 +96,7 @@ All API routes return JSON with a consistent structure:
 | 401 | Unauthorized (not authenticated) |
 | 403 | Forbidden (wrong role / revoked token) |
 | 404 | Resource not found |
+| 429 | Rate limit exceeded |
 | 500 | Server error |
 
 ### 3.2 Route File Pattern
@@ -148,10 +153,10 @@ export async function POST(req: NextRequest) {
 |------|-----------|---------|
 | Admin | `session.user.role !== "admin"` → 403 | `/api/admin/*` |
 | User | `!session?.user?.email` → 401 | `/api/user-plan` |
-| Device | `x-clearpoint-device-token` header → SHA-256 → lookup | `/api/ingest/*` |
+| Device | `x-clearpoint-device-token` header → `validateDeviceToken()` | `/api/ingest/*` |
 | Public | None | `/api/public/*` |
 | Webhook | Signature verification (hash header) | `/api/webhooks/*` |
-| Cron | No auth in code (relies on Vercel cron secrets) | `/api/cron/*` |
+| Cron | `CRON_SECRET` header check | `/api/cron/*` |
 
 ---
 
@@ -393,6 +398,34 @@ PAYPLUS_USE_MOCK=true           # Use mock payments locally
 - **No staging environment** (dev → production directly)
 - **No automated tests**
 
+### 10.4 Database Migrations
+
+Schema changes are documented in `supabase/migrations/`. See `supabase/README.md` for workflow.
+
+```bash
+# After making manual DB changes in Supabase Dashboard:
+1. Create a new file: supabase/migrations/YYYYMMDD_description.sql
+2. Document the SQL that was run
+3. Commit and push
+```
+
+### 10.5 Device Auth & Rate Limiting
+
+**Device token validation** is centralized in `src/lib/device-auth.ts`:
+```typescript
+import { validateDeviceToken } from "@/lib/device-auth";
+const miniPcId = await validateDeviceToken(supabase, token);
+```
+
+**Rate limiting** is applied to all ingest routes via `src/lib/rate-limit.ts`:
+```typescript
+import { checkRateLimit, INGEST_LIMIT } from "@/lib/rate-limit";
+const rl = checkRateLimit(`prefix:${sha256Hex(token)}`, INGEST_LIMIT);
+if (!rl.allowed) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+```
+
+Preset configs: `INGEST_LIMIT` (60/min), `ALERT_LIMIT` (30/min), `VOD_UPLOAD_LIMIT` (10/min), `ADMIN_LIMIT` (100/min).
+
 ---
 
 ## 11. Key Architectural Decisions
@@ -437,10 +470,10 @@ When reviewing or writing new code:
 | Flat admin API routes (`/api/admin-*`) | 8 routes | Inconsistent with nested `/api/admin/` | Move to nested structure |
 | `any` types | Throughout | Defeats TypeScript | Define proper interfaces |
 | Emoji in variable names (comments OK) | Some routes | Code readability | Remove from logic |
-| Duplicate `sha256Hex` function | 4 ingest routes | DRY violation | Extract to `@/lib/crypto` |
+| ~~Duplicate `sha256Hex` function~~ | ~~4 ingest routes~~ | ✅ Fixed 2026-07-18 | Extracted to `@/lib/device-auth` |
 | Mixed English/Hebrew comments | Throughout | Inconsistent | Pick one per file |
 | No input validation library | All routes | Manual, error-prone | Consider Zod |
 
 ---
 
-*Document describes actual patterns in use as of 2026-07-17. Aspirational changes noted where applicable.*
+*Document describes actual patterns in use as of 2026-07-18. Aspirational changes noted where applicable.*
