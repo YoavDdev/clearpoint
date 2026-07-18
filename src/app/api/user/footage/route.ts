@@ -47,7 +47,6 @@ export const POST = apiHandler(async (req) => {
   // Admin users always have footage access
   const isAdmin = user.role?.toLowerCase() === 'admin';
   if (isAdmin) {
-    console.log(`👑 Admin user ${user.id} - granting footage access without subscription check`);
     const retentionDays = user.plan_duration_days ?? 14;
     
     const { start, end } = getIsraelDayRange(date);
@@ -91,14 +90,11 @@ export const POST = apiHandler(async (req) => {
   const hasActiveSubscription = !!activeRecurringPayment;
 
   if (!hasActiveSubscription) {
-    console.warn(`⚠️ User ${user.id} has no active subscription - blocking footage access`);
     return NextResponse.json({ error: "אין מנוי פעיל - נדרש מנוי לגישה להקלטות" }, { status: 403 });
   }
 
   // לקוחות עם מנוי פעיל יכולים לצפות בהקלטות
   const retentionDays = user.plan_duration_days ?? 14;
-  console.log(`✅ User ${user.id} has active subscription - footage access granted (${retentionDays} days retention)`);
-
   const { start, end } = getIsraelDayRange(date);
 
   // בדיקה שהתאריך המבוקש בטווח ימי השמירה
@@ -107,7 +103,6 @@ export const POST = apiHandler(async (req) => {
   const daysAgo = Math.floor((now.getTime() - requestedDate.getTime()) / (1000 * 60 * 60 * 24));
 
   if (daysAgo > retentionDays) {
-    console.warn(`⚠️ Requested date ${date} is beyond retention period (${retentionDays} days)`);
     return NextResponse.json([], { status: 403 });
   }
 

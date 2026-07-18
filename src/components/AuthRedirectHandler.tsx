@@ -19,7 +19,6 @@ export default function AuthRedirectHandler() {
         return;
       }
 
-      console.log("🔐 Auth tokens detected in URL hash, processing...");
 
       const hashParams = new URLSearchParams(hash.slice(1));
       const access_token = hashParams.get("access_token");
@@ -46,14 +45,11 @@ export default function AuthRedirectHandler() {
           return;
         }
 
-        console.log("✅ Session set successfully, user:", data.session.user.email);
 
         // If it's an invite link, redirect to setup password
         if (type === "invite" || type === "recovery") {
-          console.log("➡️ Redirecting to setup-password");
           router.push("/setup-password");
         } else {
-          console.log("➡️ Redirecting to dashboard");
           router.push("/dashboard");
         }
       } catch (err) {

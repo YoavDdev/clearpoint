@@ -29,8 +29,6 @@ export const GET = apiHandler(async () => {
   // Admin users always have full access
   const isAdmin = user.role?.toLowerCase() === 'admin';
   if (isAdmin) {
-    console.log(`👑 Admin user ${user.id} - granting full access without subscription check`);
-    
     const { data: cameras, error: cameraError } = await supabase
       .from("cameras")
       .select("id, name")
@@ -65,12 +63,6 @@ export const GET = apiHandler(async () => {
   // User has active subscription if recurring payment exists
   const isSubscriptionActive = !!activeRecurringPayment;
   
-  console.log(`🔍 User ${user.id} subscription validation:`, {
-    hasActiveSubscription: isSubscriptionActive,
-    recurringPaymentId: activeRecurringPayment?.id || 'none',
-    connectionType,
-  });
-
   // Step 2: Get active cameras for the user (מצלמות זמינות תמיד ל-live view!)
   const { data: cameras, error: cameraError } = await supabase
     .from("cameras")
@@ -101,8 +93,6 @@ export const GET = apiHandler(async () => {
 
   // אם אין מנוי פעיל אבל חיבור Wi-Fi - מאפשרים live view בלבד
   if (!isSubscriptionActive) {
-    console.log(`✅ User ${user.id} has no subscription but can view live cameras (Wi-Fi connection)`);
-    
     return NextResponse.json({
       success: true,
       tunnel_name: user.tunnel_name,

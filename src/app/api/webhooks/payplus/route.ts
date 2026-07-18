@@ -24,7 +24,6 @@ export async function POST(req: NextRequest) {
       payload = Object.fromEntries(params.entries());
     }
 
-    console.log("📦 Webhook payload:", JSON.stringify(payload, null, 2));
 
     // אימות signature
     const receivedHash = req.headers.get('hash') || '';
@@ -34,16 +33,12 @@ export async function POST(req: NextRequest) {
       console.error("❌ Invalid webhook signature!");
       return NextResponse.json({ success: false, error: "Invalid signature" }, { status: 401 });
     }
-    console.log("✅ Webhook signature verified");
 
     // Supabase client
     const supabase = getSupabaseAdmin();
 
     // Parse נתונים
     const parsedData = parseWebhookData(payload);
-    console.log("💳 Payment status:", parsedData.status);
-    console.log("🆔 Transaction ID:", parsedData.transactionId);
-    console.log("💰 Amount:", parsedData.amount);
 
     // קבלת payment ID
     const paymentId = parsedData.customFields.cField1;
@@ -60,7 +55,6 @@ export async function POST(req: NextRequest) {
         .single();
       payment = foundPayment;
     } else {
-      console.log("🔍 Searching by transaction ID:", parsedData.transactionId);
       const { data: foundPayment } = await supabase
         .from("payments")
         .select("*")
@@ -104,7 +98,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Update failed" }, { status: 500 });
     }
 
-    console.log("✅ Payment updated:", payment.id, "→", updateData.status);
 
     // שמירת customer_uid על המשתמש אם יש
     if (customerUid && payment.user_id) {

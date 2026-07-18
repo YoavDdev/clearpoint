@@ -124,7 +124,6 @@ export default function ProfessionalClipTimeline({ clips, onTrimComplete, onClos
     if (videoRef.current) {
       const newTime = Math.max(0, videoRef.current.currentTime - 10);
       videoRef.current.currentTime = newTime;
-      console.log('Skip backward to:', newTime); // Debug log
     }
   };
 
@@ -250,11 +249,9 @@ export default function ProfessionalClipTimeline({ clips, onTrimComplete, onClos
       // Find next available clip
       const nextClipIndex = currentClipIndex + 1;
       if (nextClipIndex < clips.length && clips[nextClipIndex]?.url) {
-        console.log('Auto-playing next clip:', nextClipIndex);
         setCurrentClipIndex(nextClipIndex);
         // Video will auto-play when the new clip loads due to existing logic
       } else {
-        console.log('No more clips available for auto-play');
         setIsPlaying(false);
       }
     };

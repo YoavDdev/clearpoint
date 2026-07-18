@@ -23,11 +23,6 @@ export async function GET() {
       );
     }
 
-    console.log("✅ Plans loaded:", data?.length || 0);
-    if (data) {
-      console.log("Plans IDs:", data.map(p => p.id));
-    }
-
     return NextResponse.json({ 
       success: true, 
       plans: data || [] 

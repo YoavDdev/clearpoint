@@ -15,7 +15,6 @@ export default function AutoMonitoringInit() {
   useEffect(() => {
     // Skip if already initialized
     if (monitoringInitialized) {
-      console.log('⏭️ Monitoring already initialized, skipping...');
       return;
     }
 
@@ -27,7 +26,6 @@ export default function AutoMonitoringInit() {
       }
 
       try {
-        console.log('🚀 Initializing automatic monitoring system...');
         monitoringInitialized = true; // Set flag immediately to prevent duplicates
         
         const response = await fetch('/api/admin/diagnostics/init-monitoring', {
@@ -40,7 +38,6 @@ export default function AutoMonitoringInit() {
         const result = await response.json();
         
         if (result.success) {
-          console.log('✅ Automatic monitoring system initialized successfully');
           setMonitoringStatus({
             initialized: true,
             running: result.status.isRunning

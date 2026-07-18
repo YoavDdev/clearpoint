@@ -37,26 +37,12 @@ export async function POST(request: NextRequest) {
       settings[setting.setting_key] = value;
     });
     
-    console.log('📋 Loaded settings:', {
-      email_enabled: settings.email_notifications_enabled,
-      email: settings.alert_email_address,
-      health_timeout: settings.health_check_timeout_seconds,
-      stream_timeout: settings.stream_check_timeout_seconds,
-      monitoring_interval: settings.monitoring_interval_minutes
-    });
-
     // Get configuration values from settings (with defaults)
     const emailNotificationsEnabled = settings.email_notifications_enabled ?? true;
     const adminEmail = settings.alert_email_address || 'yoavddev@gmail.com';
     const healthCheckTimeoutMinutes = (settings.health_check_timeout_seconds || 180) / 60;
     const streamCheckTimeoutSeconds = settings.stream_check_timeout_seconds || 240;
     const criticalThresholdMinutes = settings.critical_alert_threshold_minutes || 10;
-    
-    console.log(`📧 Email notifications: ${emailNotificationsEnabled ? 'enabled' : 'disabled'}`);
-    console.log(`📧 Admin email: ${adminEmail}`);
-    console.log(`⏰ Health timeout: ${healthCheckTimeoutMinutes} minutes`);
-    console.log(`📺 Stream timeout: ${streamCheckTimeoutSeconds} seconds`);
-    console.log(`🔴 Critical threshold: ${criticalThresholdMinutes} minutes`);
     // Get all cameras with health data
     const { data: cameras, error } = await supabase
       .from("cameras")
