@@ -79,6 +79,12 @@ export async function POST(req: NextRequest) {
 
     console.log("✅ Payment record found:", payment.id);
 
+    // Idempotency: if payment already in final state, skip processing
+    if (payment.status === 'completed' || payment.status === 'refunded') {
+      console.log("⏩ Payment already in final state:", payment.status, "— skipping duplicate webhook");
+      return NextResponse.json({ success: true, payment_id: payment.id, status: payment.status, skipped: true });
+    }
+
     // עדכון payment status
     const updateData: any = {
       status: parsedData.status, // 'completed' או 'failed' ישירות מ-parseWebhookData
@@ -170,6 +176,29 @@ export async function POST(req: NextRequest) {
       } else {
         // תשלום נכשל → החשבונית נשארת ממתין לתשלום
         console.log("⚠️ Payment failed - invoice remains pending:", payment.invoice_id);
+
+        // שליחת email על תשלום נכשל
+        try {
+          const { data: user } = await supabase
+            .from("users")
+            .select("full_name, email")
+            .eq("id", payment.user_id)
+            .single();
+
+          if (user?.email) {
+            const { sendPaymentFailed } = await import('@/lib/email');
+            await sendPaymentFailed({
+              customerName: user.full_name || user.email,
+              customerEmail: user.email,
+              amount: payment.amount,
+              failureReason: "התשלום נדחה על ידי חברת האשראי",
+              paymentLink: `${process.env.NODE_ENV === 'production' ? 'https://www.clearpoint.co.il' : (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000')}/dashboard/invoices`,
+            });
+            console.log("✅ Payment failed email sent to:", user.email);
+          }
+        } catch (emailError) {
+          console.error("⚠️ Failed to send payment-failed email:", emailError);
+        }
       }
     }
 
