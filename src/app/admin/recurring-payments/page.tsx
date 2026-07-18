@@ -26,6 +26,8 @@ import {
   Plus,
   X,
   Copy,
+  Send,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface RecurringPayment {
@@ -224,6 +226,28 @@ function RecurringPaymentsContent() {
     }
   };
 
+  const handleRenewCard = async (paymentId: string) => {
+    try {
+      const response = await fetch(`/api/admin/recurring-payments/${paymentId}/renew-card`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ disable_send_email: true }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed');
+
+      if (result.payment_page_url) {
+        await navigator.clipboard.writeText(result.payment_page_url);
+        alert(`\u2705 \u05dc\u05d9\u05e0\u05e7 \u05d7\u05d9\u05d3\u05d5\u05e9 \u05db\u05e8\u05d8\u05d9\u05e1 \u05d4\u05d5\u05e2\u05ea\u05e7!\n\n${result.payment_page_url}`);
+      } else {
+        alert('\u2705 \u05d1\u05e7\u05e9\u05ea \u05d7\u05d9\u05d3\u05d5\u05e9 \u05db\u05e8\u05d8\u05d9\u05e1 \u05e0\u05e9\u05dc\u05d7\u05d4');
+      }
+    } catch (error) {
+      alert(`\u05e9\u05d2\u05d9\u05d0\u05d4: ${error instanceof Error ? error.message : '\u05dc\u05d0 \u05d9\u05d3\u05d5\u05e2'}`);
+    }
+  };
+
   const handlePlanChange = (planId: string) => {
     const plan = plans.find(p => p.id === planId);
     setCreateForm(prev => ({
@@ -405,6 +429,16 @@ function RecurringPaymentsContent() {
             </button>
           )}
 
+          {payment.recurring_uid && (
+            <button
+              onClick={() => handleRenewCard(payment.id)}
+              className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-all"
+              title="שלח לינק חידוש כרטיס"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          )}
+
           <button
             onClick={() => handleDelete(payment.id)}
             className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all"
@@ -428,7 +462,14 @@ function RecurringPaymentsContent() {
         </div>
 
         <div className="col-span-2" dir="rtl">
-          {getStatusBadge(payment)}
+          <div className="flex flex-col items-end gap-0.5">
+            {getStatusBadge(payment)}
+            {!payment.is_valid && payment.is_active && payment.notes && (
+              <span className="text-[10px] text-red-500 truncate max-w-[160px] text-right" title={payment.notes}>
+                {payment.notes}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="col-span-1" dir="rtl">

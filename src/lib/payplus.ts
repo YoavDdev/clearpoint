@@ -206,18 +206,7 @@ export async function createOneTimePayment(
 
     const apiUrl = `${getBaseUrl()}/PaymentPages/GenerateLink`;
     
-    console.log('📤 Sending to Payplus API:');
-    console.log('   URL:', apiUrl);
-    console.log('   Method: POST');
-    console.log('   Headers:', {
-      'Content-Type': 'application/json',
-      'api-key': PAYPLUS_CONFIG.apiKey ? `${PAYPLUS_CONFIG.apiKey.substring(0, 8)}...` : 'MISSING',
-      'secret-key': PAYPLUS_CONFIG.secretKey ? `${PAYPLUS_CONFIG.secretKey.substring(0, 8)}...` : 'MISSING',
-    });
-    console.log('   Payload:', JSON.stringify({
-      ...payload,
-      payment_page_uid: payload.payment_page_uid ? `${payload.payment_page_uid.substring(0, 8)}...` : 'MISSING',
-    }, null, 2));
+    console.log('📤 PayPlus GenerateLink:', apiUrl);
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -229,7 +218,6 @@ export async function createOneTimePayment(
       body: JSON.stringify(payload),
     });
 
-    console.log('📥 Response status:', response.status, response.statusText);
 
     if (!response.ok) {
       // קריאת הגוף של השגיאה
@@ -246,7 +234,7 @@ export async function createOneTimePayment(
 
     const data = await response.json();
     
-    console.log('📥 Received from Payplus API:', JSON.stringify(data, null, 2));
+    console.log('📥 PayPlus response status:', data.results?.status);
 
     // המרה לפורמט Grow (תאימות עם הקוד הקיים)
     if (data.results?.status === 'success') {
@@ -348,7 +336,7 @@ export async function createRecurringPaymentPage(request: {
       }],
     };
 
-    console.log('📤 Creating PayPlus Payment Page for recurring:', payload);
+    console.log('📤 Creating recurring Payment Page, amount:', request.amount);
 
     const apiUrl = `${getBaseUrl()}/PaymentPages/generateLink`;
     const response = await fetch(apiUrl, {
@@ -362,7 +350,7 @@ export async function createRecurringPaymentPage(request: {
     });
 
     const data = await response.json();
-    console.log('📥 PayPlus Payment Page response:', data);
+    console.log('📥 Recurring Payment Page response:', data.results?.status);
 
     if (data.results?.status === 'success' && data.data?.payment_page_link) {
       return {
@@ -438,8 +426,7 @@ export async function viewRecurringPayment(uid: string) {
  */
 export async function listAllRecurringPayments() {
   try {
-    console.log('🔵 listAllRecurringPayments - Starting...');
-    console.log('🔵 Mock mode:', PAYPLUS_CONFIG.useMock);
+    console.log('🔵 listAllRecurringPayments, mock:', PAYPLUS_CONFIG.useMock);
     
     if (PAYPLUS_CONFIG.useMock) {
       console.log('✅ Using mock data');
@@ -475,13 +462,7 @@ export async function listAllRecurringPayments() {
       };
     }
 
-    console.log('🔵 Using real PayPlus API');
-    
     const apiUrl = `${getBaseUrl()}/RecurringPayments/View?terminal_uid=${PAYPLUS_CONFIG.terminalUid}`;
-    console.log('🔵 API URL:', apiUrl);
-    console.log('🔵 API Key:', PAYPLUS_CONFIG.apiKey ? '✅ Set' : '❌ Missing');
-    console.log('🔵 Secret Key:', PAYPLUS_CONFIG.secretKey ? '✅ Set' : '❌ Missing');
-    console.log('🔵 Terminal UID:', PAYPLUS_CONFIG.terminalUid ? '✅ Set' : '❌ Missing');
     
     const response = await fetch(apiUrl, {
       method: 'GET',
@@ -492,8 +473,6 @@ export async function listAllRecurringPayments() {
       },
     });
 
-    console.log('🔵 Response status:', response.status);
-    console.log('🔵 Response statusText:', response.statusText);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -507,7 +486,7 @@ export async function listAllRecurringPayments() {
     }
 
     const data = await response.json();
-    console.log('✅ PayPlus response:', data);
+    console.log('✅ listAllRecurringPayments:', (data.data || []).length, 'records');
     
     // התאמה לפורמט שלנו - נורמליזציה של הנתונים
     const normalizedData = (data.data || []).map((item: any) => ({
@@ -629,7 +608,7 @@ export async function createPayPlusCustomer(
     if (request.subject_code) payload.subject_code = request.subject_code;
     if (request.communication_email) payload.communication_email = request.communication_email;
 
-    console.log('📤 Sending to PayPlus Customers/Add:', payload);
+    console.log('📤 PayPlus Customers/Add:', request.customer_name);
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -642,10 +621,7 @@ export async function createPayPlusCustomer(
     });
 
     const data = await response.json();
-    console.log('📥 PayPlus full response:', JSON.stringify(data, null, 2));
-    console.log('🔍 Extracted customer_uid:', data.data?.customer_uid);
-    console.log('🔍 Response status:', response.status);
-    console.log('🔍 Results status:', data.results?.status);
+    console.log('📥 Customers/Add result:', data.results?.status, 'uid:', data.data?.customer_uid);
 
     if (!response.ok || data.results?.status !== 'success') {
       console.error('❌ Failed to create PayPlus customer:', data);
@@ -656,7 +632,6 @@ export async function createPayPlusCustomer(
     }
 
     const extractedUid = data.data?.customer_uid;
-    console.log('✅ Returning customer_uid to caller:', extractedUid);
 
     return {
       success: true,
@@ -706,7 +681,6 @@ export async function updatePayPlusCustomer(
     if (request.subject_code) payload.subject_code = request.subject_code;
     if (request.communication_email) payload.communication_email = request.communication_email;
 
-    console.log('📤 Sending to PayPlus Customers/Update:', payload);
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -719,8 +693,6 @@ export async function updatePayPlusCustomer(
     });
 
     const data = await response.json();
-    console.log('📥 PayPlus response:', data);
-
     if (!response.ok || data.results?.status !== 'success') {
       console.error('❌ Failed to update PayPlus customer:', data);
       return {
@@ -755,7 +727,6 @@ export async function removePayPlusCustomer(
 
     const apiUrl = `${getBaseUrl()}/Customers/Remove/${customer_uid}`;
     
-    console.log('📤 Sending to PayPlus Customers/Remove');
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -767,7 +738,6 @@ export async function removePayPlusCustomer(
     });
 
     const data = await response.json();
-    console.log('📥 PayPlus response:', data);
 
     if (!response.ok || data.results?.status !== 'success') {
       console.error('❌ Failed to remove PayPlus customer:', data);
