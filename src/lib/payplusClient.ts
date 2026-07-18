@@ -14,6 +14,19 @@ interface PayPlusRecurringStatus {
   payment_failures?: number;
 }
 
+interface RecurringFailure {
+  recurring_uid: string;
+  customer_uid: string;
+  customer_name: string;
+  date_of_failure: string;
+  date_to_charge: string;
+  amount: number;
+  card_number: string;
+  card_expiry: string;
+  uid: string;
+  status_code: string | null;
+}
+
 interface PayPlusAPIResponse {
   results: {
     status: boolean | 'error';
@@ -321,6 +334,69 @@ export class PayPlusClient {
       return best?.raw;
     } catch {
       return undefined;
+    }
+  }
+
+  /**
+   * Get recurring payment failures report
+   * GET /RecurringPaymentsReports/Failures
+   * Returns list of failed charges with recurring_uid, date_of_failure, amount, status
+   */
+  async getRecurringFailures(fromDate?: string): Promise<RecurringFailure[]> {
+    try {
+      if (!this.terminalUid) {
+        console.warn('⚠️ Cannot fetch failures: PAYPLUS_TERMINAL_UID not configured');
+        return [];
+      }
+
+      const params = new URLSearchParams({
+        terminal_uid: this.terminalUid,
+        currency_code: 'ILS',
+      });
+
+      if (fromDate) {
+        params.set('from_date', fromDate);
+      } else {
+        // Default: last 45 days
+        const d = new Date();
+        d.setDate(d.getDate() - 45);
+        params.set('from_date', d.toISOString().split('T')[0]);
+      }
+
+      const url = `${this.baseUrl}/RecurringPaymentsReports/Failures?${params.toString()}`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': this.apiKey,
+          'secret-key': this.secretKey,
+        },
+      });
+
+      if (!response.ok) {
+        console.error(`❌ PayPlus Failures API error: ${response.status}`);
+        return [];
+      }
+
+      const result = await response.json();
+      const failures: any[] = result?.data || [];
+
+      return failures.map((f: any) => ({
+        recurring_uid: f.recurring_uid,
+        customer_uid: f.customer_uid,
+        customer_name: f.customer_name,
+        date_of_failure: f.date_of_failure,
+        date_to_charge: f.date_to_charge,
+        amount: f.amount,
+        card_number: f.card_number,
+        card_expiry: f.card_expiry,
+        uid: f.uid,
+        status_code: f.status?.status_code || null,
+      }));
+    } catch (error) {
+      console.error('❌ getRecurringFailures error:', error);
+      return [];
     }
   }
 

@@ -238,26 +238,20 @@
 ### שלב 1: תיקון Flow יצירת הו"ק (P1, P4, P5)
 **מטרה**: Admin יכול ליצור הו"ק מה-UI, ואחרי שהלקוח מזין כרטיס הכל מתעדכן.
 
-- [ ] **1.1** הוספת כפתור "צור הוראת קבע" ב-`/admin/recurring-payments`
-- [ ] **1.2** Modal/טופס: בחירת לקוח, תוכנית, סכום, תאריך התחלה
-- [ ] **1.3** יצירת דף `/recurring-payment-success` (landing page אחרי שהלקוח מזין כרטיס)
-- [ ] **1.4** עדכון ה-webhook לטפל ב-recurring payment creation callback
-  - כש-PayPlus שולח callback אחרי שלקוח מזין כרטיס, צריך:
-  - לעדכן `recurring_uid` על ה-record
-  - לשנות status ל-`active`
-  - לעדכן `is_active=true`, `is_valid=true`
+- [x] **1.1** הוספת כפתור "צור הוראת קבע" ב-`/admin/recurring-payments`
+- [x] **1.2** Modal/טופס: בחירת לקוח, תוכנית, סכום, תאריך התחלה
+- [x] **1.3** יצירת דף `/recurring-payment-success` (landing page אחרי שהלקוח מזין כרטיס)
+- [x] **1.4** עדכון ה-webhook לטפל ב-recurring payment creation callback
+- [x] **1.5** תיקון create route — שמות עמודות שגויים ב-DB insert
 
 ### שלב 2: זיהוי כשלונות + חסימת גישה (P3, P6)
 **מטרה**: כשתשלום חוזר נכשל, הלקוח מאבד גישה ומקבל אימייל.
 
-- [ ] **2.1** הוספת method `getRecurringFailures()` ל-`payplusClient.ts`
-  - `GET /RecurringPaymentsReports/Failures?terminal_uid=xxx&currency_code=ILS`
-- [ ] **2.2** הוספת שלב ב-cron sync: אחרי sync, בדוק Failures
-  - מצא recurring_uid שנכשלו
-  - עדכן `is_valid = false` ב-DB
-- [ ] **2.3** שליחת אימייל ללקוח: "התשלום נכשל — עדכן כרטיס"
-  - כולל לינק חידוש כרטיס (Credit Card Renewal)
-- [ ] **2.4** הוספת עמודה "כשלונות" בטבלת recurring-payments של ה-admin
+- [x] **2.1** הוספת method `getRecurringFailures()` ל-`payplusClient.ts`
+- [x] **2.2** הוספת שלב ב-cron sync: אחרי sync, בדוק Failures + סמן `is_valid=false`
+- [x] **2.3** שליחת אימייל ללקוח: "התשלום נכשל — עדכן כרטיס" (עם לינק)
+- [x] **2.4** הוספת בדיקת staleness — last_charge_date ישן מ-45 יום
+- [ ] **2.5** הוספת עמודה "כשלונות" בטבלת recurring-payments של ה-admin
 
 ### שלב 3: Flow אוטומטי שלם (P9)
 **מטרה**: Admin עושה פעולה אחת → הכל נוצר.

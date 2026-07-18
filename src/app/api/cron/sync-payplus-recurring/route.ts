@@ -274,6 +274,119 @@ export const GET = apiHandler(async (req: NextRequest) => {
     }
 
     // -----------------------------------------------------
+    // Check for payment failures and invalidate access
+    // Source: GET /RecurringPaymentsReports/Failures
+    // -----------------------------------------------------
+    let failuresDetected = 0;
+    let failureEmailsSent = 0;
+    try {
+      const failures = await payplusClient.getRecurringFailures();
+
+      if (failures.length > 0) {
+        console.log(`⚠️ [CRON] Found ${failures.length} payment failures from PayPlus`);
+
+        // Group by recurring_uid — only care about the most recent failure per recurring
+        const latestByRecurring = new Map<string, typeof failures[0]>();
+        for (const f of failures) {
+          const existing = latestByRecurring.get(f.recurring_uid);
+          if (!existing || f.date_of_failure > existing.date_of_failure) {
+            latestByRecurring.set(f.recurring_uid, f);
+          }
+        }
+
+        for (const [recurringUid, failure] of latestByRecurring) {
+          // Find local record
+          const { data: localRecord } = await supabaseAdmin
+            .from('recurring_payments')
+            .select('id, user_id, is_valid')
+            .eq('recurring_uid', recurringUid)
+            .eq('is_active', true)
+            .maybeSingle();
+
+          if (!localRecord) continue;
+
+          // Only act if currently valid (avoid re-processing)
+          if (!localRecord.is_valid) continue;
+
+          // Mark as invalid
+          await supabaseAdmin
+            .from('recurring_payments')
+            .update({
+              is_valid: false,
+              notes: `תשלום נכשל - ${failure.date_of_failure} - כרטיס ${failure.card_number}`,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', localRecord.id);
+
+          failuresDetected++;
+          console.log(`🔴 [CRON] Recurring ${recurringUid} marked invalid — payment failed ${failure.date_of_failure}`);
+
+          // Send failure email to customer
+          try {
+            const { data: user } = await supabaseAdmin
+              .from('users')
+              .select('full_name, email')
+              .eq('id', localRecord.user_id)
+              .single();
+
+            if (user?.email) {
+              const { sendPaymentFailed } = await import('@/lib/email');
+              await sendPaymentFailed({
+                customerName: user.full_name || user.email,
+                customerEmail: user.email,
+                amount: failure.amount,
+                failureReason: `התשלום נדחה (כרטיס ${failure.card_number})`,
+                paymentLink: `${process.env.NODE_ENV === 'production' ? 'https://www.clearpoint.co.il' : (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000')}/dashboard/subscription`,
+              });
+              failureEmailsSent++;
+              console.log(`📧 [CRON] Payment failure email sent to: ${user.email}`);
+            }
+          } catch (emailError) {
+            console.error('⚠️ [CRON] Failed to send failure email:', emailError);
+          }
+        }
+      }
+    } catch (failuresError) {
+      console.error('❌ [CRON] Failures check failed:', failuresError);
+    }
+
+    // -----------------------------------------------------
+    // Staleness check — if last_charge_date > 45 days old, invalidate
+    // This catches cases where PayPlus stopped charging but didn't report a failure
+    // -----------------------------------------------------
+    let stalenessInvalidated = 0;
+    try {
+      const staleCutoff = new Date();
+      staleCutoff.setDate(staleCutoff.getDate() - 45);
+
+      const { data: staleRecords, error: staleError } = await supabaseAdmin
+        .from('recurring_payments')
+        .select('id, user_id, recurring_uid, last_charge_date')
+        .eq('is_active', true)
+        .eq('is_valid', true)
+        .not('last_charge_date', 'is', null)
+        .lt('last_charge_date', staleCutoff.toISOString());
+
+      if (!staleError && staleRecords && staleRecords.length > 0) {
+        for (const record of staleRecords) {
+          await supabaseAdmin
+            .from('recurring_payments')
+            .update({
+              is_valid: false,
+              notes: `חיוב אחרון ישן מ-45 יום (${record.last_charge_date}) — ייתכן שהתשלום נכשל`,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', record.id);
+
+          stalenessInvalidated++;
+          console.log(`🔴 [CRON] Recurring ${record.recurring_uid} invalidated — stale (last charge: ${record.last_charge_date})`);
+        }
+      }
+    } catch (stalenessError) {
+      console.error('❌ [CRON] Staleness check failed:', stalenessError);
+    }
+
+    // -----------------------------------------------------
     // Auto-generate recurring receipts (no email for now)
     // Source of truth: PayPlus ViewRecurring -> last_payment_date
     // Idempotency: payments.metadata contains { recurring_uid, recurring_month }
@@ -709,7 +822,7 @@ export const GET = apiHandler(async (req: NextRequest) => {
     }
 
     console.log(
-      `✅ [CRON] PayPlus sync completed. synced=${syncedCount} updated=${updatedCount} deactivated=${deactivatedCount} skipped=${skippedCount} errors=${errorCount} receiptsCreated=${receiptsCreated} receiptsSkipped=${receiptsSkipped} receiptsErrors=${receiptsErrors}`
+      `✅ [CRON] PayPlus sync completed. synced=${syncedCount} updated=${updatedCount} deactivated=${deactivatedCount} skipped=${skippedCount} errors=${errorCount} receiptsCreated=${receiptsCreated} receiptsSkipped=${receiptsSkipped} receiptsErrors=${receiptsErrors} failuresDetected=${failuresDetected} failureEmailsSent=${failureEmailsSent} stalenessInvalidated=${stalenessInvalidated}`
     );
 
     return NextResponse.json({
@@ -732,6 +845,9 @@ export const GET = apiHandler(async (req: NextRequest) => {
         stoppedEarly: Date.now() - startedAtMs > 45_000,
       },
       ...(isManualAuthorized ? { receiptDebug } : {}),
+      failuresDetected,
+      failureEmailsSent,
+      stalenessInvalidated,
       total: payplusPayments.length,
     });
   } catch (error) {
