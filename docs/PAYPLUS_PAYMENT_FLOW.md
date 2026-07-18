@@ -256,9 +256,11 @@
 ### שלב 3: Flow אוטומטי שלם (P9)
 **מטרה**: Admin עושה פעולה אחת → הכל נוצר.
 
-- [ ] **3.1** אפשרות: אחרי אישור בקשה ותשלום התקנה, ליצור גם הו"ק באותו flow
-  - או: webhook של תשלום ההתקנה יוצר אוטומטית הו"ק
-- [ ] **3.2** הו"ק = Payment Page עם `charge_method=4` + `charge_default=1` (חייב מיד)
+- [x] **3.1** Webhook תשלום התקנה יוצר אוטומטית הו"ק (Payment Page)
+  - metadata.create_recurring=true → webhook creates recurring payment page
+  - Saves pending record + stores URL on payment metadata
+  - Sends email to customer with setup details
+- [x] **3.2** create-with-payment stores monthly_price + create_recurring in metadata
 
 ### שלב 4: Dashboard לקוח (P7, P8)
 **מטרה**: הלקוח רואה מידע אמיתי.
