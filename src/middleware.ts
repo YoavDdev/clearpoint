@@ -31,6 +31,7 @@ export async function middleware(request: NextRequest) {
   const freeAccessPaths = [
     "/dashboard/subscription",
     "/dashboard/invoices",
+    "/dashboard/payments",
     "/dashboard/support",
     "/subscription-expired",
   ];

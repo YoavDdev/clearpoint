@@ -155,15 +155,6 @@ export const GET = apiHandler(async (req: NextRequest) => {
         const [day, month, year] = payment.start_date.split('/');
         const startDate = new Date(`${year}-${month}-${day}`);
 
-        const nextChargeDate = new Date(startDate);
-        if (recurringType === 2) {
-          nextChargeDate.setMonth(nextChargeDate.getMonth() + 1);
-        } else if (recurringType === 1) {
-          nextChargeDate.setDate(nextChargeDate.getDate() + 7);
-        } else if (recurringType === 0) {
-          nextChargeDate.setDate(nextChargeDate.getDate() + 1);
-        }
-
         const numCharges = payment.number_of_charges === 'unlimited' ? 0 : parseInt(payment.number_of_charges) || 0;
 
         const lastChargeRaw =
@@ -173,6 +164,17 @@ export const GET = apiHandler(async (req: NextRequest) => {
           payment.last_charge;
 
         const lastChargeDate = lastChargeRaw ? parsePayPlusDate(String(lastChargeRaw)) : null;
+
+        // Compute next charge from last charge (or start date if no charge yet)
+        const nextChargeBase = lastChargeDate || startDate;
+        const nextChargeDate = new Date(nextChargeBase);
+        if (recurringType === 2) {
+          nextChargeDate.setMonth(nextChargeDate.getMonth() + 1);
+        } else if (recurringType === 1) {
+          nextChargeDate.setDate(nextChargeDate.getDate() + 7);
+        } else if (recurringType === 0) {
+          nextChargeDate.setDate(nextChargeDate.getDate() + 1);
+        }
 
         const paymentData = {
           user_id: userId,

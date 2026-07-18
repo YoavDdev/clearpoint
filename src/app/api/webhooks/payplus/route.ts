@@ -48,8 +48,30 @@ export const POST = apiHandler(async (req: NextRequest) => {
     // Handle recurring payment page completion
     // When a customer completes a Payment Page with charge_method=4,
     // PayPlus sends a callback. cField1=user_id, cField2=plan_id
+    // Detect recurring by payload.type OR by checking if a pending
+    // recurring_payment exists for the user_id in cField1.
     // ───────────────────────────────────────────────────────
-    if (parsedData.isRecurring && parsedData.customFields.cField1) {
+    let isRecurringCallback = parsedData.isRecurring;
+
+    // Fallback: if PayPlus didn't set type='recurring', check if cField1
+    // matches a user with a pending recurring_payment (is_active=false, is_valid=false)
+    if (!isRecurringCallback && parsedData.customFields.cField1) {
+      const { data: pendingCheck } = await supabase
+        .from("recurring_payments")
+        .select("id")
+        .eq("user_id", parsedData.customFields.cField1)
+        .eq("is_active", false)
+        .eq("is_valid", false)
+        .limit(1)
+        .maybeSingle();
+
+      if (pendingCheck) {
+        isRecurringCallback = true;
+        console.log("🔍 Detected recurring callback via pending record fallback");
+      }
+    }
+
+    if (isRecurringCallback && parsedData.customFields.cField1) {
       const userId = parsedData.customFields.cField1;
       const planId = parsedData.customFields.cField2;
 
