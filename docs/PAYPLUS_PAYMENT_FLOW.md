@@ -265,9 +265,10 @@
 ### שלב 4: Dashboard לקוח (P7, P8)
 **מטרה**: הלקוח רואה מידע אמיתי.
 
-- [ ] **4.1** תיקון subscription page — API ייעודי במקום placeholder
-- [ ] **4.2** מימוש payments page — היסטוריית תשלומים
-- [ ] **4.3** לינק "עדכן כרטיס" בדף subscription (אם הו"ק active)
+- [x] **4.1** API ייעודי `/api/user/subscription` — נתוני מנוי אמיתיים מ-DB
+- [x] **4.2** תיקון subscription page — נתונים אמיתיים + הודעת suspended
+- [x] **4.3** API `/api/user/payments` — היסטוריית תשלומים
+- [x] **4.4** מימוש payments page — רשימה עם סטטוס, סכום, לינק לחשבונית
 
 ### שלב 5: שיפורים (P10, P11, P12)
 - [ ] **5.1** כפתור "שלח לינק חידוש כרטיס" בUI של admin
