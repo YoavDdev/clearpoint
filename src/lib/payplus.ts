@@ -308,7 +308,7 @@ export async function createRecurringPaymentPage(request: {
       },
       
       // Recurring parameters - correct field names for PayPlus
-      charge_method: 4, // 4 = Create recurring payment
+      charge_method: 3, // 3 = Recurring payment (per PayPlus docs). Requires recurring module enabled in PayPlus dashboard.
       recurring_type: request.recurring_type || 2, // 2 = monthly
       recurring_range: request.recurring_range || 1, // every 1 month
       number_of_payments: request.number_of_charges || 0, // 0 = unlimited
