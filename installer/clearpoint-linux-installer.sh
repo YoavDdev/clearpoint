@@ -71,7 +71,8 @@ if [ -z "$CF_TUNNEL_TOKEN" ]; then warn "No tunnel token — will configure late
 
 read -p "☁️  B2 Account ID: " B2_ACCOUNT_ID
 read -p "☁️  B2 App Key: " B2_APP_KEY
-if [ -z "$B2_ACCOUNT_ID" ] || [ -z "$B2_APP_KEY" ]; then
+read -p "☁️  B2 Bucket ID: " B2_BUCKET_ID
+if [ -z "$B2_ACCOUNT_ID" ] || [ -z "$B2_APP_KEY" ] || [ -z "$B2_BUCKET_ID" ]; then
     warn "No B2 credentials — VOD uploads will not work until configured!"
 fi
 
@@ -286,6 +287,7 @@ USER_ID=$USER_ID
 # Backblaze B2 (for VOD uploads)
 B2_ACCOUNT_ID=$B2_ACCOUNT_ID
 B2_APP_KEY=$B2_APP_KEY
+B2_BUCKET_ID=$B2_BUCKET_ID
 EOF
 
 # Secure permissions
@@ -355,7 +357,7 @@ echo "📹 Starting $CAM_NAME ($CAM_IP)..."
 ffmpeg -rtsp_transport tcp -i "\$RTSP_URL" \\
   -c:v copy \\
   -c:a aac -ar 44100 -ac 1 -b:a 64k \\
-  -f segment -segment_time 900 -reset_timestamps 1 \\
+  -f segment -segment_time 300 -reset_timestamps 1 \\
   -strftime 1 "\$FOOTAGE_DIR/%Y-%m-%d_%H-%M-%S.mp4" \\
   -c:v copy \\
   -f hls -hls_time 4 -hls_list_size 5 -hls_flags delete_segments \\
@@ -457,7 +459,7 @@ ok "AI detection configured"
 step "Setting up scheduled tasks (cron)"
 
 # Build cron entries
-UPLOAD_LINE="*/20 * * * * cd ~/clearpoint-core && /usr/local/bin/tsx uploadVods.ts >> ~/vod-upload-log.txt 2>&1"
+UPLOAD_LINE="*/5 * * * * cd ~/clearpoint-core && /usr/local/bin/tsx uploadVods.ts >> ~/vod-upload-log.txt 2>&1"
 STATUS_LINE="*/5 * * * * bash ~/clearpoint-scripts/status-check.sh >> ~/clearpoint-logs/status.log 2>&1"
 MAINTENANCE_LINE="30 3 * * * bash ~/clearpoint-scripts/daily-maintenance.sh >> ~/clearpoint-logs/maintenance.log 2>&1"
 RETENTION_LINE="0 4 * * * find ~/clearpoint-recordings -name '*.mp4' -mtime +7 -delete >> ~/clearpoint-logs/retention.log 2>&1"
@@ -477,7 +479,7 @@ CURRENT_CRON=$(crontab -l 2>/dev/null || true)
 } | sort -u | crontab -
 
 ok "Cron jobs configured:"
-echo "   */20  VOD upload"
+echo "   */5   VOD upload"
 echo "   */5   Health check"
 echo "   */10  Network watchdog"
 echo "   3:30  Daily maintenance"
