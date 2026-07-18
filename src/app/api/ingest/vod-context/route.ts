@@ -36,15 +36,6 @@ async function getTokenMiniPcId(supabaseAdmin: SupabaseClient<any, "public", any
 }
 
 async function hasActiveSubscription(supabaseAdmin: SupabaseClient<any, "public", any>, userId: string) {
-  const { data: activeSubscription } = await supabaseAdmin
-    .from("subscriptions")
-    .select("id, status")
-    .eq("user_id", userId)
-    .eq("status", "active")
-    .maybeSingle();
-
-  if (activeSubscription) return true;
-
   const { data: activeRecurringPayment } = await supabaseAdmin
     .from("recurring_payments")
     .select("id, is_active, is_valid")

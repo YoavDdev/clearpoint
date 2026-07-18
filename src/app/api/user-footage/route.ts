@@ -81,23 +81,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ clipsByCamera });
   }
 
-  // בדיקת מנוי פעיל (subscriptions או recurring_payments)
-  const { data: activeSubscription } = await supabase
-    .from("subscriptions")
-    .select("id, status")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .single();
-
+  // בדיקת מנוי פעיל (recurring_payments)
   const { data: activeRecurringPayment } = await supabase
     .from("recurring_payments")
     .select("id, is_active, is_valid")
     .eq("user_id", user.id)
     .eq("is_active", true)
     .eq("is_valid", true)
-    .single();
+    .maybeSingle();
 
-  const hasActiveSubscription = !!activeSubscription || !!activeRecurringPayment;
+  const hasActiveSubscription = !!activeRecurringPayment;
 
   if (!hasActiveSubscription) {
     console.warn(`⚠️ User ${user.id} has no active subscription - blocking footage access`);

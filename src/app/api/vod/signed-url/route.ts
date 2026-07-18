@@ -70,13 +70,6 @@ export async function POST(req: Request) {
 
   const isAdmin = (user.role || "").toLowerCase() === "admin";
   if (!isAdmin) {
-    const { data: activeSubscription } = await supabase
-      .from("subscriptions")
-      .select("id, status")
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .maybeSingle();
-
     const { data: activeRecurringPayment } = await supabase
       .from("recurring_payments")
       .select("id, is_active, is_valid")
@@ -85,8 +78,7 @@ export async function POST(req: Request) {
       .eq("is_valid", true)
       .maybeSingle();
 
-    const hasActiveSubscription = !!activeSubscription || !!activeRecurringPayment;
-    if (!hasActiveSubscription) {
+    if (!activeRecurringPayment) {
       return NextResponse.json({ error: "אין מנוי פעיל - נדרש מנוי לגישה להקלטות" }, { status: 403 });
     }
 

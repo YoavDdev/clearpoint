@@ -46,22 +46,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // עדכון מחיר במנוי הפעיל (אם קיים)
-    const { data: subscription } = await supabase
-      .from("subscriptions")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("status", "active")
-      .single();
-
-    if (subscription) {
-      console.log(`🔄 Updating subscription price as well`);
-      await supabase
-        .from("subscriptions")
-        .update({ amount: newPrice })
-        .eq("id", subscription.id);
-    }
-
     console.log(`✅ Price updated successfully`);
 
     return NextResponse.json({

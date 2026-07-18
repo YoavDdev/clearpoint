@@ -31,11 +31,6 @@ export async function GET() {
       .from("users")
       .select("*", { count: "exact", head: true });
 
-    const { count: activeSubscriptions } = await supabase
-      .from("subscriptions")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "active");
-
     const { count: activeRecurringPayments } = await supabase
       .from("recurring_payments")
       .select("*", { count: "exact", head: true })
@@ -72,10 +67,6 @@ export async function GET() {
       .from("vod_files")
       .select("user_id");
 
-    const { data: allSubscriptions } = await supabase
-      .from("subscriptions")
-      .select("user_id, status");
-
     const { data: allRecurringPayments } = await supabase
       .from("recurring_payments")
       .select("user_id, is_active, is_valid");
@@ -98,7 +89,6 @@ export async function GET() {
       vodFiles: vodFileCounts[user.id] || 0,
       retention: user.plan_duration_days || 14,
       hasActiveSubscription: 
-        (allSubscriptions || []).some((s: any) => s.user_id === user.id && s.status === "active") ||
         (allRecurringPayments || []).some((r: any) => r.user_id === user.id && r.is_active && r.is_valid),
       joinedAt: user.created_at
     }));
@@ -124,9 +114,8 @@ export async function GET() {
         },
         users: {
           total: totalUsers || 0,
-          activeSubscriptions: (activeSubscriptions || 0) + (activeRecurringPayments || 0),
+          activeSubscriptions: activeRecurringPayments || 0,
           activeRecurringPayments: activeRecurringPayments || 0,
-          activeOneTimeSubscriptions: activeSubscriptions || 0,
           topByStorage: processedCustomers.slice(0, 10),
           allCustomers: processedCustomers,
         },

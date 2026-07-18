@@ -47,16 +47,17 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // קבלת פרטי המנוי
-    const { data: subscription } = await supabase
-      .from("subscriptions")
+    // קבלת פרטי המנוי מ-recurring_payments
+    const { data: recurringPayment } = await supabase
+      .from("recurring_payments")
       .select(`
-        *,
+        id, amount, plan_id,
         plan:plans(*)
       `)
       .eq("user_id", payment.user_id)
-      .eq("status", "active")
-      .single();
+      .eq("is_active", true)
+      .eq("is_valid", true)
+      .maybeSingle();
 
     // יצירת קבלה
     const receipt = {
@@ -70,8 +71,8 @@ export async function GET(req: NextRequest) {
       },
       items: [
         {
-          description: subscription?.plan
-            ? `מנוי חודשי - ${subscription.plan.name_he || subscription.plan.name}`
+          description: (recurringPayment as any)?.plan
+            ? `מנוי חודשי - ${(recurringPayment as any).plan.name_he || (recurringPayment as any).plan.name}`
             : "מנוי חודשי - Clearpoint Security",
           quantity: 1,
           price: parseFloat(payment.amount),
@@ -83,11 +84,9 @@ export async function GET(req: NextRequest) {
       total: parseFloat(payment.amount),
       paymentMethod: "כרטיס אשראי",
       paymentStatus: payment.status === "completed" ? "שולם" : "ממתין",
-      period: subscription
-        ? `${new Date().toLocaleDateString("he-IL")} - ${new Date(
-            new Date().setMonth(new Date().getMonth() + 1)
-          ).toLocaleDateString("he-IL")}`
-        : "חודש נוכחי",
+      period: `${new Date().toLocaleDateString("he-IL")} - ${new Date(
+          new Date().setMonth(new Date().getMonth() + 1)
+        ).toLocaleDateString("he-IL")}`,
     };
 
     return NextResponse.json({
