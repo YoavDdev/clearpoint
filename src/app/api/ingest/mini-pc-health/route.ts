@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { validateDeviceToken } from "@/lib/device-auth";
+import { validateDeviceToken, sha256Hex } from "@/lib/device-auth";
+import { checkRateLimit, INGEST_LIMIT } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,11 @@ export async function POST(req: Request) {
       { success: false, error: "Missing device token" },
       { status: 401 }
     );
+  }
+
+  const rl = checkRateLimit(`minipc-health:${sha256Hex(token)}`, INGEST_LIMIT);
+  if (!rl.allowed) {
+    return NextResponse.json({ success: false, error: "Rate limit exceeded" }, { status: 429 });
   }
 
   let payload: MiniPcHealthPayload;

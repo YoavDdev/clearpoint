@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { validateDeviceToken } from "@/lib/device-auth";
+import { validateDeviceToken, sha256Hex } from "@/lib/device-auth";
+import { checkRateLimit, VOD_UPLOAD_LIMIT } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,12 @@ export async function POST(req: Request) {
   const token = req.headers.get("x-clearpoint-device-token")?.trim();
   if (!token) {
     return NextResponse.json({ success: false, error: "Missing device token" }, { status: 401 });
+  }
+
+  // Rate limit by token hash
+  const rl = checkRateLimit(`vod:${sha256Hex(token)}`, VOD_UPLOAD_LIMIT);
+  if (!rl.allowed) {
+    return NextResponse.json({ success: false, error: "Rate limit exceeded" }, { status: 429 });
   }
 
   let payload: VodFilePayload;

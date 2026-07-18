@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
-import { validateDeviceToken } from "@/lib/device-auth";
+import { validateDeviceToken, sha256Hex } from "@/lib/device-auth";
+import { checkRateLimit, ALERT_LIMIT } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,12 @@ export async function POST(req: NextRequest) {
 
   if (!deviceToken) {
     return NextResponse.json({ error: "Missing device token" }, { status: 401 });
+  }
+
+  // Rate limit by token hash
+  const rl = checkRateLimit(`alert:${sha256Hex(deviceToken)}`, ALERT_LIMIT);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   }
 
   const supabase = createClient(
