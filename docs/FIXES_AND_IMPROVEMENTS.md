@@ -184,13 +184,13 @@
 | 4 | Soft delete | ✅ בוצע | 2026-07-18 |
 | 5 | Audit log | ✅ בוצע | 2026-07-18 |
 | 6 | Device token extract | ✅ בוצע | 2026-07-18 |
-| 7 | Indexes | ☐ טרם התחיל | — |
-| 8 | Health endpoint | ☐ טרם התחיל | — |
-| 9 | Admin routes cleanup | ☐ טרם התחיל | — |
+| 7 | Indexes | ✅ בוצע | 2026-07-18 |
+| 8 | Health endpoint | ✅ בוצע | 2026-07-18 |
+| 9 | Admin routes cleanup | ✅ בוצע | 2026-07-18 |
 | 10 | Subscription check | ✅ נפתר ב-#1 | 2026-07-18 |
-| 11 | device_health table | ☐ טרם התחיל | — |
-| 12 | invoice_number_counters | ☐ טרם התחיל | — |
-| 13 | plans.price | ☐ טרם התחיל | — |
+| 11 | device_health table | ✅ בוצע (DROP) | 2026-07-18 |
+| 12 | invoice_number_counters | ✅ בוצע (DROP) | 2026-07-18 |
+| 13 | plans.price | ✅ לא נדרש — Column בשימוש | 2026-07-18 |
 | 14 | API response types | ☐ טרם התחיל | — |
 | 15 | Migration files | ☐ טרם התחיל | — |
 | 16 | Webhook retry | ☐ טרם התחיל | — |
