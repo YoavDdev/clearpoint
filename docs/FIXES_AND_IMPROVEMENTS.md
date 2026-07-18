@@ -234,6 +234,43 @@
 - [x] עדכון 14+ frontend files עם נתיבים חדשים
 - [x] מבנה API סופי: admin/ (17 groups), user/ (10 endpoints), ingest/, cron/, webhooks/, public/
 
+### 26. ✅ API Error Handling Wrapper — apiHandler
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] יצירת `src/lib/api-handler.ts` עם `apiHandler()` wrapper
+- [x] try/catch אוטומטי לכל handler — מונע קריסות שקטות ב-production
+- [x] תגובת שגיאה אחידה: `{ success: false, error: "Internal server error" }` (status 500)
+- [x] אזהרת Slow API כש-request לוקח יותר מ-3 שניות
+- [x] הודעות שגיאה מפורטות רק ב-development, מוסתרות ב-production
+- [x] הוחל על 15 routes שלא היה להם try/catch
+
+### 27. ✅ Auto-Monitor Fix — Webpack + Auth
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] תיקון `Cannot find module './4243.js'` — cross-import של route handler גרם לשגיאת webpack
+- [x] ביטול `import { POST } from "../monitor/route"` — שימוש ב-HTTP fetch במקום
+- [x] הוספת `x-cron-secret` header כחלופה ל-session auth (scheduler לא מחזיק session)
+- [x] Scheduler שולח CRON_SECRET → auto-monitor → monitor (שרשרת auth תקינה)
+- [x] ניקוי `.next` cache
+
+### 28. ✅ Console.log Cleanup
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] הסרת 51 שורות console.log מיותרות
+- [x] Frontend: auth redirect, monitoring init, clip timeline
+- [x] API: webhook payload dump, monitor settings dump, plans debug, subscription debug
+- [x] הפחתה של ~68% (מ-~318 ל-~101 לוגים)
+- [x] console.error ו-console.warn נשמרו — רק debug logs הוסרו
+
+### 29. ✅ Nest System Routes
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] `system-alerts` → `admin/system/alerts`
+- [x] `system-logs` → `admin/system/logs`
+- [x] `system-stats` → `admin/system/stats`
+- [x] עדכון 3 frontend references
+- [x] מבנה `admin/system/` סופי: alerts, logs, stats, cleanup, cleanup-duplicate-alerts, storage-usage
+
 ---
 
 ## סטטוס ביצוע
@@ -265,6 +302,10 @@
 | 23 | Dead code cleanup | ✅ בוצע | 2026-07-18 |
 | 24 | Security audit (auth guards) | ✅ בוצע | 2026-07-18 |
 | 25 | Flat → nested routes | ✅ בוצע | 2026-07-18 |
+| 26 | API error handler (apiHandler) | ✅ בוצע | 2026-07-18 |
+| 27 | Auto-monitor fix (webpack+auth) | ✅ בוצע | 2026-07-18 |
+| 28 | Console.log cleanup (51 lines) | ✅ בוצע | 2026-07-18 |
+| 29 | Nest system routes | ✅ בוצע | 2026-07-18 |
 
 ---
 
