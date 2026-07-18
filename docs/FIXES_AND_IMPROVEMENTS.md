@@ -271,6 +271,31 @@
 - [x] עדכון 3 frontend references
 - [x] מבנה `admin/system/` סופי: alerts, logs, stats, cleanup, cleanup-duplicate-alerts, storage-usage
 
+### 30. ✅ Extend Zod Validation
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] `subscribeRequestSchema` — שם, אימייל, טלפון, כתובת, תוכנית
+- [x] `supportRequestSchema` — הודעה (1-5000 תווים), קטגוריה (enum)
+- [x] `createWithPaymentSchema` — requestId + planId (UUIDs)
+- [x] `createInvoiceSchema` — userId, פריטים (שם, כמות, מחיר), billing fields
+- [x] הוחל על 4 routes נוספים (סה"כ 8 routes עם Zod)
+
+### 31. ✅ CRON_SECRET — Scheduler Auth
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] הגדרת `CRON_SECRET` ב-`.env.local` וב-Vercel production
+- [x] תיקון scheduler 403 — כשאין CRON_SECRET מאפשר קריאות פנימיות ב-dev
+- [x] `auto-monitor` ו-`monitor` מקבלים CRON_SECRET או admin session
+- [x] Scheduler → auto-monitor → monitor שרשרת auth תקינה
+
+### 32. ✅ apiHandler — 100% Route Coverage
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] עטיפת כל 64 routes שנותרו ב-`apiHandler` wrapper
+- [x] סה"כ 79 routes עטופים (100% כיסוי)
+- [x] חריג יחיד: `auth/[...nextauth]` — NextAuth מנהל שגיאות בעצמו
+- [x] כל route מוגן מקריסות שקטות, כולל Slow API warnings
+
 ---
 
 ## סטטוס ביצוע
@@ -306,6 +331,9 @@
 | 27 | Auto-monitor fix (webpack+auth) | ✅ בוצע | 2026-07-18 |
 | 28 | Console.log cleanup (51 lines) | ✅ בוצע | 2026-07-18 |
 | 29 | Nest system routes | ✅ בוצע | 2026-07-18 |
+| 30 | Extend Zod validation (8 routes) | ✅ בוצע | 2026-07-18 |
+| 31 | CRON_SECRET scheduler auth | ✅ בוצע | 2026-07-18 |
+| 32 | apiHandler 100% coverage (79 routes) | ✅ בוצע | 2026-07-18 |
 
 ---
 
