@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { createOneTimePayment } from "@/lib/payplus";
 import { getIssuerSnapshot } from "@/lib/issuer";
 import { requireAdmin } from "@/lib/admin-auth";
+import { createInvoiceSchema, parseBody } from "@/lib/validations";
 
 export const dynamic = 'force-dynamic';
 
@@ -10,32 +11,18 @@ export async function POST(req: NextRequest) {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   try {
-    const { 
-      userId, 
-      items, 
-      notes, 
-      customerName, 
-      customerEmail,
-      customerPhone,
-      customerAddress,
-      customerCity,
-      customerIdNumber,
-      billingCustomerType,
-      billingCompanyName,
-      billingVatNumber,
-      billingBusinessCity,
-      billingBusinessPostalCode,
-      billingCommunicationEmail,
-      documentType = 'invoice',
-      validUntil,
-    } = await req.json();
-
-    if (!userId || !items || items.length === 0) {
-      return NextResponse.json(
-        { success: false, error: "Missing required fields" },
-        { status: 400 }
-      );
+    const raw = await req.json();
+    const parsed = parseBody(createInvoiceSchema, raw);
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
     }
+    const { 
+      userId, items, notes, customerName, customerEmail,
+      customerPhone, customerAddress, customerCity, customerIdNumber,
+      billingCustomerType, billingCompanyName, billingVatNumber,
+      billingBusinessCity, billingBusinessPostalCode, billingCommunicationEmail,
+      documentType, validUntil,
+    } = parsed.data;
 
     const supabase = getSupabaseAdmin();
 
@@ -263,8 +250,8 @@ export async function POST(req: NextRequest) {
       sum: totalAmount,
       description: `קבלה התקנה #${invoice.invoice_number} - ${customerName}`,
       customer_uid: customerUid || undefined, // ✅ שימוש בלקוח קיים אם יש
-      customer_name: customerName,
-      customer_email: customerEmail,
+      customer_name: customerName || "",
+      customer_email: customerEmail || "",
       customer_phone: customerPhone || "",
       customer_address: customerAddress || "",
       customer_city: customerCity || "",

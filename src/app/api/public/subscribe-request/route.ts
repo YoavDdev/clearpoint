@@ -1,25 +1,17 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { apiHandler } from "@/lib/api-handler";
+import { subscribeRequestSchema, parseBody } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
-type Body = {
-  full_name: string;
-  email: string;
-  phone: string;
-  address: string;
-  preferred_date?: string | null;
-  selected_plan: string;
-  admin_notes?: string | null;
-};
-
 export const POST = apiHandler(async (req) => {
-  const body = (await req.json().catch(() => null)) as Body | null;
-
-  if (!body?.full_name || !body?.email || !body?.phone || !body?.address || !body?.selected_plan) {
-    return NextResponse.json({ success: false, error: "Missing fields" }, { status: 400 });
+  const raw = await req.json().catch(() => null);
+  const parsed = parseBody(subscribeRequestSchema, raw);
+  if (!parsed.success) {
+    return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
   }
+  const body = parsed.data;
 
   const supabaseAdmin = getSupabaseAdmin();
 

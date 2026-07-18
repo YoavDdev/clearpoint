@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { createOneTimePayment, createPayPlusCustomer } from "@/lib/payplus";
 import { logAdminAction } from "@/lib/audit";
 import { requireAdmin } from "@/lib/admin-auth";
+import { createWithPaymentSchema, parseBody } from "@/lib/validations";
 
 export const dynamic = 'force-dynamic';
 
@@ -11,14 +12,12 @@ export async function POST(req: NextRequest) {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   try {
-    const { requestId, planId } = await req.json();
-
-    if (!requestId || !planId) {
-      return NextResponse.json(
-        { success: false, error: "Missing requestId or planId" },
-        { status: 400 }
-      );
+    const raw = await req.json();
+    const parsed = parseBody(createWithPaymentSchema, raw);
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
     }
+    const { requestId, planId } = parsed.data;
 
     // יצירת Supabase client עם service role
     const supabase = getSupabaseAdmin();

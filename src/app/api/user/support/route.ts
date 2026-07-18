@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { apiHandler } from "@/lib/api-handler";
+import { supportRequestSchema, parseBody } from "@/lib/validations";
 
 export const dynamic = 'force-dynamic';
 
@@ -12,13 +13,20 @@ export const POST = apiHandler(async (req) => {
 
   const formData = await req.formData();
 
-  const message = formData.get("message")?.toString().trim();
-  const category = formData.get("category")?.toString();
   const file = formData.get("file") as File | null;
 
+  const parsed = parseBody(supportRequestSchema, {
+    message: formData.get("message")?.toString().trim(),
+    category: formData.get("category")?.toString(),
+  });
+  if (!parsed.success) {
+    return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
+  }
+  const { message, category } = parsed.data;
+
   const userEmail = session?.user?.email;
-  if (!userEmail || !message || !category) {
-    return NextResponse.json({ success: false, error: "Missing fields" }, { status: 400 });
+  if (!userEmail) {
+    return NextResponse.json({ success: false, error: "Not authenticated" }, { status: 401 });
   }
 
   const { data: user } = await supabase
