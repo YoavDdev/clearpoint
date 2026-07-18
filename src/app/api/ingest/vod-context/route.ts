@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { validateDeviceToken } from "@/lib/device-auth";
+import { validateDeviceToken, sha256Hex } from "@/lib/device-auth";
+import { checkRateLimit, INGEST_LIMIT } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,14 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { allowed: false, user_id: null, user_email: null, reason: "Missing device token" } satisfies VodContextResponse,
       { status: 401 }
+    );
+  }
+
+  const rl = checkRateLimit(`vod-ctx:${sha256Hex(token)}`, INGEST_LIMIT);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { allowed: false, user_id: null, user_email: null, reason: "Rate limit exceeded" } satisfies VodContextResponse,
+      { status: 429 }
     );
   }
 
