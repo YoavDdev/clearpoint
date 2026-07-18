@@ -4,7 +4,7 @@
 |-------|-------|
 | **Status** | Living Reference |
 | **Owner** | Engineering |
-| **Last verified** | 2026-07-17 |
+| **Last verified** | 2026-07-18 |
 | **Verification method** | Direct production Supabase metadata export (information_schema, pg_catalog) |
 | **Source of truth** | Supabase production instance |
 | **Related Documents** | SYSTEM_ARCHITECTURE.md, CURRENT_DEPLOYMENT.md |
@@ -30,7 +30,7 @@
 ### Assumptions (not ADRs)
 
 - **Access model**: One login/account per customer. Multi-user/organization access is a possible future extension, not part of the current schema.
-- **Data lifecycle**: No universal soft-delete. Deletion behavior is documented per table below.
+- **Data lifecycle**: Users support soft-delete (`deleted_at`). Other tables use hard delete. Behavior documented per table below.
 - **Health data**: `camera_health` and `mini_pc_health` are latest-state registers (UPSERT, 1 row per device). Historical health data is not stored.
 
 ---
@@ -53,7 +53,7 @@
 | **Health** | `mini_pc_health` | Production Verified | UPSERT register |
 | **Health** | `camera_health` | Production Verified | UPSERT register |
 | **Health** | `mini_pc_tokens` | Production Verified | Device auth |
-| **Health** | `device_health` | Production Verified | Dormant — predates split tables, no code references |
+| **Health** | `device_health` | ❌ DROPPED 2026-07-18 | Was dormant, no code references |
 | **Monitoring** | `system_alerts` | Production Verified | Admin operational alerts |
 | **AI/Alerts** | `alert_rules` | Production Verified | Customer alert config |
 | **AI/Alerts** | `alerts` | Production Verified | Detection events |
@@ -65,13 +65,13 @@
 | **Billing** | `invoice_items` | Production Verified | Line items |
 | **Billing** | `item_templates` | Production Verified | Invoice item templates |
 | **Billing** | `document_number_counters` | Production Verified | Atomic numbering |
-| **Billing** | `invoice_number_counters` | Production Verified | Superseded by document_number_counters |
+| **Billing** | `invoice_number_counters` | ❌ DROPPED 2026-07-18 | Superseded by document_number_counters |
 | **Support** | `subscription_requests` | Production Verified | Website signups |
 | **Support** | `support_requests` | Production Verified | Support tickets |
 | **Ops** | `system_logs` | Production Verified | Centralized event log |
 | **Ops** | `admin_notifications` | Production Verified | Admin notification queue |
 | **Ops** | `system_settings` | Production Verified | Key-value config store |
-| **Billing** | `subscriptions` | Repository Only | Referenced in code, **does not exist in production** |
+| **Audit** | `audit_log` | Production Verified | Admin action audit trail (added 2026-07-18) |
 
 ---
 
@@ -114,12 +114,14 @@ Customer/user accounts. Primary identity table.
 | `contacts` | JSONB | YES | `'[]'` | Multiple contact details |
 | `customer_type` | TEXT | YES | `'private'` | CHECK: `private`, `business` |
 | `company_name` | TEXT | YES | — | Business billing name |
+| `deleted_at` | TIMESTAMPTZ | YES | NULL | Soft delete timestamp (added 2026-07-18) |
 
 **CHECK constraints**: `users_customer_type_check`, `valid_retention` (plan_duration_days = 14 OR NULL).  
 **Unique**: `users_customer_uid_key`.  
 **Indexes**: `idx_users_customer_uid`, `idx_users_subscription_active`.  
 **RLS**: Users read own (by email); admins full CRUD.  
 **FK**: `users_plan_id_fkey` → `plans.id` (ON DELETE NO ACTION).  
+**Soft delete**: `deleted_at` column (added 2026-07-18). When set, user is considered deleted. Auth user is banned. Admin list queries filter `deleted_at IS NULL`.  
 **Note**: No `updated_at` column exists in production. No `status` column exists in production.
 
 ---
@@ -415,22 +417,11 @@ Subscription tier definitions.
 
 ---
 
-### 7.2 `subscriptions` — DOES NOT EXIST IN PRODUCTION
+### 7.2 `subscriptions` — ❌ NEVER EXISTED / CODE REFERENCES REMOVED
 
-> **WARNING**: This table is referenced in application code but **does not exist in the production database**. Queries against it produce PostgreSQL errors ("relation 'subscriptions' does not exist"). Application code handles this via error checks and fallback to `recurring_payments`/`users.subscription_active`. PostgREST `.from("subscriptions")` queries also return errors, and callers have fallback logic.
+> **History**: This table was referenced in application code but **never existed in production**. All code references were removed on 2026-07-18. Dead DB functions that referenced it (`find_expiring_trials`, `get_subscription_status`, `find_subscriptions_to_cancel`, `find_paused_to_resume`) were also dropped.
 >
-> The schema below is inferred from code references only:
-
-| Column (code references) | Type | Notes |
-|---------------------------|------|-------|
-| `id` | UUID | PK |
-| `user_id` | UUID | FK → `users.id` |
-| `plan_id` | TEXT | FK → `plans.id` |
-| `status` | TEXT | `'active'`, `'trial'`, `'paused'`, `'suspended'`, `'cancelled'` |
-| `next_billing_date` | DATE | |
-| `billing_cycle` | TEXT | `'monthly'`, `'yearly'` |
-
-**Status**: Repository code only. NOT in production. Functions `check_subscription_access`, `check_subscription_health`, `find_expiring_trials`, etc. produce SQL errors when called (table does not exist). Application handles via error fallback.
+> Subscription status is determined solely via `recurring_payments.is_active` + `users.subscription_active`.
 
 ---
 
@@ -618,17 +609,9 @@ Atomic annual document numbering (quotes and invoices separately).
 
 ---
 
-### 7.9 `invoice_number_counters` (Legacy)
+### 7.9 `invoice_number_counters` — ❌ DROPPED 2026-07-18
 
-Original invoice numbering table. Superseded by `document_number_counters`.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `year` | INTEGER | PK |
-| `last_number` | INTEGER | |
-| `updated_at` | TIMESTAMPTZ | |
-
-**Status**: Legacy. Kept for backward compatibility. RLS enabled (service_role only).
+Original invoice numbering table. Was superseded by `document_number_counters`. Had no code references. Dropped on 2026-07-18.
 
 ---
 
@@ -709,25 +692,9 @@ Key-value configuration store for admin-managed system settings.
 
 ---
 
-### 8.4 `device_health` — Production Verified (Dormant)
+### 8.4 `device_health` — ❌ DROPPED 2026-07-18
 
-Predates `mini_pc_health` + `camera_health` split. No application code currently queries this table (grep verified). Contains 5 historical rows, last updated 2025-08-22.
-
-| Column | Type | Nullable | Notes |
-|--------|------|----------|-------|
-| `device_name` | TEXT | NO | Composite PK part 1 |
-| `camera_id` | UUID | NO | Composite PK part 2 |
-| `user_id` | UUID | YES | |
-| `stream_status` | TEXT | YES | |
-| `disk_root_pct` | INTEGER | YES | |
-| `disk_ram_pct` | INTEGER | YES | |
-| `last_checked` | TIMESTAMPTZ | YES | (no default) |
-| `log_message` | TEXT | YES | |
-| `cpu_temp_celsius` | INTEGER | YES | |
-
-**PK**: Composite `(device_name, camera_id)`.  
-**RLS**: Service role ALL only.  
-**Status**: Dormant. Retention reason not verified — may contain historical data. No application code queries this table.
+Predated `mini_pc_health` + `camera_health` split. Had no code references. Dropped on 2026-07-18.
 
 ---
 
@@ -853,12 +820,12 @@ Groups by user/mini_pc and aggregates camera health counts.
 | `generate_invoice_number()` | TEXT | No | VOLATILE | Wrapper → `generate_document_number('invoice')` |
 | `generate_quote_number()` | TEXT | No | VOLATILE | Wrapper → `generate_document_number('quote')` |
 | `get_mini_pc_id(uuid, text)` | TABLE(mini_pc_id uuid) | NO | VOLATILE | Resolve mini_pc_id from user_id + hostname |
-| `check_subscription_access(uuid)` | JSONB | NO | VOLATILE | Validate user subscription status |
-| `check_subscription_health(uuid)` | JSONB | NO | VOLATILE | Subscription health check |
-| `find_expiring_trials()` | TABLE(...) | NO | VOLATILE | Find trials near expiry |
-| `find_paused_to_resume()` | TABLE(...) | NO | VOLATILE | Find paused subscriptions to resume |
-| `find_subscriptions_needing_sync()` | TABLE(...) | NO | VOLATILE | Payment sync check |
-| `find_subscriptions_to_cancel()` | TABLE(...) | NO | VOLATILE | Find subscriptions to cancel |
+| ~~`check_subscription_access(uuid)`~~ | — | — | — | ❌ DROPPED 2026-07-18 (referenced non-existent `subscriptions` table) |
+| ~~`check_subscription_health(uuid)`~~ | — | — | — | ❌ DROPPED 2026-07-18 |
+| ~~`find_expiring_trials()`~~ | — | — | — | ❌ DROPPED 2026-07-18 |
+| ~~`find_paused_to_resume()`~~ | — | — | — | ❌ DROPPED 2026-07-18 |
+| ~~`find_subscriptions_needing_sync()`~~ | — | — | — | ❌ DROPPED 2026-07-18 |
+| ~~`find_subscriptions_to_cancel()`~~ | — | — | — | ❌ DROPPED 2026-07-18 |
 | `update_updated_at_column()` | TRIGGER | NO | VOLATILE | Generic trigger function |
 | `update_invoice_updated_at()` | TRIGGER | NO | VOLATILE | Invoice trigger |
 | `update_recurring_payments_updated_at()` | TRIGGER | NO | VOLATILE | Recurring payments trigger |
@@ -866,7 +833,7 @@ Groups by user/mini_pc and aggregates camera health counts.
 | `update_next_payment_date()` | TRIGGER | NO | VOLATILE | Payment date calculation trigger |
 
 **IMPORTANT**: No functions in the public schema use SECURITY DEFINER. All execute with caller's permissions (SECURITY INVOKER).  
-**Note**: `check_subscription_*` and `find_*` functions reference a `subscriptions` table that does not exist in production. Calling these via `.rpc()` produces a PostgreSQL error ("relation 'subscriptions' does not exist"). Application code handles this via error checks and fallback.
+**Note**: Dead functions referencing the non-existent `subscriptions` table were dropped on 2026-07-18. Only active functions remain.
 
 ### Database Triggers
 
@@ -884,7 +851,7 @@ Groups by user/mini_pc and aggregates camera health counts.
 | Bucket | Public | Limit | Allowed Types | Purpose |
 |--------|--------|-------|---------------|---------|
 | `alert-snapshots` | YES | 1MB/file | `image/jpeg`, `image/png`, `image/webp` | AI detection snapshot images |
-| `supportuploads` | YES | None | None (any) | Support ticket file attachments |
+| `supportuploads` | YES | 10MB (API-enforced) | jpeg, png, gif, webp, mp4, mov, pdf (API-enforced) | Support ticket file attachments |
 
 **Storage RLS policies** (on `storage.objects`):
 - `Public read access for alert snapshots` — SELECT on `alert-snapshots` bucket (role: public)
@@ -931,13 +898,13 @@ No CREATE TABLE migration was found in the repository for these tables. Their cr
 
 `camera_health` RLS joins through `cameras.user_id` (legacy field) rather than the canonical path `cameras.mini_pc_id → mini_pcs.user_id`. This works but is inconsistent with the architectural decision.
 
-### 14.5 `subscriptions` Table — Ghost Reference
+### 14.5 `subscriptions` Table — ✅ RESOLVED 2026-07-18
 
-The `subscriptions` table does NOT exist in production. Code references it but queries produce PostgreSQL errors. Application code handles this via error checks and fallback to `recurring_payments.is_active` + `users.subscription_active`. Multiple functions (`check_subscription_access`, `find_expiring_trials`, etc.) reference it and produce SQL errors when called.
+~~The `subscriptions` table does NOT exist in production.~~ All code references and dead DB functions were removed on 2026-07-18. Subscription checks now go directly to `recurring_payments.is_active` + `users.subscription_active`.
 
-### 14.6 Dead Functions
+### 14.6 Dead Functions — ✅ RESOLVED 2026-07-18
 
-Functions referencing the non-existent `subscriptions` table: `check_subscription_access`, `check_subscription_health`, `find_expiring_trials`, `find_paused_to_resume`, `find_subscriptions_needing_sync`, `find_subscriptions_to_cancel`. These produce SQL errors when invoked and are effectively dead code.
+~~Functions referencing the non-existent `subscriptions` table.~~ All 6 dead functions were dropped on 2026-07-18 (`find_expiring_trials`, `get_subscription_status`, `find_subscriptions_to_cancel`, `find_paused_to_resume`, `check_subscription_access`, `check_subscription_health`).
 
 ---
 
@@ -950,7 +917,7 @@ These are documented as possible extensions. **None should be implemented until 
 - **Health history**: A `mini_pc_health_history` or `camera_health_history` table could store time-series data alongside the current UPSERT registers.
 - **VOD lifecycle tracking**: `vod_files` could gain `expires_at`, `deleted_at`, or `status` columns for explicit retention management.
 - **Notification preferences**: A dedicated `notification_preferences` table per user could replace the per-rule `notify_*` booleans.
-- **Audit log**: For compliance, a generic `audit_log` table tracking all mutations with actor, action, and timestamp.
+- **Audit log**: ✅ Implemented 2026-07-18 — `audit_log` table with `logAdminAction()` helper. Currently tracks user.create and user.delete.
 
 ---
 
@@ -978,4 +945,4 @@ These are documented as possible extensions. **None should be implemented until 
 
 ---
 
-*Document verified against production Supabase metadata export on 2026-07-17. All tables marked "Production Verified" have been confirmed via information_schema and pg_catalog queries.*
+*Document verified against production Supabase metadata export on 2026-07-17. Updated 2026-07-18 with schema changes (soft delete, audit_log, dropped tables/functions, indexes). All tables marked "Production Verified" have been confirmed via information_schema and pg_catalog queries.*

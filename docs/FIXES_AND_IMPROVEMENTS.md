@@ -192,8 +192,8 @@
 | 11 | device_health table | ✅ בוצע (DROP) | 2026-07-18 |
 | 12 | invoice_number_counters | ✅ בוצע (DROP) | 2026-07-18 |
 | 13 | plans.price | ✅ לא נדרש — Column בשימוש | 2026-07-18 |
-| 14 | API response types | ☐ טרם התחיל | — |
-| 15 | Migration files | ☐ טרם התחיל | — |
+| 14 | API response types | ✅ בוצע | 2026-07-18 |
+| 15 | Migration files | ✅ בוצע | 2026-07-18 |
 | 16 | Webhook retry | ☐ טרם התחיל | — |
 | 17 | Failed payment email | ☐ טרם התחיל | — |
 | 18 | Payment indicators | ☐ טרם התחיל | — |
