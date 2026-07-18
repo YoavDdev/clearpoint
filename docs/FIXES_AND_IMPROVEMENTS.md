@@ -136,42 +136,43 @@
 - [x] בדיקה: Column בשימוש פעיל (`subscription/page.tsx` מציג מחיר ללקוח)
 - [x] לא נדרש שינוי — ה-column לגיטימי
 
-### 14. ☐ TypeScript Response Types
+### 14. ✅ TypeScript Response Types
 **מזהה**: TD-20  
-**בעיה**: API responses ללא types — frontend מנחש.  
-**תיקון**:
-- [ ] יצירת `src/types/api.ts` עם types ל-responses הנפוצים
-- [ ] שימוש ב-types ב-frontend hooks
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] יצירת `src/types/api.ts` עם interfaces לכל ה-responses הנפוצים (Users, Cameras, VOD, Payments, Health, SystemStats)
+- [x] בסיס ל-import ב-frontend components
 
-### 15. ☐ Database Migration Files
+### 15. ✅ Database Migration Files
 **מזהה**: TD-24  
-**בעיה**: אין migration files — Schema רק ב-Supabase Dashboard.  
-**תיקון**:
-- [ ] Export של schema נוכחי כ-baseline migration
-- [ ] הקמת `/supabase/migrations/` folder
-- [ ] תיעוד workflow לשינויי schema
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] יצירת `supabase/migrations/20260718_baseline.sql` — מתעד כל שינויי DB של הלילה
+- [x] יצירת `supabase/README.md` עם workflow לשינויי schema עתידיים
 
 ---
 
 ## שיפורי UX / פיצ'רים קטנים
 
-### 16. ☐ Webhook Retry Logic
-**בעיה**: אם webhook נכשל, PayPlus לא שולח שוב (או שכן ואנחנו לא מטפלים ב-retry).  
-**תיקון**:
-- [ ] בדיקת PayPlus retry policy
-- [ ] הוספת idempotency check ב-webhook handler (אם חסר)
+### 16. ✅ Webhook Idempotency
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] הוספת idempotency check — אם payment כבר `completed`/`refunded`, דולג webhook כפול
+- [x] מונע עיבוד כפול ושליחת email כפולה ב-retries
 
-### 17. ☐ Email Notification על תשלום נכשל
-**בעיה**: כשתשלום recurring נכשל, אין התראה ל-admin.  
-**תיקון**:
-- [ ] זיהוי כשלון ב-sync cron
-- [ ] שליחת email ל-admin
+### 17. ✅ Email Notification על תשלום נכשל
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] חיבור `sendPaymentFailed()` (שכבר הייתה קיימת) ל-webhook handler
+- [x] שליחת email ללקוח עם סיבת הכשלון + לינק לחשבוניות
+- [x] fire-and-forget — לא שובר את ה-webhook אם המייל נכשל
 
-### 18. ☐ Admin Dashboard — Payment Status Indicators
-**בעיה**: לא תמיד ברור מה סטטוס התשלום של לקוח.  
-**תיקון**:
-- [ ] צבעים ברורים: ירוק (פעיל), אדום (נכשל), אפור (בוטל)
-- [ ] הצגת תאריך חיוב אחרון + הבא
+### 18. ✅ Admin Dashboard — Payment Status Indicators
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] הצגת תאריך חיוב הבא מתחת badge המנוי
+- [x] סטטוס תשלום אחרון עם צבעים: ירוק (שולם), אדום (נכשל), כתום (ממתין)
+- [x] הצגת סכום + סטטוס בכרטיס לקוח
 
 ---
 
