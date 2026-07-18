@@ -192,10 +192,22 @@ ok "Log rotation: daily, max 50MB × 7 days"
 RETENTION_LINE="0 4 * * * find ~/clearpoint-recordings -name '*.mp4' -mtime +7 -delete >> ~/clearpoint-logs/retention.log 2>&1"
 # Will be added with other cron jobs later
 
-# Unattended security upgrades
+# Unattended security upgrades (ONLY security, no version upgrades)
 sudo apt install -y -qq unattended-upgrades >/dev/null 2>&1
 sudo dpkg-reconfigure -plow unattended-upgrades 2>/dev/null || true
-ok "Unattended security upgrades: enabled"
+
+# Disable release upgrade prompts (never auto-upgrade 24.04 → 26.04)
+sudo sed -i 's/Prompt=.*/Prompt=never/' /etc/update-manager/release-upgrades 2>/dev/null || true
+
+# Disable automatic reboots from updates
+sudo tee /etc/apt/apt.conf.d/99-no-auto-reboot > /dev/null << EOF
+Unattended-Upgrade::Automatic-Reboot "false";
+Unattended-Upgrade::Allowed-Origins {
+    "\${distro_id}:\${distro_codename}-security";
+};
+EOF
+
+ok "Updates: security-only, no auto-reboot, no version upgrades"
 
 # ═══════════════════════════════════════════════════
 # VERIFY VAAPI
