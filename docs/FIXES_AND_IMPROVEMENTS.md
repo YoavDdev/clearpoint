@@ -18,73 +18,67 @@
 
 ## 🔴 P0 — באגים קריטיים
 
-### 1. ☐ הסרת Ghost Table `subscriptions`
+### 1. ✅ הסרת Ghost Table `subscriptions`
 **מזהה**: TD-1, TD-2, TD-3  
-**בעיה**: 12+ נתיבי קוד מנסים לקרוא מטבלת `subscriptions` שלא קיימת. כל קריאה נכשלת בשקט ונופלת ל-fallback.  
-**השפעה**: ~50-100ms latency מיותר בכל בקשת VOD/cameras + 3 cron jobs מתים.  
-**תיקון**:
-- [ ] הסרת כל ה-references ל-`subscriptions` מ-8 route files
-- [ ] הסרת 3 cron jobs מתים (`process-cancellations`, `process-trials`, `resume-paused`)
-- [ ] הסרת DB functions (`find_expiring_trials`, `get_subscription_status`)
-- [ ] הסרת cron entries מ-`vercel.json` (אם קיימות)
-
-**קבצים**:
-- `src/app/api/user-cameras/route.ts`
-- `src/app/api/user-footage/route.ts`
-- `src/app/api/vod/signed-url/route.ts`
-- `src/app/api/ingest/vod-context/route.ts`
-- `src/app/api/ingest/vod-file/route.ts`
-- `src/app/api/cron/process-cancellations/route.ts`
-- `src/app/api/cron/process-trials/route.ts`
-- `src/app/api/cron/resume-paused/route.ts`
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] הסרת כל ה-references ל-`subscriptions` מ-8 route files
+- [x] הסרת 3 cron jobs מתים (`process-cancellations`, `process-trials`, `resume-paused`)
+- [x] הסרת `simulate-recurring-payment` route (תלוי ב-subscriptions)
+- [x] הסרת DB functions (`find_expiring_trials`, `get_subscription_status`, `find_subscriptions_to_cancel`, `find_paused_to_resume`)
+- [x] vercel.json — לא היה צריך שינוי (dead crons לא היו מוגדרים)
+- [x] כל subscription checks עוברים ישירות ל-`recurring_payments`
 
 ---
 
 ## 🟠 P1 — תיקוני אבטחה ו-Integrity
 
-### 2. ☐ אימות Cron Endpoints
+### 2. ✅ אימות Cron Endpoints
 **מזהה**: TD-16  
-**בעיה**: `/api/cron/*` routes נגישים ללא auth בקוד. מסתמכים רק על Vercel.  
-**תיקון**:
-- [ ] הוספת `CRON_SECRET` header check לכל cron route
-- [ ] דגם: `if (req.headers.get('authorization') !== \`Bearer ${process.env.CRON_SECRET}\`) return 401`
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] הוספת `CRON_SECRET` header check ל-`cleanup-logs` (היחיד שלא היה מוגן)
+- [x] `sync-payplus-recurring` — כבר היה מוגן
+- [x] שני ה-cron routes מוגנים עכשיו
 
-### 3. ☐ הגבלת `supportuploads` Bucket
+### 3. ✅ הגבלת `supportuploads` Bucket
 **מזהה**: TD-15  
-**בעיה**: Bucket פתוח — כל סוג קובץ, ללא הגבלת גודל.  
-**תיקון**:
-- [ ] הוספת RLS policy (authenticated only)
-- [ ] הגבלת גודל (10MB max)
-- [ ] הגבלת MIME types (image/*, video/*, application/pdf)
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] הגבלת גודל: 10MB max (server-side validation)
+- [x] הגבלת MIME types: jpeg, png, gif, webp, mp4, mov, pdf
+- [x] RLS לא נדרש — route כבר דורש session + service_role עוקף RLS
 
-### 4. ☐ Soft Delete למשתמשים ולנתונים פיננסיים
+### 4. ✅ Soft Delete למשתמשים ולנתונים פיננסיים
 **מזהה**: TD-7, TD-8  
-**בעיה**: מחיקת user מוחקת cascade את כל הנתונים הפיננסיים.  
-**תיקון**:
-- [ ] הוספת `deleted_at` column ל-`users`
-- [ ] שינוי DELETE ל-soft-delete (update deleted_at)
-- [ ] הגנה על `payments` + `invoices` מ-cascade
-- [ ] עדכון admin UI — "מחיקה" = soft-delete
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] הוספת `deleted_at` column ל-`users` (DB migration בוצע)
+- [x] שינוי `admin-delete-user` מ-DELETE ל-UPDATE deleted_at
+- [x] Auth user מושבת (ban) במקום נמחק
+- [x] Admin list endpoints מסננים deleted users
+- [x] נתונים פיננסיים (payments, invoices) נשמרים
 
-### 5. ☐ Audit Log לפעולות Admin
+### 5. ✅ Audit Log לפעולות Admin
 **מזהה**: TD-17  
-**בעיה**: אין לוג לפעולות admin — אי אפשר לחקור אירועים.  
-**תיקון**:
-- [ ] יצירת טבלה `admin_audit_log` (admin_id, action, target_type, target_id, details, timestamp)
-- [ ] helper function: `logAdminAction()`
-- [ ] שילוב בנקודות קריטיות: user create/delete, payment create, recurring cancel
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] יצירת טבלה `audit_log` עם RLS (DB migration בוצע)
+- [x] יצירת `src/lib/audit.ts` עם `logAdminAction()` — fire-and-forget
+- [x] שילוב ב-user.create ו-user.delete
+- [ ] TODO: הרחבה לפעולות נוספות (recurring cancel, payment create)
 
 ---
 
 ## 🟡 P2 — שיפורי ביצועים וקוד
 
-### 6. ☐ Extract Device Token Validation
+### 6. ✅ Extract Device Token Validation
 **מזהה**: TD-18, TD-19  
-**בעיה**: אותה לוגיקת אימות (20 שורות) מועתקת ב-6 ingest routes.  
-**תיקון**:
-- [ ] יצירת `src/lib/device-auth.ts` עם `validateDeviceToken()`
-- [ ] כולל `sha256Hex()` utility
-- [ ] החלפת קוד כפול ב-6 קבצים
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] יצירת `src/lib/device-auth.ts` עם `validateDeviceToken()` + `sha256Hex()`
+- [x] החלפת קוד כפול ב-6 ingest routes
+- [x] אותה התנהגות בדיוק — רק DRY
 
 ### 7. ☐ הוספת Composite Indexes
 **מזהה**: TD-14  
@@ -184,16 +178,16 @@
 
 | # | פריט | סטטוס | תאריך |
 |---|------|--------|--------|
-| 1 | Ghost subscriptions | ☐ טרם התחיל | — |
-| 2 | Cron auth | ☐ טרם התחיל | — |
-| 3 | supportuploads | ☐ טרם התחיל | — |
-| 4 | Soft delete | ☐ טרם התחיל | — |
-| 5 | Audit log | ☐ טרם התחיל | — |
-| 6 | Device token extract | ☐ טרם התחיל | — |
+| 1 | Ghost subscriptions | ✅ בוצע | 2026-07-18 |
+| 2 | Cron auth | ✅ בוצע | 2026-07-18 |
+| 3 | supportuploads | ✅ בוצע | 2026-07-18 |
+| 4 | Soft delete | ✅ בוצע | 2026-07-18 |
+| 5 | Audit log | ✅ בוצע | 2026-07-18 |
+| 6 | Device token extract | ✅ בוצע | 2026-07-18 |
 | 7 | Indexes | ☐ טרם התחיל | — |
 | 8 | Health endpoint | ☐ טרם התחיל | — |
 | 9 | Admin routes cleanup | ☐ טרם התחיל | — |
-| 10 | Subscription check | ☐ טרם התחיל | — |
+| 10 | Subscription check | ✅ נפתר ב-#1 | 2026-07-18 |
 | 11 | device_health table | ☐ טרם התחיל | — |
 | 12 | invoice_number_counters | ☐ טרם התחיל | — |
 | 13 | plans.price | ☐ טרם התחיל | — |
