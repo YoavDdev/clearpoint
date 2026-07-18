@@ -138,7 +138,8 @@ export async function POST(req: NextRequest) {
             .eq('id', payment.invoice_id)
             .single();
 
-          if (invoice?.user?.email && !invoice.email_sent_at) {
+          const invoiceUser = invoice?.user as any;
+          if (invoice && invoiceUser?.email && !invoice.email_sent_at) {
             const { data: items } = await supabase
               .from('invoice_items')
               .select('*')
@@ -149,8 +150,8 @@ export async function POST(req: NextRequest) {
 
             const { sendInvoiceEmail } = await import('@/lib/email');
             await sendInvoiceEmail({
-              customerName: invoice.user.full_name || invoice.user.email,
-              customerEmail: invoice.user.email,
+              customerName: invoiceUser.full_name || invoiceUser.email,
+              customerEmail: invoiceUser.email,
               invoiceNumber: invoice.invoice_number,
               invoiceDate: new Date(invoice.created_at).toLocaleDateString('he-IL'),
               totalAmount: invoice.total_amount,

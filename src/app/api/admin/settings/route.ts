@@ -62,6 +62,11 @@ export async function GET() {
 // PUT - Update settings
 export async function PUT(request: Request) {
   try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     const body = await request.json();
     const { settings } = body;
 
@@ -102,7 +107,7 @@ export async function PUT(request: Request) {
     const results = await Promise.all(updates);
     
     // Check for errors
-    const errors = results.filter(r => r.error);
+    const errors = results.filter((r: any) => r.error);
     if (errors.length > 0) {
       console.error("Errors updating settings:", errors);
       return NextResponse.json(
