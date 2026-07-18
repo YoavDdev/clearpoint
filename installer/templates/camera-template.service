@@ -1,0 +1,35 @@
+[Unit]
+Description=Clearpoint Camera {{CAMERA_NUM}} - {{CAMERA_IP}}
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{USER}}
+Group={{USER}}
+WorkingDirectory=/home/{{USER}}
+ExecStart=/home/{{USER}}/clearpoint-scripts/camera-{{CAMERA_ID}}.sh
+Restart=always
+RestartSec=10
+
+# Auto-restart every 24 hours to prevent memory leaks and freezes
+RuntimeMaxSec=86400
+
+# Watchdog: if FFmpeg doesn't respond within 2 minutes, restart
+WatchdogSec=120
+
+# Give FFmpeg time to flush buffers on stop
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+# Resource limits
+MemoryMax=512M
+CPUQuota=50%
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=clearpoint-camera-{{CAMERA_NUM}}
+
+[Install]
+WantedBy=multi-user.target

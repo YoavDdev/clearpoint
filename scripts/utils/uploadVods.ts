@@ -108,33 +108,14 @@ function getVideoCodec(filePath: string): string {
 function ensureH264(filePath: string): string {
   const codec = getVideoCodec(filePath);
   if (codec === 'h264') {
-    console.log(`✅ Already H.264: ${path.basename(filePath)}`);
-    return filePath;
+    console.log(`✅ H.264: ${path.basename(filePath)}`);
+  } else {
+    // H.265/HEVC is supported by all modern browsers (Chrome 107+, Safari 11+, Edge, Firefox 137+)
+    // and all modern phones (iPhone 2017+, Android 2017+).
+    // Skipping transcoding to save CPU and SIM bandwidth (H.265 files are ~40% smaller).
+    console.log(`📦 ${codec.toUpperCase()}: ${path.basename(filePath)} — uploading as-is (no transcoding)`);
   }
-
-  console.log(`🔄 Transcoding ${codec}→H.264: ${path.basename(filePath)}...`);
-  const dir = path.dirname(filePath);
-  const ext = path.extname(filePath);
-  const base = path.basename(filePath, ext);
-  const transcodedPath = path.join(dir, `${base}_h264${ext}`);
-
-  try {
-    execSync(
-      `ffmpeg -i "${filePath}" -c:v libx264 -preset veryfast -crf 23 -c:a aac -ar 44100 -movflags +faststart -y "${transcodedPath}"`,
-      { timeout: 600_000, stdio: 'pipe' }
-    );
-
-    // Replace original with transcoded
-    fs.unlinkSync(filePath);
-    fs.renameSync(transcodedPath, filePath);
-    console.log(`✅ Transcoded successfully: ${path.basename(filePath)}`);
-    return filePath;
-  } catch (err) {
-    console.error(`❌ Transcode failed for ${path.basename(filePath)}, uploading as-is`);
-    // Clean up partial transcode
-    try { fs.unlinkSync(transcodedPath); } catch {}
-    return filePath;
-  }
+  return filePath;
 }
 
 function generateSignedBunnyUrl(filePath: string, expiresInSeconds = 1209600): string {
