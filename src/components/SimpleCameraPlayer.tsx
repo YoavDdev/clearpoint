@@ -20,7 +20,19 @@ interface SimpleCameraPlayerProps {
 }
 
 export default function SimpleCameraPlayer({ cameraName, clips, onCutClip, initialSeekTime }: SimpleCameraPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  // === DOUBLE-BUFFER: Two video elements for seamless transitions ===
+  const videoARef = useRef<HTMLVideoElement>(null);
+  const videoBRef = useRef<HTMLVideoElement>(null);
+  const [activeSlot, setActiveSlot] = useState<'A' | 'B'>('A');
+  const seamlessSwapRef = useRef(false); // Flag to skip loading on seamless swap
+  const preloadReadyRef = useRef(false); // Whether preload video is buffered
+  
+  // Computed refs for active and preload videos
+  const getActiveVideo = () => (activeSlot === 'A' ? videoARef : videoBRef).current;
+  const getPreloadVideo = () => (activeSlot === 'A' ? videoBRef : videoARef).current;
+  // Legacy compat ref (used by all existing controls)
+  const videoRef = { get current() { return (activeSlot === 'A' ? videoARef : videoBRef).current; } } as React.RefObject<HTMLVideoElement | null>;
+
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -172,9 +184,17 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip, initi
     return labels;
   };
 
-  // Update video when clip changes
+  // Update video when clip changes (skip if seamless swap already handled it)
   useEffect(() => {
-    if (videoRef.current && currentClip) {
+    if (seamlessSwapRef.current) {
+      // Seamless swap already loaded the video — just reset the flag
+      seamlessSwapRef.current = false;
+      setIsLoading(false);
+      return;
+    }
+
+    const video = getActiveVideo();
+    if (video && currentClip) {
       const requestId = ++loadRequestIdRef.current;
       setIsLoading(true);
 
@@ -182,14 +202,14 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip, initi
         try {
           const src = await resolveClipUrl(currentClip);
           if (loadRequestIdRef.current !== requestId) return;
-          if (!videoRef.current) return;
+          const v = getActiveVideo();
+          if (!v) return;
 
-          videoRef.current.src = src;
-          videoRef.current.load();
-
-          // Apply audio settings
-          videoRef.current.muted = isMuted;
-          videoRef.current.volume = volume;
+          v.src = src;
+          v.load();
+          v.muted = isMuted;
+          v.volume = volume;
+          v.playbackRate = currentSpeed;
         } catch (err) {
           console.error('Failed to load clip url:', err);
           if (loadRequestIdRef.current !== requestId) return;
@@ -197,27 +217,55 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip, initi
         }
       })();
       
-      // Apply audio settings
-      // (audio settings applied when src is set)
-      
       const handleLoadedData = () => {
         setIsLoading(false);
-        if (seekOffsetRef.current !== null && videoRef.current) {
-          videoRef.current.currentTime = seekOffsetRef.current;
+        const v = getActiveVideo();
+        if (seekOffsetRef.current !== null && v) {
+          v.currentTime = seekOffsetRef.current;
           seekOffsetRef.current = null;
         }
-        if (isPlaying && videoRef.current) {
-          videoRef.current.play();
+        if (isPlaying && v) {
+          v.play();
         }
       };
       
-      videoRef.current.addEventListener('loadeddata', handleLoadedData);
+      video.addEventListener('loadeddata', handleLoadedData);
       
       return () => {
-        videoRef.current?.removeEventListener('loadeddata', handleLoadedData);
+        video.removeEventListener('loadeddata', handleLoadedData);
       };
     }
   }, [currentClipIndex, clips.length, isMuted, volume]);
+
+  // === PRELOAD NEXT CLIP on the hidden video element ===
+  useEffect(() => {
+    preloadReadyRef.current = false;
+    const preloadVideo = getPreloadVideo();
+    if (!preloadVideo) return;
+
+    const nextClip = clips[currentClipIndex + 1];
+    if (!nextClip) return;
+
+    (async () => {
+      try {
+        const src = await resolveClipUrl(nextClip);
+        const pv = getPreloadVideo();
+        if (!pv) return;
+        pv.src = src;
+        pv.load();
+        pv.currentTime = 0;
+        pv.muted = true; // mute preload to avoid audio bleed
+        
+        const handlePreloadReady = () => {
+          preloadReadyRef.current = true;
+          pv.removeEventListener('canplaythrough', handlePreloadReady);
+        };
+        pv.addEventListener('canplaythrough', handlePreloadReady);
+      } catch (err) {
+        // Preload failed — will fallback to normal loading
+      }
+    })();
+  }, [currentClipIndex, clips.length, activeSlot]);
 
   // Auto-seek to initialSeekTime when clips load
   const initialSeekDoneRef = useRef(false);
@@ -228,43 +276,77 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip, initi
     }
   }, [clips.length, initialSeekTime]);
 
-  // Prefetch next clip signed url
+  // Handle video events — attach to BOTH videos, handle seamless swap on ended
   useEffect(() => {
-    prefetchNextClip();
-  }, [currentClipIndex, clips.length]);
+    const videoA = videoARef.current;
+    const videoB = videoBRef.current;
+    if (!videoA || !videoB) return;
 
-  // Handle video events
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const handleTimeUpdate = () => setCurrentTime(video.currentTime);
-    const handleDurationChange = () => setDuration(video.duration);
+    const handleTimeUpdate = () => {
+      const v = getActiveVideo();
+      if (v) setCurrentTime(v.currentTime);
+    };
+    const handleDurationChange = () => {
+      const v = getActiveVideo();
+      if (v) setDuration(v.duration);
+    };
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
+    
     const handleEnded = () => {
-      // Auto-play next clip
-      if (currentClipIndex < clips.length - 1) {
-        setCurrentClipIndex(currentClipIndex + 1);
-      } else {
+      if (currentClipIndex >= clips.length - 1) {
         setIsPlaying(false);
+        return;
+      }
+
+      const preloadVideo = getPreloadVideo();
+      
+      // === SEAMLESS SWAP: if preload is ready, swap instantly ===
+      if (preloadVideo && preloadReadyRef.current && preloadVideo.readyState >= 3) {
+        // Apply current settings to preload video before showing it
+        preloadVideo.muted = isMuted;
+        preloadVideo.volume = volume;
+        preloadVideo.playbackRate = currentSpeed;
+        preloadVideo.currentTime = 0;
+        preloadVideo.play();
+        
+        // Mark that we're doing a seamless swap (skip the loading useEffect)
+        seamlessSwapRef.current = true;
+        
+        // Swap active slot
+        setActiveSlot(prev => prev === 'A' ? 'B' : 'A');
+        setCurrentClipIndex(prev => prev + 1);
+      } else {
+        // Fallback: preload not ready, use normal loading
+        setCurrentClipIndex(prev => prev + 1);
       }
     };
 
-    video.addEventListener('timeupdate', handleTimeUpdate);
-    video.addEventListener('durationchange', handleDurationChange);
-    video.addEventListener('play', handlePlay);
-    video.addEventListener('pause', handlePause);
-    video.addEventListener('ended', handleEnded);
+    // Attach to both videos (only active one fires meaningful events)
+    videoA.addEventListener('timeupdate', handleTimeUpdate);
+    videoA.addEventListener('durationchange', handleDurationChange);
+    videoA.addEventListener('play', handlePlay);
+    videoA.addEventListener('pause', handlePause);
+    videoA.addEventListener('ended', handleEnded);
+    videoB.addEventListener('timeupdate', handleTimeUpdate);
+    videoB.addEventListener('durationchange', handleDurationChange);
+    videoB.addEventListener('play', handlePlay);
+    videoB.addEventListener('pause', handlePause);
+    videoB.addEventListener('ended', handleEnded);
 
     return () => {
-      video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('durationchange', handleDurationChange);
-      video.removeEventListener('play', handlePlay);
-      video.removeEventListener('pause', handlePause);
-      video.removeEventListener('ended', handleEnded);
+      videoA.removeEventListener('timeupdate', handleTimeUpdate);
+      videoA.removeEventListener('durationchange', handleDurationChange);
+      videoA.removeEventListener('play', handlePlay);
+      videoA.removeEventListener('pause', handlePause);
+      videoA.removeEventListener('ended', handleEnded);
+      videoB.removeEventListener('timeupdate', handleTimeUpdate);
+      videoB.removeEventListener('durationchange', handleDurationChange);
+      videoB.removeEventListener('play', handlePlay);
+      videoB.removeEventListener('pause', handlePause);
+      videoB.removeEventListener('ended', handleEnded);
     };
-  }, [currentClipIndex, clips.length]);
+  }, [currentClipIndex, clips.length, activeSlot, isMuted, volume, currentSpeed]);
 
   const togglePlay = () => {
     if (videoRef.current) {
@@ -460,7 +542,7 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip, initi
 
   return (
     <div className="bg-white rounded-xl overflow-hidden border border-slate-200 shadow-lg">
-      {/* Video Player */}
+      {/* Video Player — Double-buffer: two videos stacked, only active visible */}
       <div className="relative bg-black aspect-video group">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
@@ -468,10 +550,21 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip, initi
           </div>
         )}
         
+        {/* Video A */}
         <video
-          ref={videoRef}
-          className="w-full h-full object-contain"
-          poster={currentClip?.thumbnail_url}
+          ref={videoARef}
+          className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-75 ${
+            activeSlot === 'A' ? 'opacity-100 z-[1]' : 'opacity-0 z-0 pointer-events-none'
+          }`}
+          poster={activeSlot === 'A' ? currentClip?.thumbnail_url : undefined}
+        />
+        {/* Video B */}
+        <video
+          ref={videoBRef}
+          className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-75 ${
+            activeSlot === 'B' ? 'opacity-100 z-[1]' : 'opacity-0 z-0 pointer-events-none'
+          }`}
+          poster={activeSlot === 'B' ? currentClip?.thumbnail_url : undefined}
         />
         
         {/* Clickable Play/Pause Overlay */}
@@ -516,7 +609,7 @@ export default function SimpleCameraPlayer({ cameraName, clips, onCutClip, initi
               {formatTimeOfDay(getDayPosition())}
             </span>
             <span className="text-slate-500">
-              קליפ {currentClipIndex + 1} מתוך {clips.length}
+              {cameraName}
             </span>
           </div>
           

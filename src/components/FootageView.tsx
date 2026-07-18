@@ -78,13 +78,23 @@ export default function FootageView({ cameras }: FootageViewProps) {
     return () => clearInterval(interval);
   }, [checkingSubscription]);
 
-  // Load recordings for selected date
+  // Load recordings for selected date + auto-refresh every 5 minutes
   useEffect(() => {
     loadRecordingsForDate(selectedDate);
+
+    // Auto-refresh: fetch new clips every 5 minutes (seamless update)
+    const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+    if (!isToday) return;
+
+    const interval = setInterval(() => {
+      loadRecordingsForDate(selectedDate, true); // silent refresh
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
   }, [selectedDate, cameras]);
 
-  const loadRecordingsForDate = async (date: Date) => {
-    setLoading(true);
+  const loadRecordingsForDate = async (date: Date, silent = false) => {
+    if (!silent) setLoading(true);
     const dateStr = format(date, 'yyyy-MM-dd');
     const allClips: { [cameraId: string]: VodClip[] } = {};
 
