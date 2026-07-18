@@ -176,6 +176,48 @@
 
 ---
 
+## 🟠 P1 — אבטחה ואיכות קוד (סבב שני)
+
+### 19. ✅ Row Level Security (RLS)
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] הפעלת RLS על כל 23 הטבלאות
+- [x] 16 policies: anon insert ל-subscription_requests, authenticated select על נתונים אישיים
+- [x] Admin tables — deny all (רק service_role עובר)
+- [x] תיקון 2 frontend components שהשתמשו ב-anon key ישירות → API routes
+- [x] Migration file: `supabase/migrations/20260718_rls_policies.sql`
+
+### 20. ✅ Supabase Singleton Migration
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] מיגרציה של 74 routes מ-inline `createClient()` ל-`getSupabaseAdmin()` singleton
+- [x] רק `auth/[...nextauth]` נשאר עם createClient (מטרה אחרת)
+- [x] מפחית יצירת חיבורים מיותרים + מרכז שינויים למקום אחד
+
+### 21. ✅ Zod Input Validation
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] התקנת `zod` + יצירת `src/lib/validations.ts` עם schemas ו-`parseBody()` helper
+- [x] הוספת validation ל-: POST/DELETE `/api/admin/users`, POST/DELETE `/api/admin/cameras`
+- [x] בדיקת email, UUID, string length, number ranges בזמן ריצה
+
+### 22. ✅ Unit Tests (Vitest)
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] התקנת Vitest + config עם path aliases
+- [x] 6 tests ל-`rate-limit.ts` (allow, count, block, reset, isolation, timestamp)
+- [x] 7 tests ל-`device-auth.ts` (sha256 format, validate valid/revoked/missing/error)
+- [x] הרצה: `npm test` — 13 tests ב-100ms
+
+### 23. ✅ מחיקת קוד מת (Mock/Test Routes)
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] מחיקת `/api/mock-grow`, `/api/mock-payplus` (7 קבצים)
+- [x] מחיקת `/api/test-payplus` (1 קובץ)
+- [x] סה"כ 692 שורות קוד מת הוסרו
+
+---
+
 ## סטטוס ביצוע
 
 | # | פריט | סטטוס | תאריך |
@@ -198,6 +240,11 @@
 | 16 | Webhook retry | ✅ בוצע | 2026-07-18 |
 | 17 | Failed payment email | ✅ בוצע | 2026-07-18 |
 | 18 | Payment indicators | ✅ בוצע | 2026-07-18 |
+| 19 | Row Level Security (RLS) | ✅ בוצע | 2026-07-18 |
+| 20 | Supabase singleton | ✅ בוצע | 2026-07-18 |
+| 21 | Zod validation | ✅ בוצע | 2026-07-18 |
+| 22 | Unit tests (Vitest) | ✅ בוצע | 2026-07-18 |
+| 23 | Dead code cleanup | ✅ בוצע | 2026-07-18 |
 
 ---
 
