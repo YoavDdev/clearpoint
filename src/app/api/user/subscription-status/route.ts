@@ -22,7 +22,7 @@ export const GET = apiHandler(async () => {
   // Get user
   const { data: user, error: userError } = await supabase
     .from("users")
-    .select("id, status")
+    .select("id, subscription_status")
     .eq("email", session.user.email)
     .single();
 
@@ -45,7 +45,7 @@ export const GET = apiHandler(async () => {
   // 2. User status is 'active' and has no recurring payment yet (grace / setup period)
   const hasAccess = recurring
     ? recurring.is_valid === true
-    : user.status === 'active';
+    : user.subscription_status === 'active';
 
   return NextResponse.json({ hasAccess });
 });

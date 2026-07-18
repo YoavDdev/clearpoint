@@ -115,10 +115,10 @@ export const POST = apiHandler(async (req: NextRequest) => {
             .eq("id", userId);
         }
 
-        // Update user status to active
+        // Update user subscription status to active
         await supabase
           .from("users")
-          .update({ status: "active" })
+          .update({ subscription_status: "active", subscription_active: true })
           .eq("id", userId);
 
         return NextResponse.json({

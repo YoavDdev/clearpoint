@@ -21,7 +21,7 @@ export const GET = apiHandler(async () => {
   // Get user
   const { data: user, error: userError } = await supabase
     .from("users")
-    .select("id, full_name, email, plan_id, custom_price, plan_duration_days, status")
+    .select("id, full_name, email, plan_id, custom_price, plan_duration_days, subscription_status")
     .eq("email", session.user.email)
     .single();
 
