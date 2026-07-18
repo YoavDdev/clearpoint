@@ -80,60 +80,61 @@
 - [x] החלפת קוד כפול ב-6 ingest routes
 - [x] אותה התנהגות בדיוק — רק DRY
 
-### 7. ☐ הוספת Composite Indexes
+### 7. ✅ הוספת Composite Indexes
 **מזהה**: TD-14  
-**בעיה**: חיפושים נפוצים חסרי אינדקס מותאם.  
-**תיקון**:
-- [ ] `alerts(user_id, acknowledged, created_at DESC)`
-- [ ] `vod_files(user_id, camera_id, timestamp DESC)`
-- [ ] `system_logs(mini_pc_id, created_at DESC)`
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] `idx_alerts_user_ack_created` — alerts(user_id, acknowledged, created_at DESC)
+- [x] `idx_vod_files_user_camera_time` — vod_files(user_id, camera_id, timestamp DESC)
+- [x] `idx_system_logs_minipc_created` — system_logs(mini_pc_id, created_at DESC)
 
-### 8. ☐ הוספת `/api/health` Endpoint
+### 8. ✅ הוספת `/api/health` Endpoint
 **מזהה**: TD-22  
-**בעיה**: אין endpoint פשוט לבדיקת health.  
-**תיקון**:
-- [ ] יצירת `src/app/api/health/route.ts`
-- [ ] בדיקה: DB connection, environment vars loaded
-- [ ] Response: `{ status: 'ok', timestamp, version }`
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] יצירת `src/app/api/health/route.ts`
+- [x] בדיקת DB connection + env vars
+- [x] Response: `{ status, timestamp, latencyMs, checks }` — 200/503
 
-### 9. ☐ ניקוי Admin Routes כפולים
+### 9. ✅ ניקוי Admin Routes מתים
 **מזהה**: TD-4, TD-9  
-**בעיה**: 13 routes flat (`admin-*`) + 33 routes nested (`admin/*`) — אותו functionality.  
-**תיקון**:
-- [ ] זיהוי routes שנמצאים בשני הפורמטים
-- [ ] מעבר ל-nested בלבד + redirect מהישנים
-- [ ] או: מחיקת הישנים אחרי אימות שהחדשים עובדים
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] זיהוי 6 routes ללא שימוש ב-frontend (grep על כל .tsx)
+- [x] מחיקת: `admin-all-cameras`, `admin-fix-constraints`, `admin-update-plans`
+- [x] מחיקת: `admin/update-alerts-table`, `admin/test-monitoring`, `admin/get-subscription`
+- [ ] TODO: מיגרציה של flat routes פעילים ל-nested (דורש שינוי frontend)
 
-### 10. ☐ שיפור Subscription Check Pattern
+### 10. ✅ שיפור Subscription Check Pattern
 **מזהה**: TD-10  
-**בעיה**: כל בדיקת access עושה query כושלת ל-subscriptions ואז fallback.  
-**תיקון**: (נפתר ב-#1 כשמסירים subscriptions)
-- [ ] וידוא שאחרי תיקון #1 הבדיקה ישירה ל-`recurring_payments`
+**בוצע**: 2026-07-18 (נפתר אוטומטית ב-#1)  
+**מה נעשה**:
+- [x] כל subscription checks עוברים ישירות ל-`recurring_payments` — ללא fallback
 
 ---
 
 ## 🟢 P3 — שיפורים כלליים
 
-### 11. ☐ ניקוי טבלת `device_health`
+### 11. ✅ ניקוי טבלת `device_health`
 **מזהה**: TD-11  
-**בעיה**: טבלה ישנה שהוחלפה ב-`mini_pc_health` + `camera_health`.  
-**תיקון**:
-- [ ] וידוא שאין קוד שמשתמש בה
-- [ ] Backup + DROP TABLE
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] אימות: אפס references בקוד
+- [x] DROP TABLE device_health
 
-### 12. ☐ ניקוי `invoice_number_counters`
+### 12. ✅ ניקוי `invoice_number_counters`
 **מזהה**: TD-12  
-**בעיה**: הוחלפה ב-`document_number_counters`.  
-**תיקון**:
-- [ ] וידוא ש-`generate_invoice_number()` לא משתמש בה
-- [ ] DROP TABLE
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] אימות: אפס references בקוד
+- [x] DROP TABLE invoice_number_counters
 
-### 13. ☐ הבהרת `plans.price` Column
+### 13. ✅ הבהרת `plans.price` Column
 **מזהה**: TD-13  
-**בעיה**: לא ברור אם זה list price, default, או unused.  
-**תיקון**:
-- [ ] בדיקת שימוש בקוד
-- [ ] הוספת comment על ה-column / rename ל-`list_price`
+**בוצע**: 2026-07-18  
+**מה נעשה**:
+- [x] בדיקה: Column בשימוש פעיל (`subscription/page.tsx` מציג מחיר ללקוח)
+- [x] לא נדרש שינוי — ה-column לגיטימי
 
 ### 14. ☐ TypeScript Response Types
 **מזהה**: TD-20  
