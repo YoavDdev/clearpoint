@@ -153,7 +153,7 @@ export default function AdminDiagnosticsPage() {
       
       
       // Fetch storage usage
-      const storageResponse = await fetch("/api/admin/storage-usage");
+      const storageResponse = await fetch("/api/admin/system/storage-usage");
       const storageData = await storageResponse.json();
       
       if (camerasData.success) {

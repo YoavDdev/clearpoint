@@ -218,7 +218,7 @@ function AdminInvoicesContent() {
     }
 
     try {
-      const response = await fetch("/api/admin/cancel-invoice", {
+      const response = await fetch("/api/admin/invoices/cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ invoiceId }),

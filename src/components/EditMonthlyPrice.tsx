@@ -28,7 +28,7 @@ export default function EditMonthlyPrice({ userId, currentPrice, onPriceUpdated 
 
     setSaving(true);
     try {
-      const res = await fetch("/api/admin/update-monthly-price", {
+      const res = await fetch("/api/admin/users/update-price", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, newPrice: price }),

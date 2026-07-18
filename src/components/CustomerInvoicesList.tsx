@@ -36,7 +36,7 @@ export default function CustomerInvoicesList({ initialInvoices, userId }: Props)
     }
 
     try {
-      const response = await fetch("/api/admin/delete-invoice", {
+      const response = await fetch("/api/admin/invoices/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ invoiceId }),

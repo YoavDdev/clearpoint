@@ -144,7 +144,7 @@ export default function InvoiceCreator({
 
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/create-invoice", {
+      const res = await fetch("/api/admin/invoices/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -66,7 +66,7 @@ export function NotificationsContent({ alerts, customers }: Props) {
 
     setCleaningDuplicates(true);
     try {
-      const response = await fetch("/api/admin/cleanup-duplicate-alerts", {
+      const response = await fetch("/api/admin/system/cleanup-duplicate-alerts", {
         method: "POST"
       });
 
@@ -193,7 +193,7 @@ export function NotificationsContent({ alerts, customers }: Props) {
 
     setSending(true);
     try {
-      const response = await fetch("/api/admin/send-customer-email", {
+      const response = await fetch("/api/admin/users/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

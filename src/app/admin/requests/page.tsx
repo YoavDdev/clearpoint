@@ -124,7 +124,7 @@ export default function AdminRequestsPage() {
       };
       const planId = planMap[selectedPlan] || "sim-cloud";
 
-      const response = await fetch("/api/admin/create-user-and-payment", {
+      const response = await fetch("/api/admin/users/create-with-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ requestId, planId }),

@@ -22,7 +22,7 @@ export default function SendInvoiceEmailButton({
     setStatus('idle');
 
     try {
-      const response = await fetch('/api/admin/send-invoice-email', {
+      const response = await fetch('/api/admin/invoices/send-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
