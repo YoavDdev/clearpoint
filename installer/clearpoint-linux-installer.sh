@@ -488,8 +488,23 @@ echo "   5:00  Auto-update (git pull)"
 # RUSTDESK
 # ═══════════════════════════════════════════════════
 
-step "Installing RustDesk (remote support)"
+step "Installing minimal desktop + RustDesk (remote support)"
 
+# Install lightweight desktop (xfce4) for RustDesk + browser access
+echo "📦 Installing XFCE4 minimal desktop (~200MB RAM)..."
+sudo apt install -y -qq xfce4 xfce4-terminal firefox 2>/dev/null
+
+# Auto-login (no password prompt on boot)
+sudo mkdir -p /etc/lightdm/lightdm.conf.d
+sudo tee /etc/lightdm/lightdm.conf.d/50-autologin.conf > /dev/null << EOF
+[Seat:*]
+autologin-user=$USER
+autologin-user-timeout=0
+EOF
+
+ok "XFCE4 desktop installed (auto-login enabled)"
+
+# Install RustDesk
 if ! command -v rustdesk >/dev/null 2>&1; then
     RUSTDESK_VER="1.3.8"
     wget -q "https://github.com/rustdesk/rustdesk/releases/download/${RUSTDESK_VER}/rustdesk-${RUSTDESK_VER}-x86_64.deb" -O /tmp/rustdesk.deb
@@ -499,7 +514,7 @@ fi
 
 if command -v rustdesk >/dev/null 2>&1; then
     ok "RustDesk installed"
-    echo -e "${YELLOW}   ⚠️  Start RustDesk GUI to get ID: rustdesk${NC}"
+    echo -e "${YELLOW}   ⚠️  After reboot, open RustDesk to get your ID${NC}"
 else
     warn "RustDesk installation failed — install manually later"
 fi
