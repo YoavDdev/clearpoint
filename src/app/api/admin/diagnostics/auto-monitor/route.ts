@@ -1,20 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
-import { POST as monitorPOST } from "../monitor/route";
 import { requireAdmin } from "@/lib/admin-auth";
 
 export const dynamic = 'force-dynamic';
 
-// This endpoint will be called automatically every 5 minutes
-export async function POST(request: NextRequest) {
+/**
+ * Auth: accepts either admin session OR CRON_SECRET header.
+ * The scheduler calls this without a browser session.
+ */
+async function checkAuth(request: NextRequest): Promise<NextResponse | null> {
+  const cronSecret = request.headers.get("x-cron-secret");
+  if (cronSecret && cronSecret === process.env.CRON_SECRET) {
+    return null; // authorized via secret
+  }
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
+  return null;
+}
+
+// This endpoint is called by the monitoring scheduler every ~5 minutes
+export async function POST(request: NextRequest) {
+  const denied = await checkAuth(request);
+  if (denied) return denied;
+
   try {
     console.log(`🤖 [AUTO-MONITOR] Starting automatic system monitoring at ${new Date().toISOString()}`);
-    
-    // Call the monitor route directly instead of HTTP fetch
-    const monitorResponse = await monitorPOST();
+
+    // Call the monitor endpoint via internal HTTP to avoid cross-import issues
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    const monitorResponse = await fetch(`${baseUrl}/api/admin/diagnostics/monitor`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-cron-secret": process.env.CRON_SECRET || "",
+      },
+    });
+
     const monitorResult = await monitorResponse.json();
-    
+
     if (monitorResult.success) {
       console.log(`✅ [AUTO-MONITOR] Monitoring completed successfully:`);
       console.log(`   - Alerts Created: ${monitorResult.alertsCreated}`);
@@ -22,21 +44,20 @@ export async function POST(request: NextRequest) {
     } else {
       console.error(`❌ [AUTO-MONITOR] Monitoring failed:`, monitorResult.error);
     }
-    
+
     return NextResponse.json({
       success: true,
       message: "Automatic monitoring completed",
       timestamp: new Date().toISOString(),
-      monitorResult
+      monitorResult,
     });
-    
   } catch (error) {
-    console.error('❌ [AUTO-MONITOR] Error in automatic monitoring:', error);
+    console.error("❌ [AUTO-MONITOR] Error in automatic monitoring:", error);
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: "Automatic monitoring failed",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
       { status: 500 }
     );
@@ -45,7 +66,7 @@ export async function POST(request: NextRequest) {
 
 // Allow GET requests for manual testing
 export async function GET(request: NextRequest) {
-  const authResult = await requireAdmin();
-  if (authResult instanceof NextResponse) return authResult;
+  const denied = await checkAuth(request);
+  if (denied) return denied;
   return POST(request);
 }

@@ -1,14 +1,18 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { sendEmailNotification, sendWhatsAppNotification, NotificationData } from "@/lib/notifications";
 import { requireAdmin } from "@/lib/admin-auth";
 
 export const dynamic = 'force-dynamic';
 
 // This endpoint will be called by a cron job or monitoring service
-export async function POST() {
-  const authResult = await requireAdmin();
-  if (authResult instanceof NextResponse) return authResult;
+export async function POST(request: NextRequest) {
+  // Accept either admin session or CRON_SECRET for internal calls
+  const cronSecret = request.headers.get("x-cron-secret");
+  if (!(cronSecret && cronSecret === process.env.CRON_SECRET)) {
+    const authResult = await requireAdmin();
+    if (authResult instanceof NextResponse) return authResult;
+  }
   const supabase = getSupabaseAdmin();
 
   try {

@@ -97,6 +97,7 @@ class MonitoringScheduler {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-cron-secret': process.env.CRON_SECRET || '',
         }
       });
       
