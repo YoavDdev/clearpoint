@@ -2,10 +2,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextRequest, NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest) {
+export const GET = apiHandler(async (req) => {
   const session = await getServerSession(authOptions);
 
   if (!session?.user || session.user.role !== "admin") {
@@ -43,4 +44,4 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({ success: true, logs: data || [] });
-}
+});

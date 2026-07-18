@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { apiHandler } from "@/lib/api-handler";
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(req: Request) {
+export const POST = apiHandler(async (req) => {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -32,4 +33,4 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ success: true });
-}
+});

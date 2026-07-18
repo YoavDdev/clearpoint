@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { apiHandler } from "@/lib/api-handler";
 import { format } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: Request) {
+export const GET = apiHandler(async (req) => {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -34,5 +35,5 @@ export async function GET(req: Request) {
   // Keep only unique dates
   const uniqueDates = [...new Set(dates)];
 
-  return Response.json({ success: true, dates: uniqueDates });
-}
+  return NextResponse.json({ success: true, dates: uniqueDates });
+});

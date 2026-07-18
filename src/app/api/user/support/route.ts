@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { apiHandler } from "@/lib/api-handler";
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(req: Request) {
+export const POST = apiHandler(async (req) => {
   const session = await getServerSession(authOptions);
   const supabase = getSupabaseAdmin();
 
@@ -79,4 +80,4 @@ fileUrl = supabase.storage
   }
 
   return NextResponse.json({ success: true });
-}
+});

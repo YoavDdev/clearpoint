@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { apiHandler } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ type Body = {
   admin_notes?: string | null;
 };
 
-export async function POST(req: Request) {
+export const POST = apiHandler(async (req) => {
   const body = (await req.json().catch(() => null)) as Body | null;
 
   if (!body?.full_name || !body?.email || !body?.phone || !body?.address || !body?.selected_plan) {
@@ -38,4 +39,4 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ success: true });
-}
+});

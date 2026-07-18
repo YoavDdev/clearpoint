@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { apiHandler } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export const GET = apiHandler(async () => {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "admin") {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
@@ -40,4 +41,4 @@ export async function GET() {
     newRequests: newRequests || 0,
     activeCameras: cameras || [],
   });
-}
+});

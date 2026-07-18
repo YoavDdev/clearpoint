@@ -1,9 +1,10 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextRequest, NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest) {
+export const GET = apiHandler(async (req) => {
   const authHeader = req.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
@@ -76,4 +77,4 @@ export async function GET(req: NextRequest) {
     alerts_deleted: alertsDeleted,
     snapshots_deleted: snapshotsDeleted,
   });
-}
+});

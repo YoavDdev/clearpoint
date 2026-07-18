@@ -2,11 +2,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextRequest, NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 
 // GET — fetch user's alerts
-export async function GET(req: NextRequest) {
+export const GET = apiHandler(async (req) => {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -75,10 +76,10 @@ export async function GET(req: NextRequest) {
     alerts: alerts || [],
     unacknowledged_count: unacknowledgedCount || 0,
   });
-}
+});
 
 // PUT — acknowledge alert(s)
-export async function PUT(req: NextRequest) {
+export const PUT = apiHandler(async (req) => {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -130,10 +131,10 @@ export async function PUT(req: NextRequest) {
   }
 
   return NextResponse.json({ success: true });
-}
+});
 
 // DELETE — delete alert(s)
-export async function DELETE(req: NextRequest) {
+export const DELETE = apiHandler(async (req) => {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -218,4 +219,4 @@ export async function DELETE(req: NextRequest) {
   }
 
   return NextResponse.json({ success: true });
-}
+});

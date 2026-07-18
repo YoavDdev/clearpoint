@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/admin-auth";
+import { apiHandler } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 
 // ─── GET /api/admin/support — List all support requests ─────────────────────
 
-export async function GET() {
+export const GET = apiHandler(async () => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   const supabase = getSupabaseAdmin();
@@ -21,11 +22,11 @@ export async function GET() {
   }
 
   return NextResponse.json({ success: true, requests: data });
-}
+});
 
 // ─── POST /api/admin/support — Mark request as handled ──────────────────────
 
-export async function POST(req: Request) {
+export const POST = apiHandler(async (req) => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   const { id } = await req.json();
@@ -47,11 +48,11 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ success: true, updated: data?.[0] });
-}
+});
 
 // ─── PUT /api/admin/support — Mark user needs_support flag ──────────────────
 
-export async function PUT(req: Request) {
+export const PUT = apiHandler(async (req) => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   const { userId, needs_support } = await req.json();
@@ -72,4 +73,4 @@ export async function PUT(req: Request) {
   }
 
   return NextResponse.json({ success: true });
-}
+});

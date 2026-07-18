@@ -3,12 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { createCameraSchema, deleteCameraSchema, parseBody } from "@/lib/validations";
+import { apiHandler } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 
 // ─── GET /api/admin/cameras?userId=xxx — Fetch cameras for a user ───────────
 
-export async function GET(req: NextRequest) {
+export const GET = apiHandler(async (req) => {
   const userId = req.nextUrl.searchParams.get("userId");
 
   const supabase = getSupabaseAdmin();
@@ -33,11 +34,11 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({ success: true, cameras: data || [] });
-}
+});
 
 // ─── POST /api/admin/cameras — Create camera ────────────────────────────────
 
-export async function POST(req: Request) {
+export const POST = apiHandler(async (req) => {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "admin") {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
@@ -71,11 +72,11 @@ export async function POST(req: Request) {
 
   console.log(`✅ Camera ${data.name} created for user ${userId}`);
   return NextResponse.json({ success: true, camera: data });
-}
+});
 
 // ─── DELETE /api/admin/cameras — Delete camera ──────────────────────────────
 
-export async function DELETE(req: Request) {
+export const DELETE = apiHandler(async (req) => {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "admin") {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
@@ -100,4 +101,4 @@ export async function DELETE(req: Request) {
   }
 
   return NextResponse.json({ success: true });
-}
+});

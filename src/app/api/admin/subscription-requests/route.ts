@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { apiHandler } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ type DeleteBody = {
   id: string;
 };
 
-export async function GET() {
+export const GET = apiHandler(async () => {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "admin") {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
@@ -32,9 +33,9 @@ export async function GET() {
   }
 
   return NextResponse.json({ success: true, requests: data || [] });
-}
+});
 
-export async function PATCH(req: Request) {
+export const PATCH = apiHandler(async (req) => {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "admin") {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
@@ -57,9 +58,9 @@ export async function PATCH(req: Request) {
   }
 
   return NextResponse.json({ success: true });
-}
+});
 
-export async function DELETE(req: Request) {
+export const DELETE = apiHandler(async (req) => {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "admin") {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
@@ -82,4 +83,4 @@ export async function DELETE(req: Request) {
   }
 
   return NextResponse.json({ success: true });
-}
+});

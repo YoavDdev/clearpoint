@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextRequest, NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 
@@ -109,7 +110,7 @@ async function getAuthUser(supabase: any, email: string) {
 }
 
 // GET — fetch user's alert rules (auto-create presets if none exist)
-export async function GET() {
+export const GET = apiHandler(async () => {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -168,10 +169,10 @@ export async function GET() {
   }
 
   return NextResponse.json({ success: true, rules });
-}
+});
 
 // POST — create a new alert rule
-export async function POST(req: NextRequest) {
+export const POST = apiHandler(async (req) => {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -215,7 +216,7 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ success: true, rule: data });
-}
+});
 
 // PUT — update an existing rule
 export async function PUT(req: NextRequest) {
@@ -260,7 +261,7 @@ export async function PUT(req: NextRequest) {
 }
 
 // DELETE — delete a rule
-export async function DELETE(req: NextRequest) {
+export const DELETE = apiHandler(async (req) => {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -291,4 +292,4 @@ export async function DELETE(req: NextRequest) {
   }
 
   return NextResponse.json({ success: true });
-}
+});

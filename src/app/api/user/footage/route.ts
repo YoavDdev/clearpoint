@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
+import { apiHandler } from "@/lib/api-handler";
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,7 @@ function getIsraelDayRange(dateStr: string) {
   return { start: start.toISOString(), end: end.toISOString() };
 }
 
-export async function POST(req: Request) {
+export const POST = apiHandler(async (req) => {
   const session = await getServerSession(authOptions);
 
   if (!session || !session.user?.email) {
@@ -135,4 +136,4 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ clipsByCamera });
-}
+});
