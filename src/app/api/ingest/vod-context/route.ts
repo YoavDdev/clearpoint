@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import crypto from "crypto";
+import { validateDeviceToken } from "@/lib/device-auth";
 
 export const dynamic = "force-dynamic";
-
-function sha256Hex(input: string) {
-  return crypto.createHash("sha256").update(input, "utf8").digest("hex");
-}
 
 type VodContextResponse = {
   allowed: boolean;
@@ -15,25 +11,6 @@ type VodContextResponse = {
   reason?: string;
 };
 
-async function getTokenMiniPcId(supabaseAdmin: SupabaseClient<any, "public", any>, token: string) {
-  const tokenHash = sha256Hex(token);
-
-  const { data: tokenRow, error: tokenError } = await supabaseAdmin
-    .from("mini_pc_tokens")
-    .select("token_hash, mini_pc_id, revoked_at")
-    .eq("token_hash", tokenHash)
-    .maybeSingle();
-
-  if (tokenError) throw new Error(tokenError.message);
-  if (!tokenRow || tokenRow.revoked_at) return null;
-
-  await supabaseAdmin
-    .from("mini_pc_tokens")
-    .update({ last_used_at: new Date().toISOString() })
-    .eq("token_hash", tokenHash);
-
-  return tokenRow.mini_pc_id as string;
-}
 
 async function hasActiveSubscription(supabaseAdmin: SupabaseClient<any, "public", any>, userId: string) {
   const { data: activeRecurringPayment } = await supabaseAdmin
@@ -80,7 +57,7 @@ export async function POST(req: Request) {
 
   let miniPcId: string | null;
   try {
-    miniPcId = await getTokenMiniPcId(supabaseAdmin, token);
+    miniPcId = await validateDeviceToken(supabaseAdmin, token);
   } catch (e: any) {
     return NextResponse.json(
       { allowed: false, user_id: null, user_email: null, reason: e?.message || "Token lookup failed" } satisfies VodContextResponse,

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import crypto from "crypto";
+import { validateDeviceToken } from "@/lib/device-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -30,10 +30,6 @@ type MiniPcHealthPayload = {
   log_message?: string | null;
 };
 
-function sha256Hex(input: string) {
-  return crypto.createHash("sha256").update(input, "utf8").digest("hex");
-}
-
 export async function POST(req: Request) {
   const token = req.headers.get("x-clearpoint-device-token")?.trim();
   if (!token) {
@@ -58,38 +54,22 @@ export async function POST(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const tokenHash = sha256Hex(token);
-
-  const { data: tokenRow, error: tokenError } = await supabaseAdmin
-    .from("mini_pc_tokens")
-    .select("token_hash, mini_pc_id, revoked_at")
-    .eq("token_hash", tokenHash)
-    .maybeSingle();
-
-  if (tokenError) {
-    return NextResponse.json(
-      { success: false, error: tokenError.message },
-      { status: 500 }
-    );
+  let miniPcId: string | null;
+  try {
+    miniPcId = await validateDeviceToken(supabaseAdmin, token);
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e?.message || "Token lookup failed" }, { status: 500 });
   }
 
-  if (!tokenRow || tokenRow.revoked_at) {
-    return NextResponse.json(
-      { success: false, error: "Invalid or revoked device token" },
-      { status: 403 }
-    );
+  if (!miniPcId) {
+    return NextResponse.json({ success: false, error: "Invalid or revoked device token" }, { status: 403 });
   }
-
-  await supabaseAdmin
-    .from("mini_pc_tokens")
-    .update({ last_used_at: new Date().toISOString() })
-    .eq("token_hash", tokenHash);
 
   const { error: upsertError } = await supabaseAdmin
     .from("mini_pc_health")
     .upsert(
       {
-        mini_pc_id: tokenRow.mini_pc_id,
+        mini_pc_id: miniPcId,
         cpu_temp_celsius: payload.cpu_temp_celsius ?? null,
         cpu_usage_pct: payload.cpu_usage_pct ?? null,
         ram_total_mb: payload.ram_total_mb ?? null,

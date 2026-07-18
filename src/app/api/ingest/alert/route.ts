@@ -1,12 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
+import { validateDeviceToken } from "@/lib/device-auth";
 
 export const dynamic = "force-dynamic";
-
-function sha256Hex(input: string) {
-  return crypto.createHash("sha256").update(input, "utf8").digest("hex");
-}
 
 /**
  * Check if an alert matches any active rule.
@@ -81,18 +77,16 @@ export async function POST(req: NextRequest) {
   );
 
   // Resolve mini_pc_id from token
-  const tokenHash = sha256Hex(deviceToken);
-  const { data: tokenRow } = await supabase
-    .from("mini_pc_tokens")
-    .select("mini_pc_id, revoked_at")
-    .eq("token_hash", tokenHash)
-    .maybeSingle();
-
-  if (!tokenRow || tokenRow.revoked_at) {
-    return NextResponse.json({ error: "Invalid or revoked token" }, { status: 403 });
+  let miniPcId: string | null;
+  try {
+    miniPcId = await validateDeviceToken(supabase, deviceToken);
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || "Token lookup failed" }, { status: 500 });
   }
 
-  const miniPcId = tokenRow.mini_pc_id;
+  if (!miniPcId) {
+    return NextResponse.json({ error: "Invalid or revoked token" }, { status: 403 });
+  }
 
   // Get user_id from mini_pc
   const { data: miniPc } = await supabase

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import crypto from "crypto";
+import { validateDeviceToken } from "@/lib/device-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -10,10 +10,6 @@ type CameraHealthPayload = {
   last_checked?: string | null;
   log_message?: string | null;
 };
-
-function sha256Hex(input: string) {
-  return crypto.createHash("sha256").update(input, "utf8").digest("hex");
-}
 
 export async function POST(req: Request) {
   const token = req.headers.get("x-clearpoint-device-token")?.trim();
@@ -46,38 +42,22 @@ export async function POST(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const tokenHash = sha256Hex(token);
-
-  const { data: tokenRow, error: tokenError } = await supabaseAdmin
-    .from("mini_pc_tokens")
-    .select("token_hash, mini_pc_id, revoked_at")
-    .eq("token_hash", tokenHash)
-    .maybeSingle();
-
-  if (tokenError) {
-    return NextResponse.json(
-      { success: false, error: tokenError.message },
-      { status: 500 }
-    );
+  let miniPcId: string | null;
+  try {
+    miniPcId = await validateDeviceToken(supabaseAdmin, token);
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e?.message || "Token lookup failed" }, { status: 500 });
   }
 
-  if (!tokenRow || tokenRow.revoked_at) {
-    return NextResponse.json(
-      { success: false, error: "Invalid or revoked device token" },
-      { status: 403 }
-    );
+  if (!miniPcId) {
+    return NextResponse.json({ success: false, error: "Invalid or revoked device token" }, { status: 403 });
   }
-
-  await supabaseAdmin
-    .from("mini_pc_tokens")
-    .update({ last_used_at: new Date().toISOString() })
-    .eq("token_hash", tokenHash);
 
   const { data: cameraRow, error: cameraError } = await supabaseAdmin
     .from("cameras")
     .select("id")
     .eq("id", payload.camera_id)
-    .eq("mini_pc_id", tokenRow.mini_pc_id)
+    .eq("mini_pc_id", miniPcId)
     .maybeSingle();
 
   if (cameraError) {
@@ -99,7 +79,7 @@ export async function POST(req: Request) {
     .upsert(
       {
         camera_id: payload.camera_id,
-        mini_pc_id: tokenRow.mini_pc_id,
+        mini_pc_id: miniPcId,
         stream_status: payload.stream_status,
         last_checked: payload.last_checked ?? new Date().toISOString(),
         log_message: payload.log_message ?? null,
