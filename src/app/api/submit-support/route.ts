@@ -32,6 +32,18 @@ export async function POST(req: Request) {
   let fileUrl: string | null = null;
 
   if (file && file.size > 0) {
+    // הגבלת גודל: 10MB מקסימום
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json({ success: false, error: "File too large (max 10MB)" }, { status: 400 });
+    }
+
+    // הגבלת סוגי קבצים מותרים
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'application/pdf'];
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return NextResponse.json({ success: false, error: "File type not allowed" }, { status: 400 });
+    }
+
     const fileExt = file.name.split('.').pop();
     const filePath = `support/${crypto.randomUUID()}.${fileExt}`;
 
