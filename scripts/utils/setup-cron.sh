@@ -2,7 +2,7 @@
 
 echo "🔁 Setting up Clearpoint CRON jobs..."
 
-UPLOAD_LINE="*/20 * * * * cd ~/clearpoint-core && /usr/local/bin/ts-node uploadVods.ts >> ~/vod-upload-log.txt 2>&1"
+UPLOAD_LINE="*/20 * * * * cd ~/clearpoint-core && /usr/local/bin/tsx uploadVods.ts >> ~/vod-upload-log.txt 2>&1"
 REBOOT_LINE="@reboot sleep 45 && bash ~/start-clearpoint.sh"
 EXPRESS_LINE="@reboot sleep 60 && node ~/live-server.js >> ~/express-log.txt 2>&1"
 STATUS_LINE="*/5 * * * * bash ~/clearpoint-scripts/status-check.sh >> /dev/null 2>&1"

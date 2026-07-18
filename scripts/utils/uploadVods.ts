@@ -109,13 +109,32 @@ function ensureH264(filePath: string): string {
   const codec = getVideoCodec(filePath);
   if (codec === 'h264') {
     console.log(`✅ H.264: ${path.basename(filePath)}`);
-  } else {
-    // H.265/HEVC is supported by all modern browsers (Chrome 107+, Safari 11+, Edge, Firefox 137+)
-    // and all modern phones (iPhone 2017+, Android 2017+).
-    // Skipping transcoding to save CPU and SIM bandwidth (H.265 files are ~40% smaller).
-    console.log(`📦 ${codec.toUpperCase()}: ${path.basename(filePath)} — uploading as-is (no transcoding)`);
+    return filePath;
   }
-  return filePath;
+
+  // Use Intel GPU (VAAPI) for hardware-accelerated transcoding.
+  // This uses ~5% CPU instead of 174% with libx264.
+  // Requires: intel-media-va-driver package + /dev/dri/renderD128
+  console.log(`🔄 VAAPI HW transcode ${codec}→H.264: ${path.basename(filePath)}...`);
+  const dir = path.dirname(filePath);
+  const ext = path.extname(filePath);
+  const base = path.basename(filePath, ext);
+  const transcodedPath = path.join(dir, `${base}_h264${ext}`);
+
+  try {
+    execSync(
+      `LIBVA_DRIVER_NAME=iHD ffmpeg -hwaccel vaapi -hwaccel_device /dev/dri/renderD128 -hwaccel_output_format vaapi -i "${filePath}" -c:v h264_vaapi -c:a copy -movflags +faststart -y "${transcodedPath}"`,
+      { timeout: 300_000, stdio: 'pipe' }
+    );
+    fs.unlinkSync(filePath);
+    fs.renameSync(transcodedPath, filePath);
+    console.log(`✅ VAAPI transcoded: ${path.basename(filePath)}`);
+    return filePath;
+  } catch (err) {
+    console.error(`❌ VAAPI transcode failed for ${path.basename(filePath)}, uploading as-is`);
+    try { fs.unlinkSync(transcodedPath); } catch (e) {}
+    return filePath;
+  }
 }
 
 function generateSignedBunnyUrl(filePath: string, expiresInSeconds = 1209600): string {

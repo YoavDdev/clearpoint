@@ -171,7 +171,8 @@ install_dependencies() {
         apt-transport-https \
         ca-certificates \
         gnupg \
-        lsb-release
+        lsb-release \
+        intel-media-va-driver
     
     # Install latest Node.js (Ubuntu 24.04 has newer versions)
     if ! command -v node >/dev/null 2>&1 || [[ $(node -v | cut -d'v' -f2 | cut -d'.' -f1) -lt 18 ]]; then
@@ -180,8 +181,8 @@ install_dependencies() {
         sudo apt-get install -y nodejs
     fi
     
-    # Install ts-node globally
-    sudo npm install -g ts-node
+    # Install tsx globally (replaces ts-node — better TypeScript support)
+    sudo npm install -g tsx
     
     echo -e "${GREEN}✅ System dependencies installed${NC}"
 }
@@ -281,13 +282,15 @@ mkdir -p \$OUTPUT_DIR
 echo "Starting \$CAMERA_ID recording from \$CAMERA_IP..."
 
 # FFmpeg command optimized for Ubuntu 24.04
+# Uses -c:v copy (stream copy) instead of libx264 to save ~80% CPU.
+# The camera already outputs compressed video — no need to re-encode.
 ffmpeg -rtsp_transport tcp -i "rtsp://admin:admin@\$CAMERA_IP:554/stream" \\
-  -c:v libx264 -preset veryfast -crf 23 \\
-  -c:a aac -ar 44100 -ac 2 \\
-  -movflags +faststart \\
-  -f segment -segment_time 900 -segment_format mp4 -reset_timestamps 1 \\
+  -c:v copy \\
+  -c:a aac -ar 44100 -ac 1 -b:a 64k \\
+  -f segment -segment_time 900 -reset_timestamps 1 \\
   -strftime 1 "\$OUTPUT_DIR/\$CAMERA_ID_%Y-%m-%d_%H-%M-%S.mp4" \\
-  -f hls -hls_time 10 -hls_list_size 3 -hls_flags delete_segments \\
+  -c:v copy \\
+  -f hls -hls_time 4 -hls_list_size 5 -hls_flags delete_segments \\
   "\$RAM_DIR/\$CAMERA_ID.m3u8" \\
   -y
 EOF
