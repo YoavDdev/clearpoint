@@ -80,7 +80,7 @@ export default function SystemOverviewPage() {
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/system-stats");
+      const res = await fetch("/api/admin/system/stats");
       const json = await res.json();
       if (json.success) {
         setStats(json.data);
@@ -105,7 +105,7 @@ export default function SystemOverviewPage() {
       if (logCategory) params.set("category", logCategory);
       if (logSeverity) params.set("severity", logSeverity);
       params.set("limit", "200");
-      const res = await fetch(`/api/admin/system-logs?${params}`);
+      const res = await fetch(`/api/admin/system/logs?${params}`);
       const json = await res.json();
       if (json.success) setLogs(json.logs || []);
     } catch (err) {

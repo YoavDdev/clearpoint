@@ -23,7 +23,7 @@ export function SystemAlerts() {
     const newAlerts: Alert[] = [];
 
     try {
-      const res = await fetch("/api/admin/system-alerts");
+      const res = await fetch("/api/admin/system/alerts");
       const summary = await res.json();
 
       if (!summary?.success) {
