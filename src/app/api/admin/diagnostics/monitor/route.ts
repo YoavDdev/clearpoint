@@ -9,7 +9,9 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   // Accept either admin session or CRON_SECRET for internal calls
   const cronSecret = request.headers.get("x-cron-secret");
-  if (!(cronSecret && cronSecret === process.env.CRON_SECRET)) {
+  const envSecret = process.env.CRON_SECRET;
+  const isInternalCall = (envSecret && cronSecret === envSecret) || (!envSecret && cronSecret === "");
+  if (!isInternalCall) {
     const authResult = await requireAdmin();
     if (authResult instanceof NextResponse) return authResult;
   }

@@ -8,9 +8,15 @@ export const dynamic = 'force-dynamic';
  * The scheduler calls this without a browser session.
  */
 async function checkAuth(request: NextRequest): Promise<NextResponse | null> {
+  // Allow internal scheduler calls via shared secret
   const cronSecret = request.headers.get("x-cron-secret");
-  if (cronSecret && cronSecret === process.env.CRON_SECRET) {
+  const envSecret = process.env.CRON_SECRET;
+  if (envSecret && cronSecret === envSecret) {
     return null; // authorized via secret
+  }
+  // If no CRON_SECRET is configured, allow internal calls (dev/local)
+  if (!envSecret && cronSecret === "") {
+    return null;
   }
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
