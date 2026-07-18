@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = 'force-dynamic';
 
 // GET - Fetch all settings
 export async function GET() {
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = getSupabaseAdmin();
 
     const { data: settings, error } = await supabase
       .from("system_settings")
@@ -62,10 +59,7 @@ export async function GET() {
 // PUT - Update settings
 export async function PUT(request: Request) {
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = getSupabaseAdmin();
 
     const body = await request.json();
     const { settings } = body;

@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
 // ─── GET /api/admin/support — List all support requests ─────────────────────
 
 export async function GET() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = getSupabaseAdmin();
 
   const { data, error } = await supabase
     .from("support_requests")
@@ -32,10 +29,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: "Missing ID" }, { status: 400 });
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = getSupabaseAdmin();
 
   const { data, error } = await supabase
     .from("support_requests")
@@ -59,10 +53,7 @@ export async function PUT(req: Request) {
     return NextResponse.json({ success: false, error: "Missing userId" }, { status: 400 });
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = getSupabaseAdmin();
 
   const { error } = await supabase
     .from("users")

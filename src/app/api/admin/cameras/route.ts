@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { createCameraSchema, deleteCameraSchema, parseBody } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
@@ -10,10 +11,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   const userId = req.nextUrl.searchParams.get("userId");
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = getSupabaseAdmin();
 
   let query = supabase
     .from("cameras")
@@ -45,12 +43,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
   }
 
-  const { name, serialNumber, userId, userEmail, streamPath, isStreamActive } = await req.json();
+  const body = await req.json();
+  const parsed = parseBody(createCameraSchema, body);
+  if (!parsed.success) {
+    return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
+  }
+  const { name, serialNumber, userId, userEmail, streamPath, isStreamActive } = parsed.data;
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = getSupabaseAdmin();
 
   const { data, error } = await supabase
     .from("cameras")
@@ -81,16 +81,14 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
   }
 
-  const { cameraId } = await req.json();
-
-  if (!cameraId) {
-    return NextResponse.json({ success: false, error: "Missing cameraId" }, { status: 400 });
+  const body = await req.json();
+  const parsed = parseBody(deleteCameraSchema, body);
+  if (!parsed.success) {
+    return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
   }
+  const { cameraId } = parsed.data;
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = getSupabaseAdmin();
 
   const { error } = await supabase
     .from("cameras")

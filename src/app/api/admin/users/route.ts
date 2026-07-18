@@ -1,21 +1,19 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { listAllRecurringPayments } from "@/lib/payplus";
 import { updatePayPlusCustomer, createPayPlusCustomer, removePayPlusCustomer } from "@/lib/payplus";
 import { logAdminAction } from "@/lib/audit";
 import { Resend } from "resend";
+import { createUserSchema, editUserSchema, deleteUserSchema, parseBody } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
 // ─── GET /api/admin/users — List all users (enriched) ───────────────────────
 
 export async function GET() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = getSupabaseAdmin();
 
   const { data: users, error } = await supabase
     .from("users")
@@ -126,17 +124,18 @@ export async function POST(req: Request) {
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY);
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabaseAdmin = getSupabaseAdmin();
 
   const body = await req.json();
+  const parsed = parseBody(createUserSchema, body);
+  if (!parsed.success) {
+    return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
+  }
   const {
     email, full_name, phone, address, notes, plan_id,
     plan_duration_days, custom_price, tunnel_name,
     vat_number, business_city, business_postal_code, communication_email,
-  } = body;
+  } = parsed.data;
 
   const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
@@ -227,10 +226,7 @@ export async function PUT(req: Request) {
   }
 
   const body = await req.json();
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = getSupabaseAdmin();
 
   const { data: currentUser } = await supabase
     .from("users")
@@ -305,16 +301,13 @@ export async function DELETE(req: Request) {
   }
 
   const body = await req.json();
-  const { userId } = body;
-
-  if (!userId) {
-    return NextResponse.json({ success: false, error: "Missing user ID" }, { status: 400 });
+  const parsed = parseBody(deleteUserSchema, body);
+  if (!parsed.success) {
+    return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
   }
+  const { userId } = parsed.data;
 
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabaseAdmin = getSupabaseAdmin();
 
   const { data: user, error: updateError } = await supabaseAdmin
     .from("users")

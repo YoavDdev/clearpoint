@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { createOneTimePayment, createPayPlusCustomer } from "@/lib/payplus";
 import { logAdminAction } from "@/lib/audit";
 
@@ -18,10 +18,7 @@ export async function POST(req: NextRequest) {
     }
 
     // יצירת Supabase client עם service role
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = getSupabaseAdmin();
 
     // 1. קבלת פרטי הבקשה
     const { data: request, error: requestError } = await supabase
