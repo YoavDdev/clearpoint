@@ -4,6 +4,8 @@ import { payplusClient } from '@/lib/payplusClient';
 import { getIssuerSnapshot } from '@/lib/issuer';
 import { requireAdmin } from "@/lib/admin-auth";
 
+import { apiHandler } from "@/lib/api-handler";
+
 const supabaseAdmin = getSupabaseAdmin();
 
 function pad2(n: number) {
@@ -36,7 +38,7 @@ function parsePayPlusDate(input: string): Date | null {
   return d;
 }
 
-export async function POST(request: NextRequest) {
+export const POST = apiHandler(async (request: NextRequest) => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   try {
@@ -518,4 +520,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

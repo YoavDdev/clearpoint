@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { verifyWebhookSignature, parseWebhookData } from "@/lib/payplus";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
 /**
  * Webhook נקי מ-PayPlus - רק תשלומים חד-פעמיים
  * POST /api/webhooks/payplus
  */
-export async function POST(req: NextRequest) {
+export const POST = apiHandler(async (req: NextRequest) => {
   try {
     console.log("🔔 PayPlus Webhook received");
 
@@ -206,4 +208,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

@@ -3,6 +3,8 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { validateDeviceToken, sha256Hex } from "@/lib/device-auth";
 import { checkRateLimit, INGEST_LIMIT } from "@/lib/rate-limit";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = "force-dynamic";
 
 type CameraHealthPayload = {
@@ -12,7 +14,7 @@ type CameraHealthPayload = {
   log_message?: string | null;
 };
 
-export async function POST(req: Request) {
+export const POST = apiHandler(async (req: Request) => {
   const token = req.headers.get("x-clearpoint-device-token")?.trim();
   if (!token) {
     return NextResponse.json(
@@ -98,4 +100,4 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ success: true });
-}
+});

@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import monitoringScheduler from "@/lib/monitoring-scheduler";
 import { requireAdmin } from "@/lib/admin-auth";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
 // Initialize automatic monitoring system
-export async function POST(request: NextRequest) {
+export const POST = apiHandler(async (request: NextRequest) => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   try {
@@ -39,10 +41,10 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 // Get monitoring status
-export async function GET(request: NextRequest) {
+export const GET = apiHandler(async (request: NextRequest) => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   try {
@@ -65,4 +67,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

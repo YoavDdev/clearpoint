@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export const GET = apiHandler(async () => {
   const start = Date.now();
 
   // Check DB connection
@@ -36,4 +38,4 @@ export async function GET() {
       env: missingEnv.length === 0 ? "ok" : `missing: ${missingEnv.join(", ")}`,
     },
   }, { status: status === "ok" ? 200 : 503 });
-}
+});

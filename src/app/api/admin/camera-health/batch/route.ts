@@ -2,13 +2,15 @@ import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/admin-auth";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
 type Body = {
   cameraIds?: string[];
 };
 
-export async function POST(request: Request) {
+export const POST = apiHandler(async (request: Request) => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   const supabaseAdmin = getSupabaseAdmin();
@@ -47,4 +49,4 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ success: true, healthByCameraId });
-}
+});

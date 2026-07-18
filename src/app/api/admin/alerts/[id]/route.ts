@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/admin-auth";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
 // Delete single alert
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export const DELETE = apiHandler(async (request: NextRequest,
+  { params }: { params: { id: string } }) => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   try {
@@ -41,13 +41,11 @@ export async function DELETE(
       { status: 500 }
     );
   }
-}
+});
 
 // Edit alert message
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export const PATCH = apiHandler(async (request: NextRequest,
+  { params }: { params: { id: string } }) => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   try {
@@ -90,4 +88,4 @@ export async function PATCH(
       { status: 500 }
     );
   }
-}
+});

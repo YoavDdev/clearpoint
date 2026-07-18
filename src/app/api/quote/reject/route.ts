@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
 /**
  * דחיית הצעת מחיר על ידי לקוח
  */
-export async function POST(req: NextRequest) {
+export const POST = apiHandler(async (req: NextRequest) => {
   try {
     const { quoteId, userId, reason } = await req.json();
 
@@ -68,4 +70,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

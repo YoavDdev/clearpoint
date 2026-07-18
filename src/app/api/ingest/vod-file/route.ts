@@ -4,6 +4,8 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { validateDeviceToken, sha256Hex } from "@/lib/device-auth";
 import { checkRateLimit, VOD_UPLOAD_LIMIT } from "@/lib/rate-limit";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = "force-dynamic";
 
 async function hasActiveSubscription(supabaseAdmin: SupabaseClient<any, "public", any>, userId: string) {
@@ -27,7 +29,7 @@ type VodFilePayload = {
   duration?: number | null;
 };
 
-export async function POST(req: Request) {
+export const POST = apiHandler(async (req: Request) => {
   const token = req.headers.get("x-clearpoint-device-token")?.trim();
   if (!token) {
     return NextResponse.json({ success: false, error: "Missing device token" }, { status: 401 });
@@ -119,4 +121,4 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ success: true });
-}
+});

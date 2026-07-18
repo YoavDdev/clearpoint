@@ -3,6 +3,8 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { payplusClient } from '@/lib/payplusClient';
 import { getIssuerSnapshot } from '@/lib/issuer';
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
@@ -42,7 +44,7 @@ function parsePayPlusDate(value: string): Date | null {
   return null;
 }
 
-export async function GET(req: NextRequest) {
+export const GET = apiHandler(async (req: NextRequest) => {
   try {
     const startedAtMs = Date.now();
 
@@ -743,4 +745,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

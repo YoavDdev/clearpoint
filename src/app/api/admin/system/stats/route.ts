@@ -3,9 +3,11 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export const GET = apiHandler(async () => {
   const session = await getServerSession(authOptions);
   
   if (!session?.user || session.user.role !== "admin") {
@@ -134,4 +136,4 @@ export async function GET() {
       error: error.message || "Failed to fetch stats" 
     }, { status: 500 });
   }
-}
+});

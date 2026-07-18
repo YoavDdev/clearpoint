@@ -3,6 +3,8 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
 type Plan = {
@@ -24,7 +26,7 @@ type UserWithPlan = {
   plan: Plan;
 };
 
-export async function GET() {
+export const GET = apiHandler(async () => {
   try {
     const session = await getServerSession(authOptions);
 
@@ -110,4 +112,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+});

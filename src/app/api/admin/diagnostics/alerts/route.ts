@@ -2,9 +2,11 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export const GET = apiHandler(async () => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   const supabase = getSupabaseAdmin();
@@ -92,4 +94,4 @@ async function cleanupOldResolvedAlerts(supabase: any) {
       { status: 500 }
     );
   }
-}
+});

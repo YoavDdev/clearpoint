@@ -8,11 +8,13 @@ import { logAdminAction } from "@/lib/audit";
 import { Resend } from "resend";
 import { createUserSchema, editUserSchema, deleteUserSchema, parseBody } from "@/lib/validations";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = "force-dynamic";
 
 // ─── GET /api/admin/users — List all users (enriched) ───────────────────────
 
-export async function GET() {
+export const GET = apiHandler(async () => {
   const supabase = getSupabaseAdmin();
 
   const { data: users, error } = await supabase
@@ -113,11 +115,11 @@ export async function GET() {
   });
 
   return NextResponse.json({ success: true, users: enriched });
-}
+});
 
 // ─── POST /api/admin/users — Create & invite user ───────────────────────────
 
-export async function POST(req: Request) {
+export const POST = apiHandler(async (req: Request) => {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "admin") {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
@@ -215,11 +217,11 @@ export async function POST(req: Request) {
   });
 
   return NextResponse.json({ success: true });
-}
+});
 
 // ─── PUT /api/admin/users — Edit user ───────────────────────────────────────
 
-export async function PUT(req: Request) {
+export const PUT = apiHandler(async (req: Request) => {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "admin") {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
@@ -290,11 +292,11 @@ export async function PUT(req: Request) {
   }
 
   return NextResponse.json({ success: true });
-}
+});
 
 // ─── DELETE /api/admin/users — Soft-delete user ─────────────────────────────
 
-export async function DELETE(req: Request) {
+export const DELETE = apiHandler(async (req: Request) => {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "admin") {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
@@ -340,4 +342,4 @@ export async function DELETE(req: Request) {
   });
 
   return NextResponse.json({ success: true });
-}
+});

@@ -4,6 +4,8 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { validateDeviceToken, sha256Hex } from "@/lib/device-auth";
 import { checkRateLimit, INGEST_LIMIT } from "@/lib/rate-limit";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = "force-dynamic";
 
 type VodContextResponse = {
@@ -26,7 +28,7 @@ async function hasActiveSubscription(supabaseAdmin: SupabaseClient<any, "public"
   return !!activeRecurringPayment;
 }
 
-export async function POST(req: Request) {
+export const POST = apiHandler(async (req: Request) => {
   const token = req.headers.get("x-clearpoint-device-token")?.trim();
   if (!token) {
     return NextResponse.json(
@@ -132,4 +134,4 @@ export async function POST(req: Request) {
     user_email: allowed ? (cameraRow.user_email || null) : null,
     reason: allowed ? undefined : "No active subscription",
   } satisfies VodContextResponse);
-}
+});

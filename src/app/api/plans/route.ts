@@ -1,9 +1,11 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export const GET = apiHandler(async () => {
   try {
     const supabase = getSupabaseAdmin();
 
@@ -34,4 +36,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+});

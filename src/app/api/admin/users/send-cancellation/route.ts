@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/admin/send-cancellation-alert
  * שולח מייל לאדמין כשלקוח מבטל מנוי
  */
-export async function POST(req: NextRequest) {
+export const POST = apiHandler(async (req: NextRequest) => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   try {
@@ -55,4 +57,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

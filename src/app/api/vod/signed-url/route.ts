@@ -4,6 +4,8 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = "force-dynamic";
 
 function signBunnyUrl(objectKey: string, expiresInSeconds: number) {
@@ -20,7 +22,7 @@ function signBunnyUrl(objectKey: string, expiresInSeconds: number) {
   return `${cdnBase}${normalizedPath}?token=${token}&expires=${expires}`;
 }
 
-export async function POST(req: Request) {
+export const POST = apiHandler(async (req: Request) => {
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -97,4 +99,4 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ url });
-}
+});

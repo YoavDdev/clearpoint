@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/admin-auth";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
  function normalizeDateParam(param: string, isEnd: boolean) {
@@ -24,7 +26,7 @@ export const dynamic = 'force-dynamic';
  }
 
 // GET /api/admin/invoices - רשימת כל החשבוניות
-export async function GET(req: NextRequest) {
+export const GET = apiHandler(async (req: NextRequest) => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   try {
@@ -132,4 +134,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/admin-auth";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
 /**
  * API לקבלת תשלומים של משתמש
  * GET /api/admin/get-user-payments?userId=xxx
  */
-export async function GET(req: NextRequest) {
+export const GET = apiHandler(async (req: NextRequest) => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   try {
@@ -54,4 +56,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

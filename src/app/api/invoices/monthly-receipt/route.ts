@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
 /**
  * יצירת קבלה חודשית לתשלום מנוי
  * GET /api/invoices/monthly-receipt?paymentId=xxx
  */
-export async function GET(req: NextRequest) {
+export const GET = apiHandler(async (req: NextRequest) => {
   try {
     const { searchParams } = new URL(req.url);
     const paymentId = searchParams.get("paymentId");
@@ -101,4 +103,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

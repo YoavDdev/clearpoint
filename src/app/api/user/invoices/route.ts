@@ -3,10 +3,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
 // GET /api/user/invoices - חשבוניות של המשתמש המחובר
-export async function GET(req: NextRequest) {
+export const GET = apiHandler(async (req: NextRequest) => {
   try {
     // בדיקת אימות דרך NextAuth
     const session = await getServerSession(authOptions);
@@ -73,4 +75,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

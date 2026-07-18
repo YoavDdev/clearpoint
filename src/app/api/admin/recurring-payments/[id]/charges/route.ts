@@ -3,12 +3,12 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { getRecurringCharges } from '@/lib/payplus';
 import { requireAdmin } from "@/lib/admin-auth";
 
+import { apiHandler } from "@/lib/api-handler";
+
 const supabaseAdmin = getSupabaseAdmin();
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export const GET = apiHandler(async (request: NextRequest,
+  { params }: { params: { id: string } }) => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   try {
@@ -55,4 +55,4 @@ export async function GET(
       { status: 500 }
     );
   }
-}
+});

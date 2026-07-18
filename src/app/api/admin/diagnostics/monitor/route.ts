@@ -3,10 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendEmailNotification, sendWhatsAppNotification, NotificationData } from "@/lib/notifications";
 import { requireAdmin } from "@/lib/admin-auth";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
 // This endpoint will be called by a cron job or monitoring service
-export async function POST(request: NextRequest) {
+export const POST = apiHandler(async (request: NextRequest) => {
   // Accept either admin session or CRON_SECRET for internal calls
   const cronSecret = request.headers.get("x-cron-secret");
   const envSecret = process.env.CRON_SECRET;
@@ -711,4 +713,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

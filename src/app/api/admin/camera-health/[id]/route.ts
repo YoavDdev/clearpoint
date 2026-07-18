@@ -2,12 +2,12 @@ import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/admin-auth";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const GET = apiHandler(async (request: Request,
+  { params }: { params: Promise<{ id: string }> }) => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   const { id } = await params;
@@ -49,4 +49,4 @@ export async function GET(
       error: 'Internal server error' 
     }, { status: 500 });
   }
-}
+});

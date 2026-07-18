@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/admin-auth";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
 // GET - Fetch all settings
-export async function GET() {
+export const GET = apiHandler(async () => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   try {
@@ -57,10 +59,10 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+});
 
 // PUT - Update settings
-export async function PUT(request: Request) {
+export const PUT = apiHandler(async (request: Request) => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   try {
@@ -132,4 +134,4 @@ export async function PUT(request: Request) {
       { status: 500 }
     );
   }
-}
+});

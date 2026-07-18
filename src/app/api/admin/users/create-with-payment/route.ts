@@ -5,10 +5,12 @@ import { logAdminAction } from "@/lib/audit";
 import { requireAdmin } from "@/lib/admin-auth";
 import { createWithPaymentSchema, parseBody } from "@/lib/validations";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
 // Admin API - צריך להיות מוגן!
-export async function POST(req: NextRequest) {
+export const POST = apiHandler(async (req: NextRequest) => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   try {
@@ -241,4 +243,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

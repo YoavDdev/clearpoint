@@ -3,9 +3,11 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { logger } from "@/lib/logger";
 import { requireAdmin } from "@/lib/admin-auth";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
-export async function POST() {
+export const POST = apiHandler(async () => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   try {
@@ -115,14 +117,14 @@ export async function POST() {
       { status: 500 }
     );
   }
-}
+});
 
 // Manual trigger for testing
-export async function GET() {
+export const GET = apiHandler(async () => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   return NextResponse.json({
     message: 'Data cleanup endpoint. Use POST to trigger cleanup.',
     info: 'This job deletes old data based on data_retention_days and alert_retention_days settings.'
   });
-}
+});

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
 /**
@@ -24,7 +26,7 @@ async function checkAuth(request: NextRequest): Promise<NextResponse | null> {
 }
 
 // This endpoint is called by the monitoring scheduler every ~5 minutes
-export async function POST(request: NextRequest) {
+export const POST = apiHandler(async (request: NextRequest) => {
   const denied = await checkAuth(request);
   if (denied) return denied;
 
@@ -68,11 +70,11 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 // Allow GET requests for manual testing
-export async function GET(request: NextRequest) {
+export const GET = apiHandler(async (request: NextRequest) => {
   const denied = await checkAuth(request);
   if (denied) return denied;
   return POST(request);
-}
+});

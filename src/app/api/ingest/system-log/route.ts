@@ -3,12 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateDeviceToken, sha256Hex } from "@/lib/device-auth";
 import { checkRateLimit, INGEST_LIMIT } from "@/lib/rate-limit";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = "force-dynamic";
 
 const VALID_CATEGORIES = ["camera", "vod", "minipc", "alert", "system"];
 const VALID_SEVERITIES = ["info", "warning", "error", "critical"];
 
-export async function POST(req: NextRequest) {
+export const POST = apiHandler(async (req: NextRequest) => {
   const deviceToken = req.headers.get("x-clearpoint-device-token")?.trim();
 
   if (!deviceToken) {
@@ -77,4 +79,4 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
-}
+});

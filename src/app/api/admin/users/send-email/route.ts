@@ -3,10 +3,12 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { requireAdmin } from "@/lib/admin-auth";
 
+import { apiHandler } from "@/lib/api-handler";
+
 export const dynamic = 'force-dynamic';
 
 
-export async function POST(request: Request) {
+export const POST = apiHandler(async (request: Request) => {
   const authResult = await requireAdmin();
   if (authResult instanceof NextResponse) return authResult;
   try {
@@ -159,4 +161,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+});
