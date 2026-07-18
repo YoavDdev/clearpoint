@@ -56,7 +56,7 @@ export default function AdminRequestsPage() {
     const requestsJson = await requestsRes.json();
     const requestsData = requestsJson?.requests || [];
 
-    const usersRes = await fetch("/api/admin-get-users");
+    const usersRes = await fetch("/api/admin/users");
     const usersJson = await usersRes.json();
     const emails = new Set<string>(
       usersJson.users?.map((u: any) => u.email?.trim().toLowerCase()) || []

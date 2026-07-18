@@ -46,7 +46,7 @@ function CreateInvoiceContent() {
 
   const fetchCustomers = async () => {
     try {
-      const response = await fetch("/api/admin-get-users");
+      const response = await fetch("/api/admin/users");
       const data = await response.json();
       
       if (data.success && data.users) {

@@ -44,7 +44,7 @@ export default function AdminSupportPage() {
 
   useEffect(() => {
     async function fetchRequests() {
-      const res = await fetch("/api/admin-get-support");
+      const res = await fetch("/api/admin/support");
       const data = await res.json();
       setRequests(data.requests || []);
       setLoading(false);
@@ -53,7 +53,7 @@ export default function AdminSupportPage() {
   }, []);
 
   const handleMarkHandled = async (id: string) => {
-    await fetch("/api/admin-handle-support", {
+    await fetch("/api/admin/support", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),

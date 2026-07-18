@@ -97,7 +97,7 @@ function NewCustomerForm() {
 
     setLoading(true);
 
-    const response = await fetch("/api/admin-invite-user", {
+    const response = await fetch("/api/admin/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

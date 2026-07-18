@@ -84,8 +84,8 @@ export default function EditCustomerForm({ user }: Props) {
 
   const handleSave = async () => {
     setSaving(true);
-    const response = await fetch("/api/admin-edit-user", {
-      method: "POST",
+    const response = await fetch("/api/admin/users", {
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         id: user.id,

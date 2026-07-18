@@ -81,7 +81,7 @@ export default function CustomersPage() {
       if (!session?.user?.access_token) return;
 
       try {
-        const response = await fetch("/api/admin-get-users");
+        const response = await fetch("/api/admin/users");
         const result = await response.json();
 
         if (!response.ok) {
@@ -259,8 +259,8 @@ export default function CustomersPage() {
             </Link>
             <button
               onClick={async () => {
-                const response = await fetch("/api/admin-mark-support", {
-                  method: "POST",
+                const response = await fetch("/api/admin/support", {
+                  method: "PUT",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     userId: customer.id,
@@ -284,8 +284,8 @@ export default function CustomersPage() {
               onClick={async () => {
                 const confirmDelete = confirm("האם אתה בטוח שברצונך למחוק את הלקוח?");
                 if (!confirmDelete) return;
-                const response = await fetch("/api/admin-delete-user", {
-                  method: "POST",
+                const response = await fetch("/api/admin/users", {
+                  method: "DELETE",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ userId: customer.id }),
                 });

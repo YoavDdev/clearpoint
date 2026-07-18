@@ -8,8 +8,8 @@ type DeleteButtonProps = {
 
 export function DeleteButton({ cameraId }: DeleteButtonProps) {
   async function handleDelete() {
-    const res = await fetch('/api/admin-delete-camera', {
-      method: 'POST',
+    const res = await fetch('/api/admin/cameras', {
+      method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ cameraId }),
     });

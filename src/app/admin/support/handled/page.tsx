@@ -40,7 +40,7 @@ export default function HandledSupportPage() {
 
   useEffect(() => {
     async function fetchRequests() {
-      const res = await fetch("/api/admin-get-support");
+      const res = await fetch("/api/admin/support");
       const data = await res.json();
       const handled = data.requests?.filter((r: SupportRequest) => r.is_handled) || [];
       setRequests(handled);

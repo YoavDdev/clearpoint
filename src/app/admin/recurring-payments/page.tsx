@@ -128,7 +128,7 @@ function RecurringPaymentsContent() {
 
   const fetchCustomerInfo = async () => {
     try {
-      const response = await fetch('/api/admin-get-users');
+      const response = await fetch('/api/admin/users');
       const data = await response.json();
       if (data.success) {
         const customer = data.users.find((u: any) => u.id === userIdFilter);

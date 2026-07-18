@@ -37,7 +37,7 @@ export default function NewCameraPageClient() {
     async function fetchUsers() {
       setLoading(true);
       try {
-        const response = await fetch('/api/admin-get-users');
+        const response = await fetch('/api/admin/users');
         const result = await response.json();
 
         if (!response.ok) {
@@ -81,11 +81,7 @@ export default function NewCameraPageClient() {
     }
 
     try {
-      const res = await fetch('/api/admin-fetch-cameras', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: option.value }),
-      });
+      const res = await fetch(`/api/admin/cameras?userId=${option.value}`);
 
       const result = await res.json();
 
@@ -117,7 +113,7 @@ export default function NewCameraPageClient() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/admin-create-camera', {
+      const response = await fetch('/api/admin/cameras', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
