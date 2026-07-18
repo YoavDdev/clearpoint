@@ -131,41 +131,68 @@ sudo nmcli dev wifi connect "NETWORK_NAME" password "WIFI_PASSWORD"
 ### 2.1 — הרץ את סקריפט ההתקנה
 
 ```bash
-# הורד והרץ את הסקריפט:
-curl -sL https://raw.githubusercontent.com/YoavDdev/clearpoint/main/installer/clearpoint-linux-installer.sh -o install.sh
-chmod +x install.sh
-sudo bash install.sh
+# One-liner (מוריד ומריץ):
+curl -sL https://raw.githubusercontent.com/YoavDdev/clearpoint/main/installer/quick-install.sh | bash
 ```
 
-> **הסקריפט ישאל:**
-> - כתובות IP של מצלמות (מופרדות בפסיק): `192.168.1.101,192.168.1.102,192.168.1.103,192.168.1.104`
-> - User ID (מהאדמין)
-> - Device Token
-> - Cloudflare Tunnel Token
-
-### 2.2 — מה הסקריפט עושה (אוטומטי):
-
-```
-✅ מתקין: ffmpeg, nodejs, tsx, python3, intel-media-va-driver
-✅ מתקין: OpenVINO, YOLOv8, RustDesk
-✅ יוצר: camera scripts + systemd services
-✅ מגדיר: RAM disk, cron jobs, AI detection
-✅ מגדיר: Cloudflare tunnel
-✅ מגדיר: Auto power-on services
-✅ בודק: VAAPI, cameras, AI, tunnel
-```
-
-### 2.3 — העלאת סקריפטי מצלמות
-
-**אם הסקריפט לא יצר אוטומטית** — העלה את הקבצים שהורדת מהאדמין:
-
+**או ידנית:**
 ```bash
-# מהמחשב שלך, העתק עם SCP:
-scp camera-*.sh clearpoint@[IP]:/home/clearpoint/clearpoint-scripts/
+sudo apt update && sudo apt install -y git curl
+git clone https://github.com/YoavDdev/clearpoint.git ~/clearpoint-setup
+cd ~/clearpoint-setup/installer
+bash clearpoint-linux-installer.sh
+```
 
-# או העתק מ-USB:
-cp /media/clearpoint/USB/camera-*.sh ~/clearpoint-scripts/
-chmod +x ~/clearpoint-scripts/camera-*.sh
+### 2.2 — מה הסקריפט שואל:
+
+```
+👤 User ID (from admin):          ← מהאדמין פאנל
+🔑 Device Token:                   ← מהאדמין פאנל
+🌐 Cloudflare Tunnel Token:        ← מ-Cloudflare Zero Trust
+
+📹 Camera 1: entrance,192.168.1.101,admin,123456,/h264/ch1/main/av_stream
+📹 Camera 2: yard,192.168.1.102,admin,123456,/h264/ch1/main/av_stream
+📹 Camera 3: balcony,192.168.1.103,admin,123456,/h264/ch1/main/av_stream
+📹 Camera 4: parking,192.168.1.104,admin,123456,/h264/ch1/main/av_stream
+📹 Camera 5: done
+```
+
+### 2.3 — מה הסקריפט עושה (אוטומטי):
+
+```
+✅ מתקין: ffmpeg, nodejs, tsx, python3, intel-media-va-driver, vainfo
+✅ מאמת: VAAPI GPU encoding
+✅ יוצר: directory structure (recordings/{user_id}/footage/{camera_id}/)
+✅ מעתיק: uploadVods.ts, live-server.js, detect.py, status-check.sh
+✅ יוצר: .env (DEVICE_TOKEN, API_BASE)
+✅ יוצר: camera scripts + systemd services (Restart=always, RuntimeMaxSec=86400)
+✅ יוצר: Express live server service
+✅ מגדיר: Cloudflare tunnel (with token)
+✅ מגדיר: AI detection (YOLOv8 + OpenVINO)
+✅ מגדיר: cron (upload */20, health */5, maintenance 3:30AM)
+✅ מתקין: RustDesk
+✅ מפעיל: all services
+✅ מאמת: recordings, HLS, VAAPI
+```
+
+### 2.4 — בסוף ההתקנה תראה:
+
+```
+════════════════════════════════════════════
+  ✅ Clearpoint Security — Ready!
+════════════════════════════════════════════
+
+  User ID:      14a644fe-3bbe-...
+  Cameras:      4
+  Services:     cameras + AI + live + tunnel
+  VAAPI:        enabled (GPU transcoding)
+  Auto-restart: after crash + daily (24h)
+  Power loss:   auto-start (systemd)
+
+  ⚠️  IMPORTANT — Do these manually:
+  1. BIOS: Set 'Restore AC Power Loss' → Power On
+  2. RustDesk: Run 'rustdesk' and save the ID
+  3. Test phone: Open app → verify live + recordings
 ```
 
 ---
