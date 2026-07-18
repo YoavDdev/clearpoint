@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { sendCardRenewalNotification } from '@/lib/payplus';
+import { requireAdmin } from "@/lib/admin-auth";
 
 const supabaseAdmin = getSupabaseAdmin();
 
@@ -8,6 +9,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
   try {
     const { id } = params;
     const body = await request.json();

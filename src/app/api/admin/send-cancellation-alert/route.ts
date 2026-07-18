@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/admin-auth";
 
 export const dynamic = 'force-dynamic';
 
@@ -7,6 +8,8 @@ export const dynamic = 'force-dynamic';
  * שולח מייל לאדמין כשלקוח מבטל מנוי
  */
 export async function POST(req: NextRequest) {
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
   try {
     const body = await req.json();
     const { userName, userEmail, subscriptionId, recurringUid, reason, gracePeriodEnd } = body;

@@ -1,11 +1,14 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { sendEmailNotification, sendWhatsAppNotification, NotificationData } from "@/lib/notifications";
+import { requireAdmin } from "@/lib/admin-auth";
 
 export const dynamic = 'force-dynamic';
 
 // This endpoint will be called by a cron job or monitoring service
 export async function POST() {
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
   const supabase = getSupabaseAdmin();
 
   try {

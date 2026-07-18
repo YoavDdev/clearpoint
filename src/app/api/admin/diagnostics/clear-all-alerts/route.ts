@@ -1,10 +1,13 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/admin-auth";
 
 export const dynamic = 'force-dynamic';
 
 // Clear all unresolved alerts - useful for cleanup
 export async function POST() {
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
   const supabase = getSupabaseAdmin();
 
   try {

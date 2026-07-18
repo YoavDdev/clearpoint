@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import monitoringScheduler from "@/lib/monitoring-scheduler";
+import { requireAdmin } from "@/lib/admin-auth";
 
 export const dynamic = 'force-dynamic';
 
 // Initialize automatic monitoring system
 export async function POST(request: NextRequest) {
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
   try {
     console.log('🚀 [INIT] Initializing automatic monitoring system...');
     
@@ -40,6 +43,8 @@ export async function POST(request: NextRequest) {
 
 // Get monitoring status
 export async function GET(request: NextRequest) {
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
   try {
     const status = monitoringScheduler.getStatus();
     

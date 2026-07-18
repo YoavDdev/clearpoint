@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { POST as monitorPOST } from "../monitor/route";
+import { requireAdmin } from "@/lib/admin-auth";
 
 export const dynamic = 'force-dynamic';
 
 // This endpoint will be called automatically every 5 minutes
 export async function POST(request: NextRequest) {
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
   try {
     console.log(`🤖 [AUTO-MONITOR] Starting automatic system monitoring at ${new Date().toISOString()}`);
     
@@ -42,5 +45,7 @@ export async function POST(request: NextRequest) {
 
 // Allow GET requests for manual testing
 export async function GET(request: NextRequest) {
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
   return POST(request);
 }

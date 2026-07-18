@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { payplusClient } from '@/lib/payplusClient';
 import { getIssuerSnapshot } from '@/lib/issuer';
+import { requireAdmin } from "@/lib/admin-auth";
 
 const supabaseAdmin = getSupabaseAdmin();
 
@@ -36,6 +37,8 @@ function parsePayPlusDate(input: string): Date | null {
 }
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
   try {
     console.log('🔵 Starting PayPlus sync...');
 

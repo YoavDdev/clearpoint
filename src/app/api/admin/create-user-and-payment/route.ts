@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { createOneTimePayment, createPayPlusCustomer } from "@/lib/payplus";
 import { logAdminAction } from "@/lib/audit";
+import { requireAdmin } from "@/lib/admin-auth";
 
 export const dynamic = 'force-dynamic';
 
 // Admin API - צריך להיות מוגן!
 export async function POST(req: NextRequest) {
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
   try {
     const { requestId, planId } = await req.json();
 

@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { requireAdmin } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 // ─── GET /api/admin/support — List all support requests ─────────────────────
 
 export async function GET() {
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
   const supabase = getSupabaseAdmin();
 
   const { data, error } = await supabase
@@ -23,6 +26,8 @@ export async function GET() {
 // ─── POST /api/admin/support — Mark request as handled ──────────────────────
 
 export async function POST(req: Request) {
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
   const { id } = await req.json();
 
   if (!id) {
@@ -47,6 +52,8 @@ export async function POST(req: Request) {
 // ─── PUT /api/admin/support — Mark user needs_support flag ──────────────────
 
 export async function PUT(req: Request) {
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
   const { userId, needs_support } = await req.json();
 
   if (!userId) {

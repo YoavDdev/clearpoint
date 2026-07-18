@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { logger } from "@/lib/logger";
+import { requireAdmin } from "@/lib/admin-auth";
 
 export const dynamic = 'force-dynamic';
 
 export async function POST() {
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
   try {
     const supabase = getSupabaseAdmin();
 
@@ -116,6 +119,8 @@ export async function POST() {
 
 // Manual trigger for testing
 export async function GET() {
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
   return NextResponse.json({
     message: 'Data cleanup endpoint. Use POST to trigger cleanup.',
     info: 'This job deletes old data based on data_retention_days and alert_retention_days settings.'
