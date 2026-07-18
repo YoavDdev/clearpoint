@@ -23,6 +23,9 @@ import {
   Trash2,
   Eye,
   ArrowLeft,
+  Plus,
+  X,
+  Copy,
 } from 'lucide-react';
 
 interface RecurringPayment {
@@ -76,6 +79,17 @@ function RecurringPaymentsContent() {
   const [total, setTotal] = useState(0);
   const [customerInfo, setCustomerInfo] = useState<{full_name: string, email: string} | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [users, setUsers] = useState<{id: string; full_name: string; email: string; phone: string; plan_id: string | null}[]>([]);
+  const [plans, setPlans] = useState<{id: string; name: string; name_he: string; monthly_price: number; connection_type: string}[]>([]);
+  const [createdPaymentUrl, setCreatedPaymentUrl] = useState<string | null>(null);
+  const [createForm, setCreateForm] = useState({
+    user_id: '',
+    plan_id: '',
+    amount: '',
+    start_date: new Date().toISOString().split('T')[0],
+  });
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -143,6 +157,80 @@ function RecurringPaymentsContent() {
 
   const clearUserFilter = () => {
     router.push('/admin/recurring-payments');
+  };
+
+  const openCreateModal = async () => {
+    setShowCreateModal(true);
+    setCreatedPaymentUrl(null);
+    setCreateForm({ user_id: userIdFilter || '', plan_id: '', amount: '', start_date: new Date().toISOString().split('T')[0] });
+
+    try {
+      const [usersRes, plansRes] = await Promise.all([
+        fetch('/api/admin/users'),
+        fetch('/api/plans'),
+      ]);
+      const usersData = await usersRes.json();
+      const plansData = await plansRes.json();
+
+      if (usersData.success) setUsers(usersData.users || []);
+      if (plansData.success) setPlans(plansData.plans || []);
+    } catch (error) {
+      console.error('Error loading form data:', error);
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!createForm.user_id || !createForm.amount) {
+      alert('נא למלא לקוח וסכום');
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const selectedPlan = plans.find(p => p.id === createForm.plan_id);
+      const [yyyy, mm, dd] = createForm.start_date.split('-');
+      const startDateFormatted = `${dd}/${mm}/${yyyy}`;
+
+      const response = await fetch('/api/admin/recurring-payments/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: createForm.user_id,
+          plan_id: createForm.plan_id || null,
+          amount: parseFloat(createForm.amount),
+          start_date: startDateFormatted,
+          recurring_type: 2,
+          recurring_range: 1,
+          number_of_charges: 0,
+          currency_code: 'ILS',
+          items: [{
+            name: selectedPlan?.name_he || selectedPlan?.name || 'מנוי חודשי',
+            quantity: 1,
+            price: parseFloat(createForm.amount),
+          }],
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to create');
+
+      setCreatedPaymentUrl(result.payment_url);
+      fetchPayments(true);
+    } catch (error) {
+      console.error('Error creating recurring payment:', error);
+      alert(`שגיאה ביצירת הוראת קבע: ${error instanceof Error ? error.message : 'שגיאה'}`);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handlePlanChange = (planId: string) => {
+    const plan = plans.find(p => p.id === planId);
+    setCreateForm(prev => ({
+      ...prev,
+      plan_id: planId,
+      amount: plan ? plan.monthly_price.toString() : prev.amount,
+    }));
   };
 
   const handleSyncFromPayPlus = async () => {
@@ -393,6 +481,13 @@ function RecurringPaymentsContent() {
             action={(
               <div className="flex gap-2">
                 <button
+                  onClick={openCreateModal}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all font-bold"
+                >
+                  <Plus className="w-4 h-4" />
+                  צור הוראת קבע
+                </button>
+                <button
                   onClick={handleSyncFromPayPlus}
                   disabled={syncing}
                   className="flex items-center gap-2 px-4 py-2 bg-gradient-to-l from-purple-600 to-pink-600 text-white rounded-xl hover:scale-105 transition-all shadow-lg font-bold disabled:opacity-50"
@@ -594,6 +689,139 @@ function RecurringPaymentsContent() {
           >
             {Row as any}
           </List>
+        </div>
+      )}
+      {/* Create Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div dir="rtl" className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-900">יצירת הוראת קבע חדשה</h2>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+
+            {createdPaymentUrl ? (
+              <div className="p-6 space-y-4">
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+                  <CheckCircle className="w-10 h-10 text-green-600 mx-auto mb-2" />
+                  <p className="text-green-800 font-bold text-lg">הלינק נוצר בהצלחה!</p>
+                  <p className="text-green-600 text-sm mt-1">שלח את הלינק ללקוח להשלמת הרשמה</p>
+                </div>
+
+                <div className="bg-slate-50 rounded-xl p-3">
+                  <p className="text-xs text-slate-500 mb-1">לינק תשלום:</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      readOnly
+                      value={createdPaymentUrl}
+                      className="flex-1 text-sm bg-white border border-slate-200 rounded-lg p-2 text-slate-700"
+                    />
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(createdPaymentUrl);
+                        alert('✅ הלינק הועתק!');
+                      }}
+                      className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="w-full py-3 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors font-medium"
+                >
+                  סגור
+                </button>
+              </div>
+            ) : (
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">לקוח *</label>
+                  <select
+                    value={createForm.user_id}
+                    onChange={(e) => setCreateForm(prev => ({ ...prev, user_id: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">בחר לקוח...</option>
+                    {users.map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.full_name} ({u.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">תוכנית</label>
+                  <select
+                    value={createForm.plan_id}
+                    onChange={(e) => handlePlanChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">בחר תוכנית...</option>
+                    {plans.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name_he || p.name} - ₪{p.monthly_price} ({p.connection_type === 'sim' ? 'SIM' : 'Wi-Fi'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">סכום חודשי (₪) *</label>
+                    <input
+                      type="number"
+                      value={createForm.amount}
+                      onChange={(e) => setCreateForm(prev => ({ ...prev, amount: e.target.value }))}
+                      placeholder="199"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">תאריך התחלה</label>
+                    <input
+                      type="date"
+                      value={createForm.start_date}
+                      onChange={(e) => setCreateForm(prev => ({ ...prev, start_date: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-700">
+                  <p>💡 ייווצר לינק Payment Page. הלקוח יזין כרטיס אשראי והוראת הקבע תופעל אוטומטית.</p>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowCreateModal(false)}
+                    className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors font-medium"
+                  >
+                    ביטול
+                  </button>
+                  <button
+                    onClick={handleCreate}
+                    disabled={creating || !createForm.user_id || !createForm.amount}
+                    className="flex-1 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {creating ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> יוצר...</>
+                    ) : (
+                      <><Plus className="w-4 h-4" /> צור הוראת קבע</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </AdminPageShell>

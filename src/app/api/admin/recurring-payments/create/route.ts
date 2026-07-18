@@ -150,24 +150,34 @@ export const POST = apiHandler(async (request: NextRequest) => {
     }
 
     // Save pending recurring payment to database
+    // Parse start_date from DD/MM/YYYY to ISO
+    let startDateISO = new Date().toISOString();
+    if (start_date) {
+      const [dd, mm, yyyy] = start_date.split('/');
+      if (dd && mm && yyyy) {
+        startDateISO = new Date(`${yyyy}-${mm}-${dd}`).toISOString();
+      }
+    }
+
     const { data: recurringPayment, error: dbError } = await supabaseAdmin
       .from('recurring_payments')
       .insert({
         user_id,
         plan_id,
-        provider: 'payplus',
-        provider_recurring_id: paymentPageResponse.data.processId, // Will be updated by webhook
-        status: 'pending', // Will be activated when customer completes payment
-        amount: amount.toString(),
-        currency: currency_code,
-        interval_type: recurring_type === 2 ? 'monthly' : 'daily',
-        interval_count: recurring_range,
-        metadata: {
-          items,
-          extra_info,
-          payment_page_url: paymentPageResponse.data.pageUrl,
-          start_date,
-        },
+        customer_uid: finalCustomerUid,
+        recurring_uid: null, // Will be set by cron sync after customer completes payment
+        recurring_type: recurring_type,
+        recurring_range: recurring_range,
+        number_of_charges: number_of_charges,
+        start_date: startDateISO,
+        end_date: end_date || null,
+        amount: amount,
+        currency_code: currency_code,
+        items: items || [],
+        is_active: false, // Not active until customer completes payment
+        is_valid: false,  // Not valid until customer enters card
+        extra_info: extra_info || null,
+        notes: `ממתין להשלמת תשלום - Payment Page: ${paymentPageResponse.data.processId}`,
       })
       .select()
       .single();

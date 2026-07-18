@@ -42,9 +42,82 @@ export const POST = apiHandler(async (req: NextRequest) => {
     // Parse נתונים
     const parsedData = parseWebhookData(payload);
 
-    // קבלת payment ID
-    const paymentId = parsedData.customFields.cField1;
     const customerUid = parsedData.customerUid;
+
+    // ───────────────────────────────────────────────────────
+    // Handle recurring payment page completion
+    // When a customer completes a Payment Page with charge_method=4,
+    // PayPlus sends a callback. cField1=user_id, cField2=plan_id
+    // ───────────────────────────────────────────────────────
+    if (parsedData.isRecurring && parsedData.customFields.cField1) {
+      const userId = parsedData.customFields.cField1;
+      const planId = parsedData.customFields.cField2;
+
+      console.log("🔁 Recurring payment callback for user:", userId);
+
+      if (parsedData.status === 'completed') {
+        // Find the pending recurring_payment record for this user
+        const { data: pendingRecurring } = await supabase
+          .from("recurring_payments")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("is_active", false)
+          .eq("is_valid", false)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (pendingRecurring) {
+          // Activate the recurring payment
+          await supabase
+            .from("recurring_payments")
+            .update({
+              is_active: true,
+              is_valid: true,
+              customer_uid: customerUid || null,
+              notes: `הופעל בהצלחה - ${new Date().toLocaleDateString('he-IL')}`,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", pendingRecurring.id);
+
+          console.log("✅ Recurring payment activated:", pendingRecurring.id);
+        } else {
+          console.warn("⚠️ No pending recurring_payment found for user:", userId);
+        }
+
+        // Save customer_uid on user
+        if (customerUid) {
+          await supabase
+            .from("users")
+            .update({ customer_uid: customerUid })
+            .eq("id", userId);
+        }
+
+        // Update user status to active
+        await supabase
+          .from("users")
+          .update({ status: "active" })
+          .eq("id", userId);
+
+        return NextResponse.json({
+          success: true,
+          type: "recurring_activation",
+          user_id: userId,
+        });
+      } else {
+        console.warn("⚠️ Recurring payment page failed for user:", userId);
+        return NextResponse.json({
+          success: true,
+          type: "recurring_failed",
+          user_id: userId,
+        });
+      }
+    }
+
+    // ───────────────────────────────────────────────────────
+    // Handle one-time payment callback (existing flow)
+    // ───────────────────────────────────────────────────────
+    const paymentId = parsedData.customFields.cField1;
 
     // חיפוש payment record
     let payment = null;
@@ -56,7 +129,9 @@ export const POST = apiHandler(async (req: NextRequest) => {
         .eq("id", paymentId)
         .single();
       payment = foundPayment;
-    } else {
+    }
+    
+    if (!payment) {
       const { data: foundPayment } = await supabase
         .from("payments")
         .select("*")
@@ -66,7 +141,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
     }
 
     if (!payment) {
-      console.error("❌ Payment record not found");
+      console.error("❌ Payment record not found for transaction:", parsedData.transactionId);
       return NextResponse.json({ success: false, error: "Payment not found" }, { status: 404 });
     }
 
