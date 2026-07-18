@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { format } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
@@ -7,10 +7,7 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const cameraId = url.searchParams.get('cameraId');
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = getSupabaseAdmin();
 
   const { data, error } = await supabase
     .from('vod_files')
