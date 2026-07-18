@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { createClient } from '@supabase/supabase-js';
 import { removePayPlusCustomer } from '@/lib/payplus';
+import { logAdminAction } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,5 +62,14 @@ export async function POST(req: Request) {
   }
 
   console.log(`🗑️ User ${userId} (${user?.email}) soft-deleted`);
+
+  logAdminAction({
+    admin_email: session.user.email!,
+    action: 'user.delete',
+    target_type: 'user',
+    target_id: userId,
+    details: { email: user?.email },
+  });
+
   return NextResponse.json({ success: true }, { status: 200 });
 }

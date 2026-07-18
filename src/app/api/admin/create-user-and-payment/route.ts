@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createOneTimePayment, createPayPlusCustomer } from "@/lib/payplus";
+import { logAdminAction } from "@/lib/audit";
 
 export const dynamic = 'force-dynamic';
 
@@ -207,6 +208,14 @@ export async function POST(req: NextRequest) {
 
     // 9. TODO: שליחת SMS/אימייל ללקוח עם הלינק
     // כאן נוסיף אינטגרציה עם שירות SMS בעתיד
+
+    logAdminAction({
+      admin_email: 'system',
+      action: 'user.create',
+      target_type: 'user',
+      target_id: newUser.id,
+      details: { email: newUser.email, planId },
+    });
 
     return NextResponse.json({
       success: true,
