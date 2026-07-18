@@ -189,6 +189,24 @@ export default function CustomersPage() {
               <div className="text-xs text-slate-500 text-right">
                 ₪{customer.subscription.amount}/{customer.subscription.billing_cycle === 'monthly' ? 'חודש' : 'שנה'}
               </div>
+              {customer.subscription.next_billing_date && (
+                <div className="text-xs text-slate-400 text-right">
+                  חיוב הבא: {new Date(customer.subscription.next_billing_date).toLocaleDateString('he-IL')}
+                </div>
+              )}
+              {customer.latest_payment && (
+                <div className={`text-xs text-right ${
+                  customer.latest_payment.status === 'completed' ? 'text-green-600' :
+                  customer.latest_payment.status === 'failed' ? 'text-red-600' :
+                  'text-orange-600'
+                }`}>
+                  תשלום אחרון: ₪{customer.latest_payment.amount} — {
+                    customer.latest_payment.status === 'completed' ? '✓ שולם' :
+                    customer.latest_payment.status === 'failed' ? '✗ נכשל' :
+                    'ממתין'
+                  }
+                </div>
+              )}
             </div>
           ) : (
             <div className="w-full flex justify-start">
