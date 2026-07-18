@@ -4,12 +4,16 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { createCameraSchema, deleteCameraSchema, parseBody } from "@/lib/validations";
 import { apiHandler } from "@/lib/api-handler";
+import { requireAdmin } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 // ─── GET /api/admin/cameras?userId=xxx — Fetch cameras for a user ───────────
 
 export const GET = apiHandler(async (req) => {
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
+
   const userId = req.nextUrl.searchParams.get("userId");
 
   const supabase = getSupabaseAdmin();

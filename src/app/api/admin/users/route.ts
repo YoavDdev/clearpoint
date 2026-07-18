@@ -9,12 +9,16 @@ import { Resend } from "resend";
 import { createUserSchema, editUserSchema, deleteUserSchema, parseBody } from "@/lib/validations";
 
 import { apiHandler } from "@/lib/api-handler";
+import { requireAdmin } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 // ─── GET /api/admin/users — List all users (enriched) ───────────────────────
 
 export const GET = apiHandler(async () => {
+  const authResult = await requireAdmin();
+  if (authResult instanceof NextResponse) return authResult;
+
   const supabase = getSupabaseAdmin();
 
   const { data: users, error } = await supabase
