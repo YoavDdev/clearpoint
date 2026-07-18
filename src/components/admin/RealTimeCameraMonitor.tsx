@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 
 interface CameraHealth {
   id: string;
@@ -20,24 +19,12 @@ export function RealTimeCameraMonitor() {
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
   const fetchCameraData = async () => {
     try {
-      // Fetch camera data with user info
-      const { data: cameraData } = await supabase
-        .from("cameras")
-        .select(`
-          id,
-          name,
-          is_stream_active,
-          last_seen_at,
-          user:users!cameras_user_id_fkey(full_name)
-        `)
-        .order("name");
+      // Fetch camera data via admin API route
+      const res = await fetch("/api/admin/cameras");
+      const result = await res.json();
+      const cameraData = result.success ? result.cameras : null;
 
       if (cameraData) {
         // Fetch health data for each camera

@@ -35,7 +35,11 @@ ALTER TABLE recurring_payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE support_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscription_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
-ALTER TABLE admin_emails_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE item_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE document_number_counters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_notifications ENABLE ROW LEVEL SECURITY;
+-- admin_monitoring_hierarchy is a VIEW (not a table), RLS not applicable
+-- recent_payments is a VIEW (not a table), RLS not applicable
 
 -- ─── STEP 2: Public tables (anon can INSERT only) ───────────────────────────
 
@@ -166,7 +170,9 @@ CREATE POLICY "alert_rules_delete_own"
 --   - system_alerts
 --   - system_settings
 --   - audit_log
---   - admin_emails_log
+--   - item_templates
+--   - document_number_counters
+--   - admin_notifications
 
 -- ─── VERIFICATION ───────────────────────────────────────────────────────────
 -- After running, verify in Dashboard → Authentication → Policies

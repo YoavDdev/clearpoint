@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 
 interface CameraData {
   id: string;
@@ -24,16 +23,10 @@ export function CameraDiagnostic() {
   const [cameras, setCameras] = useState<CameraData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
   useEffect(() => {
     const fetchCameras = async () => {
       try {
-        // Use the admin API endpoint to fetch all cameras
-        const response = await fetch("/api/admin-all-cameras");
+        const response = await fetch("/api/admin/cameras");
         const result = await response.json();
 
         if (!response.ok) {
@@ -58,16 +51,17 @@ export function CameraDiagnostic() {
     if (!confirmed) return;
 
     try {
-      const { error } = await supabase
-        .from("cameras")
-        .delete()
-        .eq("id", cameraId);
+      const res = await fetch("/api/admin/cameras", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cameraId }),
+      });
+      const result = await res.json();
 
-      if (error) {
-        alert("שגיאה במחיקת המצלמה: " + error.message);
+      if (!result.success) {
+        alert("שגיאה במחיקת המצלמה: " + result.error);
       } else {
         alert("המצלמה נמחקה בהצלחה");
-        // Refresh the list
         window.location.reload();
       }
     } catch (error) {
