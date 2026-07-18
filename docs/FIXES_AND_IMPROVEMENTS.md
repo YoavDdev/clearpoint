@@ -344,6 +344,43 @@
 | T1 | שליחת SMS אוטומטית עם לינק תשלום | 🟡 P2 | דורש אינטגרציה עם שירות SMS (Twilio / MessageBird / ישראלי) |
 | T2 | הרחבת audit log לפעולות נוספות | 🟢 P3 | recurring cancel, payment create, renew card |
 | T3 | מיגרציה של flat routes פעילים ל-nested | 🟢 P3 | דורש שינוי frontend |
+| **T4** | **🔴 E2E recurring — ממתין לתשובה מ-PayPlus** | **🔴 P0** | **ראה פירוט למטה** |
+
+---
+
+## 🔴 T4 — E2E Recurring Payment: ממתין ל-PayPlus
+
+### הבעיה
+`charge_method` היה מוגדר `4` (= Refund/זיכוי) במקום `3` (= Recurring).
+תוקן ל-`3`, אבל PayPlus מחזיר `recurring-payment-settings-are-missing`.
+כנראה צריך להפעיל מודול הוראות קבע בממשק PayPlus.
+
+### מה נשלח ל-PayPlus
+פנייה לתמיכה: "כשאני שולח charge_method=3 ב-GenerateLink אני מקבל שגיאה recurring-payment-settings-are-missing. מה צריך להפעיל?"
+
+### מה לעשות כשתתקבל תשובה
+שלח לי בצ'אט:
+
+```
+"PayPlus ענו על T4 — [התשובה שקיבלת]"
+```
+
+אני אצטרך:
+1. להגדיר את מה שהם אומרים (terminal / מודול / הגדרת דף תשלום)
+2. לייצר לינק recurring חדש עם charge_method=3
+3. שתפתח את הלינק ותקליד כרטיס (₪1)
+4. לוודא שה-webhook מתקבל ו-recurring_payment מתעדכן ב-DB
+
+### באגים שתוקנו ב-QA עד כה (סה"כ 7)
+| # | באג | חומרה |
+|---|-----|--------|
+| 1 | `/api/user/subscription-status` route חסר | 🔴 P0 |
+| 2 | `/dashboard/payments` חסום כשמנוי מושהה | 🔴 P0 |
+| 3 | `next_charge_date` תמיד start+1 חודש | 🟠 P1 |
+| 4 | `isRecurring` webhook detection חסר fallback | 🟠 P1 |
+| 5 | דף `/subscription-expired` לא קיים | 🔴 P0 |
+| 6 | `users.status` לא קיים → צריך `subscription_status` | 🔴 P0 |
+| 7 | `charge_method=4` (Refund) במקום `3` (Recurring) | 🔴 P0 |
 
 ---
 
