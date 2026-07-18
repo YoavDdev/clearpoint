@@ -945,4 +945,4 @@ These are documented as possible extensions. **None should be implemented until 
 
 ---
 
-*Document verified against production Supabase metadata export on 2026-07-17. Updated 2026-07-18 with schema changes (soft delete, audit_log, dropped tables/functions, indexes). All tables marked "Production Verified" have been confirmed via information_schema and pg_catalog queries.*
+*Document verified against production Supabase metadata export on 2026-07-17. Updated 2026-07-18 with schema changes (soft delete, audit_log, dropped tables/functions, indexes, RLS on all 23 tables). All tables marked "Production Verified" have been confirmed via information_schema and pg_catalog queries.*

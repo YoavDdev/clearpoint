@@ -41,8 +41,7 @@ owner: Engineering Lead
 src/
 ├── app/                    # Next.js App Router
 │   ├── api/               # API routes (serverless functions)
-│   │   ├── admin/         # Admin-only endpoints (nested)
-│   │   ├── admin-*        # Admin endpoints (flat, legacy)
+│   │   ├── admin/         # Admin-only endpoints (RESTful, nested)
 │   │   ├── cron/          # Scheduled jobs
 │   │   ├── ingest/        # Device-to-cloud endpoints
 │   │   ├── webhooks/      # External service callbacks
@@ -434,9 +433,9 @@ Preset configs: `INGEST_LIMIT` (60/min), `ALERT_LIMIT` (30/min), `VOD_UPLOAD_LIM
 |----------|-----------|
 | App Router (not Pages) | Modern Next.js, better layouts |
 | NextAuth v4 (not v5) | Stability; v5 was unstable at project start |
-| Service Role Key everywhere | Simpler than RLS-based queries; single admin app |
+| Service Role Key in backend | All API routes use service_role; RLS protects direct client access |
 | No ORM | PostgREST via Supabase JS is sufficient |
-| No shared types | Fast iteration; types are local to usage |
+| Shared types in `src/types/` | `api.ts` defines common response shapes |
 | Hebrew UI / English code | Business is in Israel; developer is English-literate |
 | `dynamic = 'force-dynamic'` on all routes | Prevent caching issues with auth/data |
 | Inline Supabase client per route | Historical; should migrate to singleton |
@@ -467,12 +466,31 @@ When reviewing or writing new code:
 |---------|-------|---------|-------------------|
 | Inline Supabase client creation | ~60 routes | Memory waste, no singleton | Use `getSupabaseAdmin()` |
 | `alert()` for success/error | Admin UI | Poor UX | Use toast notifications |
-| Flat admin API routes (`/api/admin-*`) | 8 routes | Inconsistent with nested `/api/admin/` | Move to nested structure |
+| ~~Flat admin API routes (`/api/admin-*`)~~ | ~~12 routes~~ | ✅ Fixed 2026-07-18 | Migrated to `/api/admin/users`, `/cameras`, `/support` |
 | `any` types | Throughout | Defeats TypeScript | Define proper interfaces |
 | Emoji in variable names (comments OK) | Some routes | Code readability | Remove from logic |
 | ~~Duplicate `sha256Hex` function~~ | ~~4 ingest routes~~ | ✅ Fixed 2026-07-18 | Extracted to `@/lib/device-auth` |
 | Mixed English/Hebrew comments | Throughout | Inconsistent | Pick one per file |
 | No input validation library | All routes | Manual, error-prone | Consider Zod |
+
+---
+
+## 14. Row Level Security (RLS)
+
+All 23 tables have RLS enabled. The backend uses `service_role` key which bypasses RLS. Policies exist for:
+
+| Policy Type | Tables | Access |
+|-------------|--------|--------|
+| SELECT own data | users, cameras, alerts, vod_files, payments, invoices, invoice_items, recurring_payments, support_requests, alert_rules | `auth.uid() = user_id` |
+| Public read | plans | Anyone (subscribe page) |
+| Anon insert | subscription_requests | Public form |
+| Auth insert | support_requests | Logged-in users |
+| Full CRUD own | alert_rules | Authenticated owner |
+| No policy (deny all) | mini_pcs, tokens, health, system_*, audit_log, admin_* | service_role only |
+
+Migration file: `supabase/migrations/20260718_rls_policies.sql`
+
+**Rule**: No frontend component should use `NEXT_PUBLIC_SUPABASE_ANON_KEY` to write data directly. All writes go through API routes.
 
 ---
 
