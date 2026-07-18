@@ -97,7 +97,7 @@ export default function AlertsSettingsPage() {
 
   const fetchRules = useCallback(async () => {
     try {
-      const res = await fetch('/api/alert-rules');
+      const res = await fetch('/api/user/alert-rules');
       const data = await res.json();
       if (data.success) setRules(data.rules);
     } catch (err) {
@@ -109,7 +109,7 @@ export default function AlertsSettingsPage() {
 
   const fetchCameras = useCallback(async () => {
     try {
-      const res = await fetch('/api/user-cameras');
+      const res = await fetch('/api/user/cameras');
       const data = await res.json();
       if (data.success) setCameras(data.cameras || []);
     } catch (err) {
@@ -125,7 +125,7 @@ export default function AlertsSettingsPage() {
   const toggleRule = async (rule: AlertRule) => {
     setSaving(rule.id);
     try {
-      const res = await fetch('/api/alert-rules', {
+      const res = await fetch('/api/user/alert-rules', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: rule.id, is_active: !rule.is_active }),
@@ -144,7 +144,7 @@ export default function AlertsSettingsPage() {
   const updateRule = async (ruleId: string, updates: Partial<AlertRule>) => {
     setSaving(ruleId);
     try {
-      const res = await fetch('/api/alert-rules', {
+      const res = await fetch('/api/user/alert-rules', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: ruleId, ...updates }),
@@ -165,7 +165,7 @@ export default function AlertsSettingsPage() {
     if (!confirm('למחוק את החוק?')) return;
     setSaving(ruleId);
     try {
-      const res = await fetch(`/api/alert-rules?id=${ruleId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/user/alert-rules?id=${ruleId}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         setRules(prev => prev.filter(r => r.id !== ruleId));
@@ -181,7 +181,7 @@ export default function AlertsSettingsPage() {
     if (!newRule.name.trim()) return;
     setSaving('new');
     try {
-      const res = await fetch('/api/alert-rules', {
+      const res = await fetch('/api/user/alert-rules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

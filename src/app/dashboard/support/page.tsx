@@ -21,7 +21,7 @@ export default function SupportPage() {
     if (file) formData.append('file', file);
 
     setLoading(true);
-    const res = await fetch("/api/submit-support", {
+    const res = await fetch("/api/user/support", {
       method: "POST",
       body: formData,
     });

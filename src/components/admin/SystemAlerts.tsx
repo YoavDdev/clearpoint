@@ -89,7 +89,7 @@ export function SystemAlerts() {
       if (cameras) {
         for (const camera of cameras) {
           try {
-            const res = await fetch(`/api/camera-health/${camera.id}`);
+            const res = await fetch(`/api/admin/camera-health/${camera.id}`);
             const healthData = await res.json();
             
             if (healthData.success && healthData.health?.disk_root_pct > 85) {

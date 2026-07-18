@@ -20,7 +20,7 @@ export default async function AdminRequestsPage() {
   const userEmails = new Set(users?.map((u) => u.email));
 
   async function updateStatus(id: string, status: string) {
-    await fetch("/api/update-request-status", {
+    await fetch("/api/admin/support/status", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, status })
@@ -29,7 +29,7 @@ export default async function AdminRequestsPage() {
   }
 
   async function updateNote(id: string, note: string) {
-    await fetch("/api/update-request-note", {
+    await fetch("/api/admin/support/note", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, note })

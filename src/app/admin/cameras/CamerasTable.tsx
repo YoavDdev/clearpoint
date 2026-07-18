@@ -65,7 +65,7 @@ export function CamerasTable({
     const fetchHealthData = async () => {
       const healthPromises = cameras.map(async (camera) => {
         try {
-          const res = await fetch(`/api/camera-health/${camera.id}`);
+          const res = await fetch(`/api/admin/camera-health/${camera.id}`);
           const data = await res.json();
           return { id: camera.id, health: data };
         } catch (error) {

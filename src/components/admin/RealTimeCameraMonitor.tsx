@@ -30,7 +30,7 @@ export function RealTimeCameraMonitor() {
         // Fetch health data for each camera
         const healthPromises = cameraData.map(async (camera: any) => {
           try {
-            const res = await fetch(`/api/camera-health/${camera.id}`);
+            const res = await fetch(`/api/admin/camera-health/${camera.id}`);
             const healthData = await res.json();
             return {
               id: camera.id,

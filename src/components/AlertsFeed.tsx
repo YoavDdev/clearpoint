@@ -130,7 +130,7 @@ export default function AlertsFeed({ isAdmin = false }: { isAdmin?: boolean }) {
       if (filter === 'unacknowledged') params.set('unacknowledged', 'true');
       else if (filter !== 'all') params.set('detection_type', filter);
 
-      const res = await fetch(`/api/alerts?${params}`);
+      const res = await fetch(`/api/user/alerts?${params}`);
       const data = await res.json();
       if (data.success) {
         setAlerts(data.alerts || []);
@@ -153,7 +153,7 @@ export default function AlertsFeed({ isAdmin = false }: { isAdmin?: boolean }) {
 
   const acknowledgeAlert = async (alertId: string) => {
     try {
-      const res = await fetch('/api/alerts', {
+      const res = await fetch('/api/user/alerts', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: alertId }),
@@ -171,7 +171,7 @@ export default function AlertsFeed({ isAdmin = false }: { isAdmin?: boolean }) {
 
   const acknowledgeAll = async () => {
     try {
-      const res = await fetch('/api/alerts', {
+      const res = await fetch('/api/user/alerts', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ acknowledge_all: true }),
@@ -188,7 +188,7 @@ export default function AlertsFeed({ isAdmin = false }: { isAdmin?: boolean }) {
   const deleteAlert = async (alertId: string) => {
     if (!confirm('למחוק את ההתראה?')) return;
     try {
-      const res = await fetch(`/api/alerts?id=${alertId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/user/alerts?id=${alertId}`, { method: 'DELETE' });
       if (res.ok) {
         setAlerts(prev => prev.filter(a => a.id !== alertId));
         if (expandedAlert === alertId) setExpandedAlert(null);
@@ -201,7 +201,7 @@ export default function AlertsFeed({ isAdmin = false }: { isAdmin?: boolean }) {
   const deleteAllAlerts = async () => {
     if (!confirm('למחוק את כל ההתראות? פעולה זו לא ניתנת לביטול.')) return;
     try {
-      const res = await fetch('/api/alerts?all=true', { method: 'DELETE' });
+      const res = await fetch('/api/user/alerts?all=true', { method: 'DELETE' });
       if (res.ok) {
         setAlerts([]);
         setUnacknowledgedCount(0);

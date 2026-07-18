@@ -49,7 +49,7 @@ export default function FootageView({ cameras }: FootageViewProps) {
   useEffect(() => {
     async function checkSubscription() {
       try {
-        const res = await fetch('/api/user-cameras');
+        const res = await fetch('/api/user/cameras');
         const result = await res.json();
         if (result.success) {
           const isActive = result.subscription_status === 'active';
@@ -92,7 +92,7 @@ export default function FootageView({ cameras }: FootageViewProps) {
       const cameraIds = cameras.map(c => c.id);
       for (const id of cameraIds) allClips[id] = [];
 
-      const res = await fetch('/api/user-footage', {
+      const res = await fetch('/api/user/footage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cameraIds, date: dateStr }),

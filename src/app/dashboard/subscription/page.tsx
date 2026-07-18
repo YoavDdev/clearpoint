@@ -23,7 +23,7 @@ export default function SubscriptionPage() {
   useEffect(() => {
     async function loadSubscription() {
       try {
-        const res = await fetch('/api/user-cameras');
+        const res = await fetch('/api/user/cameras');
         const result = await res.json();
         
         if (result.success && result.subscription_active) {

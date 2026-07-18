@@ -113,7 +113,7 @@ export function UsersCamerasTable({ cameras }: { cameras: CameraRow[] }) {
 
       try {
         const cameraIds = cameras.map((c) => c.id);
-        const res = await fetch('/api/camera-health/batch', {
+        const res = await fetch('/api/admin/camera-health/batch', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ cameraIds }),

@@ -34,7 +34,7 @@ function DashboardContent() {
   useEffect(() => {
     async function loadCameras() {
       try {
-        const res = await fetch("/api/user-cameras");
+        const res = await fetch("/api/user/cameras");
         
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
