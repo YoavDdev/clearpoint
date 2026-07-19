@@ -44,7 +44,7 @@ function AdminInvoicesContent() {
   const router = useRouter();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'accounting' | 'management'>('accounting');
+  const [activeTab, setActiveTab] = useState<'accounting' | 'management'>(searchParams.get('user_id') ? 'management' : 'accounting');
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [documentTypeFilter, setDocumentTypeFilter] = useState("all");
@@ -131,6 +131,9 @@ function AdminInvoicesContent() {
         }
         if (reportTo) {
           url += `&date_to=${encodeURIComponent(reportTo)}`;
+        }
+        if (userIdFilter) {
+          url += `&user_id=${userIdFilter}`;
         }
       } else {
         if (documentTypeFilter !== "all") {
