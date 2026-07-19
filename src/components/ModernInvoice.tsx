@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 interface InvoiceProps {
   invoice: any;
@@ -11,7 +12,12 @@ interface InvoiceProps {
 export default function ModernInvoice({ invoice, items, isAdmin = false }: InvoiceProps) {
   const [isPrinting, setIsPrinting] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [isRejecting, setIsRejecting] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   const handleDownloadPdf = async () => {
     if (!invoiceRef.current) return;
@@ -67,6 +73,61 @@ export default function ModernInvoice({ invoice, items, isAdmin = false }: Invoi
     sent: "ממתין לתשלום",
     paid: "שולם",
     cancelled: "בוטל",
+    quote_draft: "טיוטה",
+    quote_sent: "ממתין לאישור",
+    quote_approved: "אושר",
+    quote_rejected: "נדחה",
+  };
+
+  const isQuote = invoice?.document_type === 'quote';
+  const isExpired = isQuote && invoice?.quote_valid_until && new Date(invoice.quote_valid_until) < new Date();
+  const canRespondToQuote = isQuote && invoice?.status === 'quote_sent' && !isExpired && !isAdmin;
+
+  const handleApproveQuote = async () => {
+    if (!confirm("האם אתה בטוח שברצונך לאשר את חשבון העסקה? תועבר לתשלום.")) return;
+    setIsApproving(true);
+    try {
+      const res = await fetch("/api/quote/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quoteId: invoice.id, userId: invoice.user_id }),
+      });
+      const data = await res.json();
+      if (data.success && data.invoice?.id) {
+        window.location.href = `/invoice/${data.invoice.id}`;
+      } else {
+        alert("שגיאה באישור חשבון העסקה: " + (data.error || "Unknown error"));
+      }
+    } catch (error) {
+      console.error("Error approving quote:", error);
+      alert("שגיאה באישור חשבון העסקה");
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const handleRejectQuote = async () => {
+    setIsRejecting(true);
+    try {
+      const res = await fetch("/api/quote/reject", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quoteId: invoice.id, userId: invoice.user_id, reason: rejectionReason }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("חשבון העסקה נדחה בהצלחה.");
+        setShowRejectModal(false);
+        router.refresh();
+      } else {
+        alert("שגיאה בדחיית חשבון העסקה: " + (data.error || "Unknown error"));
+      }
+    } catch (error) {
+      console.error("Error rejecting quote:", error);
+      alert("שגיאה בדחיית חשבון העסקה");
+    } finally {
+      setIsRejecting(false);
+    }
   };
 
   return (
@@ -140,7 +201,42 @@ export default function ModernInvoice({ invoice, items, isAdmin = false }: Invoi
             >
               חזור
             </button>
+
+            {canRespondToQuote && (
+              <>
+                <button
+                  onClick={handleApproveQuote}
+                  disabled={isApproving}
+                  className="px-6 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors font-bold"
+                >
+                  {isApproving ? "מאשר..." : "✅ אשר והמשך לתשלום"}
+                </button>
+                <button
+                  onClick={() => setShowRejectModal(true)}
+                  className="px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+                >
+                  ❌ דחה
+                </button>
+              </>
+            )}
           </div>
+
+          {/* Quote Status Banners */}
+          {isQuote && isExpired && (
+            <div className="mb-4 no-print bg-red-50 border border-red-300 rounded p-3 text-center text-sm text-red-800 font-semibold">
+              ⚠️ חשבון העסקה פג תוקף. אנא צור קשר עם המשרד.
+            </div>
+          )}
+          {isQuote && invoice?.status === 'quote_approved' && (
+            <div className="mb-4 no-print bg-green-50 border border-green-300 rounded p-3 text-center text-sm text-green-800 font-semibold">
+              ✅ חשבון העסקה אושר והומר לקבלה
+            </div>
+          )}
+          {isQuote && invoice?.status === 'quote_rejected' && (
+            <div className="mb-4 no-print bg-red-50 border border-red-300 rounded p-3 text-center text-sm text-red-800 font-semibold">
+              ❌ חשבון העסקה נדחה
+            </div>
+          )}
 
           {/* Invoice */}
           <div ref={invoiceRef} className="printable-area bg-white shadow-sm border border-gray-200">
@@ -219,6 +315,14 @@ export default function ModernInvoice({ invoice, items, isAdmin = false }: Invoi
                     <div className="flex justify-between">
                       <span className="text-gray-600">שולם:</span>
                       <span className="font-medium">{new Date(invoice.paid_at).toLocaleDateString("he-IL")}</span>
+                    </div>
+                  )}
+                  {isQuote && invoice.quote_valid_until && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">תוקף עד:</span>
+                      <span className={`font-medium ${isExpired ? 'text-red-600' : ''}`}>
+                        {new Date(invoice.quote_valid_until).toLocaleDateString("he-IL")}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -393,6 +497,38 @@ export default function ModernInvoice({ invoice, items, isAdmin = false }: Invoi
           </div>
         </div>
       </div>
+
+      {/* Reject Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 no-print" onClick={() => setShowRejectModal(false)}>
+          <div dir="rtl" className="bg-white rounded-xl p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 mb-3">דחיית חשבון עסקה</h3>
+            <p className="text-sm text-gray-600 mb-3">נשמח לדעת מדוע החלטת לדחות (אופציונלי)</p>
+            <textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="למשל: לא מתאים לתקציב, מצאתי פתרון אחר..."
+              className="w-full px-3 py-2 border border-gray-300 rounded text-sm text-right resize-none mb-3"
+              rows={3}
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleRejectQuote}
+                disabled={isRejecting}
+                className="flex-1 px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:bg-gray-300"
+              >
+                {isRejecting ? "דוחה..." : "אשר דחייה"}
+              </button>
+              <button
+                onClick={() => setShowRejectModal(false)}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

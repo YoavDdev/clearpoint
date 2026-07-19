@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { notFound } from "next/navigation";
-import QuoteView from "@/components/QuoteView";
+import ModernInvoice from "@/components/ModernInvoice";
 
 export default async function QuoteViewPage({ params }: { params: { id: string } }) {
   const { id } = await params;
@@ -15,6 +15,17 @@ export default async function QuoteViewPage({ params }: { params: { id: string }
         email,
         phone,
         address
+      ),
+      payment:payments!invoices_payment_id_fkey (
+        id,
+        status,
+        amount,
+        paid_at,
+        provider_payment_id,
+        provider_transaction_id,
+        metadata,
+        created_at,
+        updated_at
       )
     `)
     .eq("id", id)
@@ -32,5 +43,5 @@ export default async function QuoteViewPage({ params }: { params: { id: string }
     .eq("invoice_id", id)
     .order("sort_order", { ascending: true });
 
-  return <QuoteView quote={quote} items={items || []} />;
+  return <ModernInvoice invoice={quote} items={items || []} isAdmin={false} />;
 }
