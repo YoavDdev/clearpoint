@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { FileText, Calendar, DollarSign, Eye, Loader2 } from "lucide-react";
+import { FileText, Calendar, DollarSign, Eye, Loader2, Download } from "lucide-react";
 import Link from "next/link";
 
 export const dynamic = 'force-dynamic';
@@ -177,6 +177,53 @@ function InvoicesContent() {
             </div>
           </div>
         </div>
+
+        {/* Annual Summary */}
+        {receipts.length > 0 && (
+          <div className="mb-8">
+            <button
+              onClick={async () => {
+                const year = new Date().getFullYear();
+                try {
+                  const res = await fetch(`/api/user/invoices/annual-summary?year=${year}`);
+                  const data = await res.json();
+                  if (!data.success) { alert('שגיאה בטעינת הנתונים'); return; }
+
+                  const lines = [
+                    `סיכום תשלומים שנתי - ${year}`,
+                    `לקוח: ${data.customerName}`,
+                    ``,
+                    `סה"כ שולם: ₪${data.summary.totalPaid.toFixed(2)}`,
+                    `תשלומים חודשיים: ₪${data.summary.recurringTotal.toFixed(2)}`,
+                    `תשלומים חד-פעמיים: ₪${data.summary.oneTimeTotal.toFixed(2)}`,
+                    `מספר קבלות: ${data.summary.invoiceCount}`,
+                    ``,
+                    `--- פירוט לפי חודש ---`,
+                    ...Object.entries(data.summary.monthlyBreakdown).map(([m, v]) => `${m}: ₪${(v as number).toFixed(2)}`),
+                    ``,
+                    `--- פירוט קבלות ---`,
+                    `מספר | תאריך | סכום`,
+                    ...data.invoices.map((inv: any) => `#${inv.invoice_number} | ${new Date(inv.paid_at).toLocaleDateString('he-IL')} | ₪${Number(inv.total_amount).toFixed(2)}`),
+                  ];
+
+                  const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `clearpoint-summary-${year}.txt`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                } catch (e) {
+                  alert('שגיאה בהורדת הסיכום');
+                }
+              }}
+              className="flex items-center gap-3 px-6 py-3 bg-gradient-to-l from-purple-600 to-indigo-600 text-white rounded-xl hover:scale-105 transition-all shadow-lg font-bold"
+            >
+              <Download size={20} />
+              <span>הורד סיכום שנתי {new Date().getFullYear()}</span>
+            </button>
+          </div>
+        )}
 
         {/* Quotes Section */}
         {quotes.length > 0 && (
