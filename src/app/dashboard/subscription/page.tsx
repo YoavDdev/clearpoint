@@ -5,7 +5,7 @@ import { CheckCircle, XCircle, Calendar, CreditCard, Wifi, Smartphone, HardDrive
 
 interface SubscriptionData {
   subscription: {
-    status: 'none' | 'active' | 'suspended';
+    status: 'none' | 'active' | 'suspended' | 'pending';
     is_active: boolean;
     is_valid: boolean;
     amount: number;
@@ -14,6 +14,7 @@ interface SubscriptionData {
     next_charge_date: string | null;
     start_date: string | null;
     notes: string | null;
+    payment_link: string | null;
   };
   plan: {
     id: string;
@@ -25,6 +26,7 @@ interface SubscriptionData {
     camera_limit: number;
   } | null;
   has_active_subscription: boolean;
+  has_pending_subscription: boolean;
 }
 
 export default function SubscriptionPage() {
@@ -64,6 +66,7 @@ export default function SubscriptionPage() {
   const plan = data?.plan;
   const hasActive = data?.has_active_subscription || false;
   const isSuspended = sub?.status === 'suspended';
+  const isPending = sub?.status === 'pending';
 
   return (
     <div dir="rtl" className="min-h-screen bg-slate-50 p-6">
@@ -93,35 +96,76 @@ export default function SubscriptionPage() {
           </div>
         )}
 
+        {/* Pending Subscription - Waiting for card entry */}
+        {isPending && sub?.payment_link && (
+          <div className="bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gradient-to-br from-amber-500 to-orange-500">
+                <CreditCard className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">הוראת קבע ממתינה להפעלה</h2>
+                <p className="text-slate-600">נא להשלים את הרשמת כרטיס האשראי להפעלת המנוי</p>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl p-4 mb-4 border border-amber-200">
+              <div className="flex items-center gap-3">
+                <CreditCard className="w-5 h-5 text-amber-600" />
+                <div>
+                  <p className="text-sm text-slate-600">סכום חיוב חודשי</p>
+                  <p className="font-bold text-slate-900 text-lg">₪{sub.amount}</p>
+                </div>
+              </div>
+            </div>
+            <a
+              href={sub.payment_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-l from-green-600 to-emerald-600 text-white rounded-xl hover:scale-105 transition-all shadow-lg font-bold text-lg"
+            >
+              <CreditCard className="w-6 h-6" />
+              <span>השלם הרשמה והפעל מנוי</span>
+            </a>
+          </div>
+        )}
+
         {/* Subscription Status Card */}
         <div className={`rounded-2xl shadow-lg border overflow-hidden ${
           hasActive 
             ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200' 
-            : 'bg-gradient-to-br from-orange-50 to-red-50 border-orange-200'
+            : isPending
+              ? 'bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-200'
+              : 'bg-gradient-to-br from-orange-50 to-red-50 border-orange-200'
         }`}>
           <div className="p-6">
             <div className="flex items-center gap-4 mb-4">
               <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
                 hasActive 
                   ? 'bg-gradient-to-br from-green-500 to-emerald-500' 
-                  : 'bg-gradient-to-br from-orange-500 to-red-500'
+                  : isPending
+                    ? 'bg-gradient-to-br from-amber-500 to-orange-500'
+                    : 'bg-gradient-to-br from-orange-500 to-red-500'
               }`}>
                 {hasActive ? (
                   <CheckCircle className="w-8 h-8 text-white" />
+                ) : isPending ? (
+                  <Clock className="w-8 h-8 text-white" />
                 ) : (
                   <XCircle className="w-8 h-8 text-white" />
                 )}
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-slate-900">
-                  {hasActive ? 'המנוי שלך פעיל' : isSuspended ? 'המנוי מושהה' : 'אין מנוי פעיל'}
+                  {hasActive ? 'המנוי שלך פעיל' : isSuspended ? 'המנוי מושהה' : isPending ? 'ממתין להפעלה' : 'אין מנוי פעיל'}
                 </h2>
                 <p className="text-slate-600">
                   {hasActive 
                     ? 'המערכת זמינה לשימוש מלא' 
                     : isSuspended
                       ? 'נא לעדכן את אמצעי התשלום'
-                      : 'הפעל מנוי כדי לקבל גישה מלאה למערכת'}
+                      : isPending
+                        ? 'השלם את הרשמת כרטיס האשראי למעלה'
+                        : 'הפעל מנוי כדי לקבל גישה מלאה למערכת'}
                 </p>
               </div>
             </div>

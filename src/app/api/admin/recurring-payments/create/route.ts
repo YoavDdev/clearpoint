@@ -176,6 +176,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
         items: items || [],
         is_active: false, // Not active until customer completes payment
         is_valid: false,  // Not valid until customer enters card
+        payment_link: paymentPageResponse.data.pageUrl, // שמירת הלינק לגישה עתידית
         extra_info: extra_info || null,
         notes: `ממתין להשלמת תשלום - Payment Page: ${paymentPageResponse.data.processId}`,
       })
