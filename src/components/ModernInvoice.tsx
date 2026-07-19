@@ -17,22 +17,24 @@ export default function ModernInvoice({ invoice, items, isAdmin = false }: Invoi
     if (!invoiceRef.current) return;
     setIsGeneratingPdf(true);
     try {
-      const html2canvas = (await import('html2canvas')).default;
-      const { jsPDF } = await import('jspdf');
+      const { toPng } = require('html-to-image');
+      const { jsPDF } = require('jspdf');
 
-      const canvas = await html2canvas(invoiceRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
+      const dataUrl = await toPng(invoiceRef.current, {
+        quality: 1,
+        pixelRatio: 2,
         backgroundColor: '#ffffff',
       });
 
-      const imgData = canvas.toDataURL('image/png');
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise((resolve) => { img.onload = resolve; });
+
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pdfHeight = (img.height * pdfWidth) / img.width;
 
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${documentTitle}-${invoice.invoice_number}.pdf`);
     } catch (error) {
       console.error('PDF generation failed:', error);
