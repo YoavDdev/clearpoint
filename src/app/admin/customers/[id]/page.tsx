@@ -4,6 +4,7 @@ import Link from "next/link";
 import EditMonthlyPrice from "@/components/EditMonthlyPrice";
 import CopyButton from "@/components/CopyButton";
 import ExportInstallConfig from "@/components/admin/ExportInstallConfig";
+import ResendInviteButton from "@/components/admin/ResendInviteButton";
 import {
   User,
   Mail,
@@ -354,6 +355,9 @@ export default async function CustomerViewPage({ params }: { params: { id: strin
               <ExternalLink size={16} />
             </div>
           </Link>
+
+          {/* Resend Invite */}
+          <ResendInviteButton userId={id} />
 
           {/* Recurring Payments Link */}
           <Link
