@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Shield, Mail, Phone, MapPin, Facebook, Instagram, Linkedin, Twitter } from "lucide-react";
+import Image from "next/image";
+import { Mail, Phone, MapPin, Facebook, Instagram, Linkedin, Twitter } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -10,9 +11,12 @@ export default function Footer() {
           {/* Company Info */}
           <div className="space-y-6">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center">
-                <Shield className="w-7 h-7 text-white" />
-              </div>
+              <Image
+                src="/logo.png"
+                alt="ClearPoint"
+                width={48}
+                height={48}
+              />
               <div>
                 <h3 className="text-2xl font-bold">Clearpoint</h3>
                 <p className="text-sm text-blue-400">Security Solutions</p>

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { Shield, Menu, X, ChevronDown } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
+import Image from "next/image";
 
 export default function ModernNavbar() {
   const pathname = usePathname();
@@ -39,9 +40,13 @@ export default function ModernNavbar() {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className={`w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110`}>
-              <Shield className="w-7 h-7 text-white" />
-            </div>
+            <Image
+              src="/logo.png"
+              alt="ClearPoint"
+              width={44}
+              height={44}
+              className="transition-transform group-hover:scale-110"
+            />
             <div>
               <h1 className={`text-2xl font-bold transition-colors ${showSolidNavbar ? 'text-slate-900' : 'text-white'}`}>
                 Clearpoint

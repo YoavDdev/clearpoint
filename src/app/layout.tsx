@@ -6,6 +6,10 @@ import AutoMonitoringInit from "@/components/AutoMonitoringInit";
 export const metadata = {
   title: "ClearPoint Security",
   description: "Your Security, Crystal Clear.",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({

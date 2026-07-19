@@ -148,12 +148,8 @@ export default function ModernInvoice({ invoice, items, isAdmin = false }: Invoi
             <div className="px-8 py-6 border-b-2 border-gray-900">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="3" />
-                      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-                    </svg>
-                  </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/logo.png" alt="ClearPoint" width={40} height={40} />
                   <div>
                     <h1 className="text-xl font-bold text-gray-900 tracking-tight">ClearPoint</h1>
                     <p className="text-xs text-gray-600 mt-0.5">מערכות אבטחה ומצלמות</p>
