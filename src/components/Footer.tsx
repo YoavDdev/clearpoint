@@ -12,7 +12,7 @@ export default function Footer() {
           <div className="space-y-6">
             <div className="flex items-center gap-3">
               <Image
-                src="/logo.png"
+                src="/logo-white.svg"
                 alt="ClearPoint"
                 width={48}
                 height={48}

@@ -64,7 +64,7 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <Image
-            src="/logo.png"
+            src="/logo.svg"
             alt="ClearPoint"
             width={64}
             height={64}

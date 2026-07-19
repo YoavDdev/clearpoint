@@ -41,7 +41,7 @@ export default function ModernNavbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
             <Image
-              src="/logo.png"
+              src={showSolidNavbar ? "/logo.svg" : "/logo-white.svg"}
               alt="ClearPoint"
               width={44}
               height={44}

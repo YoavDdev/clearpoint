@@ -149,7 +149,7 @@ export default function ModernInvoice({ invoice, items, isAdmin = false }: Invoi
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/logo.png" alt="ClearPoint" width={40} height={40} />
+                  <img src="/logo.svg" alt="ClearPoint" width={40} height={40} />
                   <div>
                     <h1 className="text-xl font-bold text-gray-900 tracking-tight">ClearPoint</h1>
                     <p className="text-xs text-gray-600 mt-0.5">מערכות אבטחה ומצלמות</p>

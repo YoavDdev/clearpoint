@@ -121,7 +121,7 @@ export function ModernAdminSidebar() {
       <div className="p-6 border-b border-slate-200 flex-shrink-0">
         <div className="flex items-center gap-3">
           <Image
-            src="/logo.png"
+            src="/logo.svg"
             alt="ClearPoint"
             width={44}
             height={44}
