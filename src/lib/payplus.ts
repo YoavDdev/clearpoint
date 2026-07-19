@@ -294,7 +294,7 @@ export async function createRecurringPaymentPage(request: {
       };
     }
 
-    // PayPlus Payment Page with recurring parameters
+    // PayPlus Payment Page with recurring parameters (recurring_settings nested object per PayPlus docs)
     const payload: any = {
       payment_page_uid: PAYPLUS_CONFIG.paymentPageUid,
       amount: request.amount,
@@ -307,20 +307,26 @@ export async function createRecurringPaymentPage(request: {
         phone: request.customer_phone || '',
       },
       
-      // Recurring parameters - correct field names for PayPlus
-      charge_method: 3, // 3 = Recurring payment (per PayPlus docs). Requires recurring module enabled in PayPlus dashboard.
-      recurring_type: request.recurring_type || 2, // 2 = monthly
-      recurring_range: request.recurring_range || 1, // every 1 month
-      number_of_payments: request.number_of_charges || 0, // 0 = unlimited
-      start_date: request.start_date, // DD/MM/YYYY
-      charge_default: 0, // 0 = Don't charge now, only create recurring
+      charge_method: 3, // 3 = Recurring Payments
+      
+      // Recurring settings — must be a nested object (PayPlus API requirement)
+      recurring_settings: {
+        instant_first_payment: true,
+        recurring_type: request.recurring_type || 2, // 0=daily, 1=weekly, 2=monthly
+        recurring_range: request.recurring_range || 1, // every 1 month
+        number_of_charges: request.number_of_charges || 0, // 0 = unlimited
+        start_date_on_payment_date: true,
+        successful_invoice: true,
+        customer_failure_email: true,
+        send_customer_success_email: true,
+      },
       
       // Callbacks
       refURL_callback: `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhooks/payplus`,
       refURL_success: request.success_url || `${process.env.NEXT_PUBLIC_BASE_URL}/recurring-payment-success`,
       refURL_failure: request.cancel_url || `${process.env.NEXT_PUBLIC_BASE_URL}/payment-cancelled`,
       
-      sendEmailApproval: false,
+      sendEmailApproval: true,
       sendEmailFailure: false,
       send_failure_callback: true,
       

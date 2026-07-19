@@ -344,34 +344,55 @@
 | T1 | שליחת SMS אוטומטית עם לינק תשלום | 🟡 P2 | דורש אינטגרציה עם שירות SMS (Twilio / MessageBird / ישראלי) |
 | T2 | הרחבת audit log לפעולות נוספות | 🟢 P3 | recurring cancel, payment create, renew card |
 | T3 | מיגרציה של flat routes פעילים ל-nested | 🟢 P3 | דורש שינוי frontend |
-| **T4** | **🔴 E2E recurring — ממתין לתשובה מ-PayPlus** | **🔴 P0** | **ראה פירוט למטה** |
+| **T4** | **✅ E2E recurring — תוקן!** | **🔴 P0** | **ראה פירוט למטה** |
 
 ---
 
-## 🔴 T4 — E2E Recurring Payment: ממתין ל-PayPlus
+## ✅ T4 — E2E Recurring Payment: תוקן (2026-07-19)
 
-### הבעיה
+### הבעיה המקורית
 `charge_method` היה מוגדר `4` (= Refund/זיכוי) במקום `3` (= Recurring).
-תוקן ל-`3`, אבל PayPlus מחזיר `recurring-payment-settings-are-missing`.
-כנראה צריך להפעיל מודול הוראות קבע בממשק PayPlus.
+תוקן ל-`3`, אבל PayPlus החזיר `recurring-payment-settings-are-missing`.
 
-### מה נשלח ל-PayPlus
-פנייה לתמיכה: "כשאני שולח charge_method=3 ב-GenerateLink אני מקבל שגיאה recurring-payment-settings-are-missing. מה צריך להפעיל?"
+### הפתרון
+פרמטרי recurring צריכים להישלח **בתוך אובייקט `recurring_settings`** ולא שטוח ב-root של ה-payload.
 
-### מה לעשות כשתתקבל תשובה
-שלח לי בצ'אט:
-
+**לפני (שבור):**
+```json
+{
+  "charge_method": 3,
+  "recurring_type": 2,
+  "recurring_range": 1,
+  "number_of_payments": 0,
+  "start_date": "01/08/2026"
+}
 ```
-"PayPlus ענו על T4 — [התשובה שקיבלת]"
+
+**אחרי (עובד):**
+```json
+{
+  "charge_method": 3,
+  "recurring_settings": {
+    "instant_first_payment": true,
+    "recurring_type": 2,
+    "recurring_range": 1,
+    "number_of_charges": 0,
+    "start_date_on_payment_date": true,
+    "successful_invoice": true,
+    "customer_failure_email": true,
+    "send_customer_success_email": true
+  }
+}
 ```
 
-אני אצטרך:
-1. להגדיר את מה שהם אומרים (terminal / מודול / הגדרת דף תשלום)
-2. לייצר לינק recurring חדש עם charge_method=3
-3. שתפתח את הלינק ותקליד כרטיס (₪1)
-4. לוודא שה-webhook מתקבל ו-recurring_payment מתעדכן ב-DB
+**נבדק ב-Postman** — PayPlus מחזיר `status: success` + לינק לדף תשלום.
 
-### באגים שתוקנו ב-QA עד כה (סה"כ 7)
+### TODO — בדיקת E2E מלאה
+- [ ] פתח את לינק התשלום והזן כרטיס (₪1)
+- [ ] ודא שה-webhook מתקבל ו-`recurring_payment` מתעדכן ב-DB עם `recurring_uid`
+- [ ] ודא שה-cron sync מזהה את ההו"ק החדשה
+
+### באגים שתוקנו ב-QA עד כה (סה"כ 8)
 | # | באג | חומרה |
 |---|-----|--------|
 | 1 | `/api/user/subscription-status` route חסר | 🔴 P0 |
@@ -381,6 +402,7 @@
 | 5 | דף `/subscription-expired` לא קיים | 🔴 P0 |
 | 6 | `users.status` לא קיים → צריך `subscription_status` | 🔴 P0 |
 | 7 | `charge_method=4` (Refund) במקום `3` (Recurring) | 🔴 P0 |
+| 8 | `recurring_settings` — שטוח במקום nested object | 🔴 P0 |
 
 ---
 
