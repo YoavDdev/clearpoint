@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { convertQuoteToInvoice } from "@/lib/convert-quote";
 
 import { apiHandler } from "@/lib/api-handler";
 
@@ -49,27 +50,21 @@ export const POST = apiHandler(async (req: NextRequest) => {
       }
     }
 
-    // קריאה ל-API המרה לחשבונית
-    const convertResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/convert-quote-to-invoice`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ quoteId }),
-    });
+    // המרה ישירה לחשבונית (ללא fetch עצמי)
+    const result = await convertQuoteToInvoice(quoteId);
 
-    const convertData = await convertResponse.json();
-
-    if (!convertData.success) {
+    if (!result.success) {
       return NextResponse.json(
-        { success: false, error: convertData.error },
-        { status: 500 }
+        { success: false, error: result.error },
+        { status: result.status || 500 }
       );
     }
 
     return NextResponse.json({
       success: true,
       message: "Quote approved and converted to invoice",
-      invoice: convertData.invoice,
-      payment: convertData.payment,
+      invoice: result.invoice,
+      payment: result.payment,
     });
   } catch (error) {
     console.error("Error in approve quote:", error);
