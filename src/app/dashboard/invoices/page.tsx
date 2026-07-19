@@ -77,7 +77,11 @@ function InvoicesContent() {
   };
 
   const getPaymentSummaryText = (invoice: Invoice) => {
+    if (invoice.status === "cancelled" || invoice.status === "quote_rejected") return "בוטל";
+
     if (invoice.document_type === 'quote') {
+      if (invoice.status === "quote_approved") return "אושר - ממתין לתשלום";
+      if (invoice.status === "quote_sent") return "ממתין לאישור שלך";
       return "-";
     }
 
@@ -128,10 +132,12 @@ function InvoicesContent() {
     );
   }
 
-  const quotes = invoices.filter((inv) => inv.document_type === 'quote');
-  const receipts = invoices.filter((inv) => inv.document_type === 'invoice');
-  const recurringReceipts = receipts.filter((inv) => inv.has_subscription);
-  const oneTimeReceipts = receipts.filter((inv) => !inv.has_subscription);
+  // סינון מסמכים פעילים ומבוטלים
+  const activeQuotes = invoices.filter((inv) => inv.document_type === 'quote' && inv.status !== 'quote_rejected' && inv.status !== 'cancelled');
+  const activeReceipts = invoices.filter((inv) => inv.document_type === 'invoice' && inv.status !== 'cancelled');
+  const cancelledDocs = invoices.filter((inv) => inv.status === 'cancelled' || inv.status === 'quote_rejected');
+  const recurringReceipts = activeReceipts.filter((inv) => inv.has_subscription);
+  const oneTimeReceipts = activeReceipts.filter((inv) => !inv.has_subscription);
 
   return (
     <div dir="rtl" className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-6">
@@ -179,7 +185,7 @@ function InvoicesContent() {
         </div>
 
         {/* Annual Summary */}
-        {receipts.length > 0 && (
+        {activeReceipts.length > 0 && (
           <div className="mb-8">
             <button
               onClick={async () => {
@@ -226,19 +232,19 @@ function InvoicesContent() {
         )}
 
         {/* Quotes Section */}
-        {quotes.length > 0 && (
+        {activeQuotes.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <span className="text-xl">�</span>
+                <span className="text-xl">📄</span>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-slate-800">חשבונות עסקה</h2>
-                <p className="text-sm text-slate-600">מסמכים לפני תשלום (לאחר אישור תועבר לתשלום)</p>
+                <h2 className="text-2xl font-bold text-slate-800">הצעות מחיר</h2>
+                <p className="text-sm text-slate-600">לאחר אישור ההצעה תועבר לתשלום</p>
               </div>
             </div>
             <div className="space-y-4">
-              {quotes.map((invoice) => (
+              {activeQuotes.map((invoice) => (
                 <div
                   key={invoice.id}
                   className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden hover:shadow-xl transition-all"
@@ -248,7 +254,7 @@ function InvoicesContent() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
-                            חשבון עסקה
+                            הצעת מחיר
                           </div>
                           <h3 className="text-2xl font-bold text-slate-800">#{invoice.invoice_number}</h3>
                           {getStatusBadge(invoice.status)}
@@ -273,21 +279,28 @@ function InvoicesContent() {
                     </div>
 
                     <div className="bg-slate-50 rounded-xl p-4 mb-4">
-                      <div className="grid md:grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-slate-600">סטטוס: </span>
-                          <span className="font-semibold">{getPaymentSummaryText(invoice) === '-' ? 'ממתין לאישור' : getPaymentSummaryText(invoice)}</span>
-                        </div>
+                      <div className="text-sm">
+                        <span className="text-slate-600">סטטוס: </span>
+                        <span className="font-semibold">{getPaymentSummaryText(invoice)}</span>
                       </div>
                     </div>
 
                     <div className="flex gap-3">
+                      {invoice.status === 'quote_sent' && (
+                        <Link
+                          href={`/quote/${invoice.id}`}
+                          className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-l from-green-600 to-emerald-600 text-white rounded-xl hover:scale-105 transition-all shadow-lg font-bold"
+                        >
+                          <span>✅</span>
+                          <span>אשר ועבור לתשלום</span>
+                        </Link>
+                      )}
                       <Link
                         href={`/quote/${invoice.id}`}
-                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-l from-blue-600 to-cyan-600 text-white rounded-xl hover:scale-105 transition-all shadow-lg font-bold"
+                        className={`${invoice.status === 'quote_sent' ? '' : 'flex-1'} flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-l from-blue-600 to-cyan-600 text-white rounded-xl hover:scale-105 transition-all shadow-lg font-bold`}
                       >
                         <Eye size={20} />
-                        <span>צפייה והדפסה</span>
+                        <span>צפייה</span>
                       </Link>
                     </div>
                   </div>
@@ -390,7 +403,7 @@ function InvoicesContent() {
                 <span className="text-xl">🧾</span>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-slate-800">קבלות חד-פעמי</h2>
+                <h2 className="text-2xl font-bold text-slate-800">קבלות</h2>
                 <p className="text-sm text-slate-600">קבלות עבור תשלומים חד-פעמיים</p>
               </div>
             </div>
@@ -430,11 +443,9 @@ function InvoicesContent() {
                     </div>
 
                     <div className="bg-slate-50 rounded-xl p-4 mb-4">
-                      <div className="grid md:grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-slate-600">סטטוס תשלום: </span>
-                          <span className="font-semibold">{getPaymentSummaryText(invoice)}</span>
-                        </div>
+                      <div className="text-sm">
+                        <span className="text-slate-600">סטטוס תשלום: </span>
+                        <span className="font-semibold">{getPaymentSummaryText(invoice)}</span>
                       </div>
                     </div>
 
@@ -451,6 +462,42 @@ function InvoicesContent() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Cancelled Documents - collapsed */}
+        {cancelledDocs.length > 0 && (
+          <div className="mb-8">
+            <details className="group">
+              <summary className="flex items-center gap-3 mb-4 cursor-pointer list-none">
+                <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
+                  <span className="text-xl">🗑️</span>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-500">מסמכים שבוטלו ({cancelledDocs.length})</h2>
+                  <p className="text-sm text-slate-400">לחץ לפתיחה</p>
+                </div>
+              </summary>
+              <div className="space-y-3 mt-4">
+                {cancelledDocs.map((invoice) => (
+                  <div
+                    key={invoice.id}
+                    className="bg-slate-50 rounded-xl border border-slate-200 p-4 opacity-60"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-red-500">❌</span>
+                        <span className="font-medium text-slate-600">#{invoice.invoice_number}</span>
+                        <span className="text-sm text-slate-500">
+                          {invoice.document_type === 'quote' ? 'הצעת מחיר' : 'קבלה'}
+                        </span>
+                      </div>
+                      <span className="text-sm text-red-600 font-medium">בוטל</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </details>
           </div>
         )}
       </div>
