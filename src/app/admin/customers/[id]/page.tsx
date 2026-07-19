@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import EditMonthlyPrice from "@/components/EditMonthlyPrice";
 import CopyButton from "@/components/CopyButton";
+import ExportInstallConfig from "@/components/admin/ExportInstallConfig";
 import {
   User,
   Mail,
@@ -310,7 +311,10 @@ export default async function CustomerViewPage({ params }: { params: { id: strin
         </div>
 
         {/* Quick Actions */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Export Install Config */}
+          <ExportInstallConfig userId={id} customerName={user.full_name || user.email} />
+
           {/* Create Invoice */}
           <Link
             href={`/admin/invoices/create?user_id=${id}`}

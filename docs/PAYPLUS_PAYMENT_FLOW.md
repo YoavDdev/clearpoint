@@ -256,11 +256,10 @@
 ### שלב 3: Flow אוטומטי שלם (P9)
 **מטרה**: Admin עושה פעולה אחת → הכל נוצר.
 
-- [x] **3.1** Webhook תשלום התקנה יוצר אוטומטית הו"ק (Payment Page)
-  - metadata.create_recurring=true → webhook creates recurring payment page
-  - Saves pending record + stores URL on payment metadata
-  - Sends email to customer with setup details
-- [x] **3.2** create-with-payment stores monthly_price + create_recurring in metadata
+- ~~**3.1** Webhook תשלום התקנה יוצר אוטומטית הו"ק~~ ❌ **הוסר** — PayPlus גובים token על יצירה אוטומטית
+- ~~**3.2** create-with-payment stores create_recurring in metadata~~ ❌ **הוסר**
+
+> **מצב נוכחי**: Admin יוצר הו"ק בנפרד מ-`/admin/recurring-payments` (שתי פעולות).
 
 ### שלב 4: Dashboard לקוח (P7, P8)
 **מטרה**: הלקוח רואה מידע אמיתי.
