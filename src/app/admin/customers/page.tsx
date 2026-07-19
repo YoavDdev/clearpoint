@@ -425,7 +425,7 @@ export default function CustomersPage() {
       ) : (
         <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
           <div className="overflow-x-auto lg:overflow-x-visible">
-            <div className="w-full min-w-[980px] lg:min-w-0">
+            <div className="w-full min-w-[840px] lg:min-w-0">
               <div dir="rtl" className="grid grid-cols-[3.2fr_2fr_1.1fr_1.6fr_1.4fr_2fr] gap-3 items-center px-4 py-3 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700">
                 <div className="min-w-0 text-right">לקוח</div>
                 <div className="min-w-0 text-right">מסלול</div>
