@@ -435,7 +435,40 @@ export default function ModernInvoice({ invoice, items, isAdmin = false }: Invoi
               </div>
             )}
 
-            {/* Payment Button */}
+            {/* Admin Payment Link */}
+            {isAdmin && invoice.payment_link && invoice.payment?.status !== "completed" && (
+              <div className="px-8 py-4 border-t border-gray-200 bg-blue-50 no-print">
+                <div className="text-xs font-semibold text-blue-900 mb-2">🔗 לינק תשלום ללקוח</div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={invoice.payment_link}
+                    className="flex-1 px-3 py-2 bg-white border border-blue-200 rounded text-xs font-mono text-gray-700"
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(invoice.payment_link);
+                      alert("✅ לינק הועתק!");
+                    }}
+                    className="px-3 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors whitespace-nowrap"
+                  >
+                    📋 העתק
+                  </button>
+                  <a
+                    href={invoice.payment_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-2 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors whitespace-nowrap"
+                  >
+                    🔗 פתח
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Payment Button (Customer View) */}
             {!isAdmin && 
              invoice.payment_link && 
              invoice.status === "sent" && 

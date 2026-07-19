@@ -333,6 +333,10 @@ function AdminInvoicesContent() {
       return <span className="text-slate-400 text-xs">-</span>;
     }
 
+    if (invoice.status === "cancelled") {
+      return <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">בוטל</span>;
+    }
+
     if (!invoice.payment) {
       if (invoice.status === "paid") {
         return <span className="text-green-700 text-xs font-medium">שולם (ללא עסקה מקושרת)</span>;
