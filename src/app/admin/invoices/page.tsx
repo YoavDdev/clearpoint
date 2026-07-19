@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useEffect, useMemo, useState, Suspense } from "react";
-import { FileText, User, Calendar, DollarSign, Eye, Printer, Search, Filter, Ban, X, Loader2, Download, Mail } from "lucide-react";
+import { FileText, User, Calendar, DollarSign, Eye, Printer, Search, Filter, Ban, X, Loader2, Download, Mail, RefreshCw, Copy } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { FixedSizeList as List } from "react-window";
@@ -21,6 +21,7 @@ interface Invoice {
   quote_valid_until?: string | null;
   approved_at?: string | null;
   rejected_at?: string | null;
+  payment_link: string | null;
   has_subscription: boolean;
   monthly_price: number | null;
   user: {
@@ -224,6 +225,27 @@ function AdminInvoicesContent() {
     } catch (error) {
       console.error('Error resending email:', error);
       alert('שגיאה בשליחת האימייל');
+    }
+  };
+
+  const handleRegenerateLink = async (invoiceId: string, invoiceNumber: string) => {
+    if (!confirm(`ליצור לינק תשלום חדש לחשבונית #${invoiceNumber}?`)) return;
+    try {
+      const response = await fetch('/api/admin/invoices/regenerate-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoice_id: invoiceId }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        await navigator.clipboard.writeText(data.payment_url);
+        alert(`✅ לינק חדש נוצר והועתק ללוח!\n\n${data.payment_url}`);
+        fetchInvoices();
+      } else {
+        alert(`שגיאה: ${data.error}`);
+      }
+    } catch (error) {
+      alert('שגיאה ביצירת לינק חדש');
     }
   };
 
@@ -886,6 +908,29 @@ function AdminInvoicesContent() {
                             >
                               <Mail size={18} />
                             </button>
+                          )}
+                          {invoice.document_type === 'invoice' && invoice.status === 'sent' && (
+                            <>
+                              <button
+                                onClick={() => handleRegenerateLink(invoice.id, invoice.invoice_number)}
+                                className="p-2 bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-lg transition-colors"
+                                title="חדש לינק תשלום (אם פג תוקף)"
+                              >
+                                <RefreshCw size={18} />
+                              </button>
+                              {invoice.payment_link && (
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(invoice.payment_link!);
+                                    alert('✅ לינק הועתק ללוח!');
+                                  }}
+                                  className="p-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg transition-colors"
+                                  title="העתק לינק תשלום"
+                                >
+                                  <Copy size={18} />
+                                </button>
+                              )}
+                            </>
                           )}
                           {invoice.status !== 'paid' && invoice.status !== 'quote_approved' && (
                             <button

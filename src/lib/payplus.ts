@@ -183,6 +183,9 @@ export async function createOneTimePayment(
       refURL_success: request.success_url || `${process.env.NEXT_PUBLIC_BASE_URL}/payment/success`,
       refURL_failure: request.cancel_url || `${process.env.NEXT_PUBLIC_BASE_URL}/payment/cancel`,
       
+      // תוקף לינק — 30 יום
+      expiry_datetime: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19),
+      
       // אופציות
       sendEmailApproval: false, // לא לשלוח אימייל אוטומטי
       sendEmailFailure: false,
@@ -320,6 +323,9 @@ export async function createRecurringPaymentPage(request: {
         customer_failure_email: true,
         send_customer_success_email: true,
       },
+      
+      // תוקף לינק — 30 יום
+      expiry_datetime: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19),
       
       // Callbacks
       refURL_callback: `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhooks/payplus`,
