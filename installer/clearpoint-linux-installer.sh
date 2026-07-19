@@ -6,10 +6,10 @@
 # Usage:
 #   git clone https://github.com/YoavDdev/clearpoint.git ~/clearpoint-setup
 #   cd ~/clearpoint-setup/installer
-#   bash clearpoint-linux-installer.sh
+#   bash clearpoint-linux-installer.sh --config /path/to/clearpoint-config.json
 #
-# Or one-liner:
-#   curl -sL https://raw.githubusercontent.com/YoavDdev/clearpoint/main/installer/quick-install.sh | bash
+# Or manual mode (no config file):
+#   bash clearpoint-linux-installer.sh
 #
 
 set -e
@@ -56,51 +56,109 @@ ok "Ubuntu $(lsb_release -rs 2>/dev/null || echo '?') detected"
 # COLLECT CONFIGURATION
 # ═══════════════════════════════════════════════════
 
-step "Configuration (from Admin Panel)"
-echo -e "${CYAN}Open your Admin Panel and have the following ready:${NC}"
-echo ""
-
-read -p "👤 User ID (from admin): " USER_ID
-if [ -z "$USER_ID" ]; then err "User ID is required!"; exit 1; fi
-
-read -p "🔑 Device Token: " DEVICE_TOKEN
-if [ -z "$DEVICE_TOKEN" ]; then err "Device Token is required!"; exit 1; fi
-
-read -p "🌐 Cloudflare Tunnel Token (eyJ...): " CF_TUNNEL_TOKEN
-if [ -z "$CF_TUNNEL_TOKEN" ]; then warn "No tunnel token — will configure later"; fi
-
-read -p "☁️  B2 Account ID: " B2_ACCOUNT_ID
-read -p "☁️  B2 App Key: " B2_APP_KEY
-read -p "☁️  B2 Bucket ID: " B2_BUCKET_ID
-if [ -z "$B2_ACCOUNT_ID" ] || [ -z "$B2_APP_KEY" ] || [ -z "$B2_BUCKET_ID" ]; then
-    warn "No B2 credentials — VOD uploads will not work until configured!"
-fi
-
-echo ""
-echo -e "${BOLD}📹 Camera Configuration${NC}"
-echo -e "${CYAN}For each camera, enter: NAME,IP,RTSP_USER,RTSP_PASS,RTSP_PATH${NC}"
-echo -e "${CYAN}Example: entrance,192.168.1.101,admin,123456,/h264/ch1/main/av_stream${NC}"
-echo -e "${CYAN}Type 'done' when finished.${NC}"
-echo ""
-
-CAMERAS=()
-CAM_NUM=1
-while true; do
-    read -p "Camera $CAM_NUM (or 'done'): " cam_input
-    if [[ "$cam_input" == "done" ]] || [[ -z "$cam_input" ]]; then
-        break
-    fi
-    CAMERAS+=("$cam_input")
-    CAM_NUM=$((CAM_NUM + 1))
+# Parse --config argument
+CONFIG_FILE=""
+CONFIG_MODE=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --config) CONFIG_FILE="$2"; shift 2 ;;
+        *) shift ;;
+    esac
 done
 
-if [ ${#CAMERAS[@]} -eq 0 ]; then
-    err "At least one camera is required!"
-    exit 1
+if [ -n "$CONFIG_FILE" ] && [ -f "$CONFIG_FILE" ]; then
+    # ════════ CONFIG FILE MODE ════════
+    CONFIG_MODE=true
+    step "Reading configuration from: $CONFIG_FILE"
+    
+    # Verify jq is available (install if needed)
+    if ! command -v jq &>/dev/null; then
+        sudo apt-get install -y jq > /dev/null 2>&1
+    fi
+    
+    USER_ID=$(jq -r '.user_id' "$CONFIG_FILE")
+    DEVICE_TOKEN=$(jq -r '.device_token' "$CONFIG_FILE")
+    CF_TUNNEL_TOKEN=$(jq -r '.cf_tunnel_token // empty' "$CONFIG_FILE")
+    B2_ACCOUNT_ID=$(jq -r '.b2.account_id // empty' "$CONFIG_FILE")
+    B2_APP_KEY=$(jq -r '.b2.app_key // empty' "$CONFIG_FILE")
+    B2_BUCKET_ID=$(jq -r '.b2.bucket_id // empty' "$CONFIG_FILE")
+    
+    # Read cameras from JSON into arrays
+    CAM_COUNT=$(jq '.cameras | length' "$CONFIG_FILE")
+    CAMERAS_JSON=()
+    for ((i=0; i<CAM_COUNT; i++)); do
+        CAMERAS_JSON+=("$(jq -c ".cameras[$i]" "$CONFIG_FILE")")
+    done
+    
+    if [ -z "$USER_ID" ] || [ "$USER_ID" == "null" ]; then err "Config missing user_id!"; exit 1; fi
+    if [ -z "$DEVICE_TOKEN" ] || [ "$DEVICE_TOKEN" == "null" ]; then err "Config missing device_token!"; exit 1; fi
+    if [ "$CF_TUNNEL_TOKEN" == "FILL_ME" ]; then CF_TUNNEL_TOKEN=""; fi
+    if [ "$B2_ACCOUNT_ID" == "FILL_ME" ]; then B2_ACCOUNT_ID=""; fi
+    if [ "$B2_APP_KEY" == "FILL_ME" ]; then B2_APP_KEY=""; fi
+    if [ "$B2_BUCKET_ID" == "FILL_ME" ]; then B2_BUCKET_ID=""; fi
+    
+    ok "User ID: $USER_ID"
+    ok "Device Token: ${DEVICE_TOKEN:0:8}..."
+    ok "Cameras: $CAM_COUNT"
+    [ -n "$CF_TUNNEL_TOKEN" ] && ok "CF Tunnel: configured" || warn "CF Tunnel: not set (configure later)"
+    [ -n "$B2_ACCOUNT_ID" ] && ok "B2: configured" || warn "B2: not set (VOD uploads won't work)"
+    
+    if [ ${#CAMERAS_JSON[@]} -eq 0 ]; then
+        err "Config has no cameras!"
+        exit 1
+    fi
+else
+    # ════════ MANUAL INPUT MODE ════════
+    step "Configuration (from Admin Panel)"
+    echo -e "${CYAN}Open your Admin Panel and have the following ready:${NC}"
+    echo ""
+    
+    read -p "👤 User ID (from admin): " USER_ID
+    if [ -z "$USER_ID" ]; then err "User ID is required!"; exit 1; fi
+    
+    read -p "🔑 Device Token: " DEVICE_TOKEN
+    if [ -z "$DEVICE_TOKEN" ]; then err "Device Token is required!"; exit 1; fi
+    
+    read -p "🌐 Cloudflare Tunnel Token (eyJ...): " CF_TUNNEL_TOKEN
+    if [ -z "$CF_TUNNEL_TOKEN" ]; then warn "No tunnel token — will configure later"; fi
+    
+    read -p "☁️  B2 Account ID: " B2_ACCOUNT_ID
+    read -p "☁️  B2 App Key: " B2_APP_KEY
+    read -p "☁️  B2 Bucket ID: " B2_BUCKET_ID
+    if [ -z "$B2_ACCOUNT_ID" ] || [ -z "$B2_APP_KEY" ] || [ -z "$B2_BUCKET_ID" ]; then
+        warn "No B2 credentials — VOD uploads will not work until configured!"
+    fi
+    
+    echo ""
+    echo -e "${BOLD}📹 Camera Configuration${NC}"
+    echo -e "${CYAN}For each camera, enter: NAME,IP,RTSP_USER,RTSP_PASS,RTSP_PATH${NC}"
+    echo -e "${CYAN}Example: entrance,192.168.1.101,admin,123456,/h264/ch1/main/av_stream${NC}"
+    echo -e "${CYAN}Type 'done' when finished.${NC}"
+    echo ""
+    
+    CAMERAS=()
+    CAM_NUM=1
+    while true; do
+        read -p "Camera $CAM_NUM (or 'done'): " cam_input
+        if [[ "$cam_input" == "done" ]] || [[ -z "$cam_input" ]]; then
+            break
+        fi
+        CAMERAS+=("$cam_input")
+        CAM_NUM=$((CAM_NUM + 1))
+    done
+    
+    if [ ${#CAMERAS[@]} -eq 0 ]; then
+        err "At least one camera is required!"
+        exit 1
+    fi
 fi
 
 echo ""
-ok "Configuration: User=$USER_ID, Cameras=${#CAMERAS[@]}"
+if [ "$CONFIG_MODE" = true ]; then
+    ok "Configuration: User=$USER_ID, Cameras=${#CAMERAS_JSON[@]} (from config file)"
+else
+    ok "Configuration: User=$USER_ID, Cameras=${#CAMERAS[@]} (manual input)"
+fi
 
 # ═══════════════════════════════════════════════════
 # INSTALL SYSTEM DEPENDENCIES
@@ -315,44 +373,38 @@ ok "Node.js dependencies installed"
 
 step "Generating camera scripts (with RTSP validation)"
 
-for i in "${!CAMERAS[@]}"; do
-    IFS=',' read -r CAM_NAME CAM_IP CAM_USER CAM_PASS CAM_PATH <<< "${CAMERAS[$i]}"
-    
-    # Default values
-    CAM_USER="${CAM_USER:-admin}"
-    CAM_PASS="${CAM_PASS:-admin}"
-    CAM_PATH="${CAM_PATH:-/h264/ch1/main/av_stream}"
-    CAM_INDEX=$((i + 1))
-    
-    # Validate RTSP connection
-    RTSP_TEST="rtsp://${CAM_USER}:${CAM_PASS}@${CAM_IP}:554${CAM_PATH}"
-    if timeout 5 ffprobe -v error -rtsp_transport tcp -i "$RTSP_TEST" 2>/dev/null; then
-        ok "RTSP OK: $CAM_NAME ($CAM_IP)"
-    else
-        warn "RTSP FAILED: $CAM_NAME ($CAM_IP) — script will still be created (camera may be off)"
-    fi
-    
-    # Generate a camera ID (simple for filesystem)
-    CAM_ID="camera-${CAM_INDEX}"
+generate_camera() {
+    local CAM_ID="$1"
+    local CAM_NAME="$2"
+    local RTSP_URL="$3"
+    local CAM_INDEX="$4"
     
     # Create footage directory for this camera
-    FOOTAGE_DIR="$HOME/clearpoint-recordings/$USER_ID/footage/$CAM_ID"
-    LIVE_DIR="/mnt/ram-ts/$USER_ID/live/$CAM_ID"
+    local FOOTAGE_DIR="$HOME/clearpoint-recordings/$USER_ID/footage/$CAM_ID"
+    local LIVE_DIR="/mnt/ram-ts/$USER_ID/live/$CAM_ID"
     mkdir -p "$FOOTAGE_DIR" "$LIVE_DIR"
     
+    # Validate RTSP connection
+    if timeout 5 ffprobe -v error -rtsp_transport tcp -i "$RTSP_URL" 2>/dev/null; then
+        ok "RTSP OK: $CAM_NAME"
+    else
+        warn "RTSP FAILED: $CAM_NAME — script will still be created (camera may be off)"
+    fi
+    
     # Camera recording script
-    cat > ~/clearpoint-scripts/${CAM_ID}.sh << CAMEOF
+    cat > ~/clearpoint-scripts/camera-${CAM_INDEX}.sh << CAMEOF
 #!/bin/bash
-# Camera: $CAM_NAME ($CAM_IP)
+# Camera: $CAM_NAME
+# Camera ID: $CAM_ID
 # Generated: $(date +%Y-%m-%d)
 
-RTSP_URL="rtsp://${CAM_USER}:${CAM_PASS}@${CAM_IP}:554${CAM_PATH}"
+RTSP_URL="$RTSP_URL"
 FOOTAGE_DIR="$FOOTAGE_DIR"
 LIVE_DIR="$LIVE_DIR"
 
 mkdir -p "\$FOOTAGE_DIR" "\$LIVE_DIR"
 
-echo "📹 Starting $CAM_NAME ($CAM_IP)..."
+echo "📹 Starting $CAM_NAME..."
 
 ffmpeg -rtsp_transport tcp -i "\$RTSP_URL" \\
   -c:v copy \\
@@ -364,19 +416,19 @@ ffmpeg -rtsp_transport tcp -i "\$RTSP_URL" \\
   "\$LIVE_DIR/stream.m3u8" \\
   -y
 CAMEOF
-    chmod +x ~/clearpoint-scripts/${CAM_ID}.sh
+    chmod +x ~/clearpoint-scripts/camera-${CAM_INDEX}.sh
     
     # Systemd service with auto-restart
-    sudo tee /etc/systemd/system/${CAM_ID}.service > /dev/null << SVCEOF
+    sudo tee /etc/systemd/system/camera-${CAM_INDEX}.service > /dev/null << SVCEOF
 [Unit]
-Description=Clearpoint Camera: $CAM_NAME
+Description=Clearpoint Camera: $CAM_NAME ($CAM_ID)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
 User=$USER
-ExecStart=$HOME/clearpoint-scripts/${CAM_ID}.sh
+ExecStart=$HOME/clearpoint-scripts/camera-${CAM_INDEX}.sh
 Restart=always
 RestartSec=10
 RuntimeMaxSec=86400
@@ -390,8 +442,31 @@ StandardError=journal
 WantedBy=multi-user.target
 SVCEOF
 
-    ok "$CAM_ID: $CAM_NAME @ $CAM_IP"
-done
+    ok "camera-${CAM_INDEX} ($CAM_ID): $CAM_NAME"
+}
+
+if [ "$CONFIG_MODE" = true ]; then
+    # Config file mode — cameras have UUID + stream_path
+    for i in "${!CAMERAS_JSON[@]}"; do
+        CAM_ID=$(echo "${CAMERAS_JSON[$i]}" | jq -r '.id')
+        CAM_NAME=$(echo "${CAMERAS_JSON[$i]}" | jq -r '.name')
+        RTSP_URL=$(echo "${CAMERAS_JSON[$i]}" | jq -r '.stream_path')
+        CAM_INDEX=$((i + 1))
+        generate_camera "$CAM_ID" "$CAM_NAME" "$RTSP_URL" "$CAM_INDEX"
+    done
+else
+    # Manual mode — build RTSP URL from parts, use camera-N as ID
+    for i in "${!CAMERAS[@]}"; do
+        IFS=',' read -r CAM_NAME CAM_IP CAM_USER CAM_PASS CAM_PATH <<< "${CAMERAS[$i]}"
+        CAM_USER="${CAM_USER:-admin}"
+        CAM_PASS="${CAM_PASS:-admin}"
+        CAM_PATH="${CAM_PATH:-/h264/ch1/main/av_stream}"
+        CAM_INDEX=$((i + 1))
+        CAM_ID="camera-${CAM_INDEX}"
+        RTSP_URL="rtsp://${CAM_USER}:${CAM_PASS}@${CAM_IP}:554${CAM_PATH}"
+        generate_camera "$CAM_ID" "$CAM_NAME" "$RTSP_URL" "$CAM_INDEX"
+    done
+fi
 
 # ═══════════════════════════════════════════════════
 # EXPRESS LIVE SERVER SERVICE

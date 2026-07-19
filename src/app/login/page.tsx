@@ -4,7 +4,8 @@ import { signIn, useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Lock, Mail, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Lock, Mail, Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -62,9 +63,13 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl mb-4 shadow-lg">
-            <ShieldCheck className="w-8 h-8 text-white" />
-          </div>
+          <Image
+            src="/logo.svg"
+            alt="ClearPoint"
+            width={64}
+            height={64}
+            className="mx-auto mb-4"
+          />
           <h1 className="text-3xl font-bold text-slate-900 mb-2">ברוכים הבאים</h1>
           <p className="text-slate-600">התחבר למערכת Clearpoint</p>
         </div>

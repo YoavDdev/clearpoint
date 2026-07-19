@@ -8,7 +8,7 @@ export const createUserSchema = z.object({
   phone: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
-  plan_id: z.string().uuid().optional().nullable(),
+  plan_id: z.string().optional().nullable(),
   plan_duration_days: z.number().int().positive().optional().nullable(),
   custom_price: z.number().positive().optional().nullable(),
   tunnel_name: z.string().optional().nullable(),

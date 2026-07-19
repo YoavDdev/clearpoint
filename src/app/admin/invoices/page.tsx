@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useEffect, useMemo, useState, Suspense } from "react";
-import { FileText, User, Calendar, DollarSign, Eye, Printer, Search, Filter, Ban, X, Loader2, Download } from "lucide-react";
+import { FileText, User, Calendar, DollarSign, Eye, Printer, Search, Filter, Ban, X, Loader2, Download, Mail } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { FixedSizeList as List } from "react-window";
@@ -204,6 +204,26 @@ function AdminInvoicesContent() {
     }
   };
 
+  const handleResendEmail = async (invoiceId: string, invoiceNumber: string) => {
+    if (!confirm(`לשלוח שוב אימייל קבלה #${invoiceNumber}?`)) return;
+    try {
+      const response = await fetch('/api/admin/invoices/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoiceId }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        alert(`✅ אימייל נשלח בהצלחה ל-${result.email}`);
+      } else {
+        alert('❌ שגיאה: ' + (result.error || 'לא ידוע'));
+      }
+    } catch (error) {
+      console.error('Error resending email:', error);
+      alert('שגיאה בשליחת האימייל');
+    }
+  };
+
   const handleCancelInvoice = async (invoiceId: string, invoiceNumber: string, documentType: 'quote' | 'invoice') => {
     const docName = documentType === 'quote' ? 'חשבון עסקה' : 'קבלה';
     if (!confirm(`האם אתה בטוח שברצונך לבטל את ${docName} #${invoiceNumber}?`)) {
@@ -323,6 +343,15 @@ function AdminInvoicesContent() {
     return getPaymentStatusBadge(invoice.payment);
   };
 
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const overdueInvoices = invoices.filter((i) => 
+    i.document_type === 'invoice' && 
+    i.status === 'sent' && 
+    new Date(i.created_at) < sevenDaysAgo
+  );
+
   const stats = {
     total: invoices.length,
     quotes: invoices.filter((i) => i.document_type === "quote").length,
@@ -330,6 +359,7 @@ function AdminInvoicesContent() {
     quotesApproved: invoices.filter((i) => i.status === "quote_approved").length,
     paid: invoices.filter((i) => i.status === "paid").length,
     pending: invoices.filter((i) => i.status === "sent").length,
+    overdue: overdueInvoices.length,
     totalRevenue: invoices
       .filter((i) => i.status === "paid")
       .reduce((sum, i) => sum + Number(i.total_amount), 0),
@@ -420,7 +450,7 @@ function AdminInvoicesContent() {
 
             {/* Stats Cards */}
             {activeTab === 'management' ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 lg:gap-3">
                 <div className="bg-white p-4 rounded-2xl shadow-lg border border-slate-200">
                   <div className="flex items-center justify-between">
                     <div className="text-right">
@@ -477,6 +507,18 @@ function AdminInvoicesContent() {
                     </div>
                     <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
                       <DollarSign size={20} className="text-green-600" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`bg-white p-4 rounded-2xl shadow-lg border ${stats.overdue > 0 ? 'border-red-300 bg-red-50' : 'border-slate-200'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="text-right">
+                      <p className={`text-sm font-medium ${stats.overdue > 0 ? 'text-red-600' : 'text-slate-600'}`}>לא שולמו 7+ ימים</p>
+                      <p className={`text-2xl font-bold ${stats.overdue > 0 ? 'text-red-600' : 'text-slate-400'}`}>{stats.overdue}</p>
+                    </div>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stats.overdue > 0 ? 'bg-red-100' : 'bg-slate-100'}`}>
+                      {stats.overdue > 0 ? <span className="text-lg">⚠️</span> : <span className="text-lg">✓</span>}
                     </div>
                   </div>
                 </div>
@@ -829,6 +871,15 @@ function AdminInvoicesContent() {
                           >
                             <Eye size={18} />
                           </Link>
+                          {invoice.status === 'paid' && (
+                            <button
+                              onClick={() => handleResendEmail(invoice.id, invoice.invoice_number)}
+                              className="p-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors"
+                              title="שלח קבלה שוב באימייל"
+                            >
+                              <Mail size={18} />
+                            </button>
+                          )}
                           {invoice.status !== 'paid' && invoice.status !== 'quote_approved' && (
                             <button
                               onClick={() => handleCancelInvoice(invoice.id, invoice.invoice_number, invoice.document_type)}

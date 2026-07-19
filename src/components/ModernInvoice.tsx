@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 interface InvoiceProps {
   invoice: any;
@@ -10,6 +10,39 @@ interface InvoiceProps {
 
 export default function ModernInvoice({ invoice, items, isAdmin = false }: InvoiceProps) {
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const invoiceRef = useRef<HTMLDivElement>(null);
+
+  const handleDownloadPdf = async () => {
+    if (!invoiceRef.current) return;
+    setIsGeneratingPdf(true);
+    try {
+      const { toPng } = require('html-to-image');
+      const { jsPDF } = require('jspdf');
+
+      const dataUrl = await toPng(invoiceRef.current, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+      });
+
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise((resolve) => { img.onload = resolve; });
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (img.height * pdfWidth) / img.width;
+
+      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${documentTitle}-${invoice.invoice_number}.pdf`);
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      alert('שגיאה ביצירת PDF. נסה שוב.');
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
 
   const billing = invoice?.billing_snapshot || {};
   const issuer = invoice?.issuer_snapshot || {};
@@ -95,6 +128,13 @@ export default function ModernInvoice({ invoice, items, isAdmin = false }: Invoi
               {isPrinting ? "מכין..." : "🖨️ הדפסה"}
             </button>
             <button
+              onClick={handleDownloadPdf}
+              disabled={isGeneratingPdf}
+              className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+            >
+              {isGeneratingPdf ? "מייצר..." : "📥 הורד PDF"}
+            </button>
+            <button
               onClick={() => window.history.back()}
               className="px-4 py-2 bg-gray-200 text-gray-800 text-sm rounded hover:bg-gray-300 transition-colors"
             >
@@ -103,13 +143,17 @@ export default function ModernInvoice({ invoice, items, isAdmin = false }: Invoi
           </div>
 
           {/* Invoice */}
-          <div className="printable-area bg-white shadow-sm border border-gray-200">
+          <div ref={invoiceRef} className="printable-area bg-white shadow-sm border border-gray-200">
             {/* Header */}
             <div className="px-8 py-6 border-b-2 border-gray-900">
               <div className="flex justify-between items-center">
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900">ClearPoint</h1>
-                  <p className="text-xs text-gray-600 mt-0.5">מערכות אבטחה ומצלמות</p>
+                <div className="flex items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/logo.svg" alt="ClearPoint" width={40} height={40} />
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-900 tracking-tight">ClearPoint</h1>
+                    <p className="text-xs text-gray-600 mt-0.5">מערכות אבטחה ומצלמות</p>
+                  </div>
                 </div>
                 <div className="text-left">
                   <div className="text-2xl font-bold text-gray-900">{documentTitle}</div>
@@ -234,10 +278,22 @@ export default function ModernInvoice({ invoice, items, isAdmin = false }: Invoi
               </table>
             </div>
 
-            {/* Total */}
+            {/* Total with VAT breakdown */}
             <div className="px-8 py-4 bg-gray-50 border-t-2 border-gray-900">
+              {issuer.vat_rate !== undefined && issuer.vat_rate !== null && issuer.vat_rate > 0 && (
+                <div className="flex justify-between items-center text-sm text-gray-600 mb-1">
+                  <span>לפני מע"מ</span>
+                  <span>₪{(Number(invoice.total_amount) / (1 + issuer.vat_rate / 100)).toFixed(2)}</span>
+                </div>
+              )}
+              {issuer.vat_rate !== undefined && issuer.vat_rate !== null && issuer.vat_rate > 0 && (
+                <div className="flex justify-between items-center text-sm text-gray-600 mb-2">
+                  <span>מע"מ ({issuer.vat_rate}%)</span>
+                  <span>₪{(Number(invoice.total_amount) - Number(invoice.total_amount) / (1 + issuer.vat_rate / 100)).toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center">
-                <span className="text-base font-bold text-gray-900">סה"כ לתשלום</span>
+                <span className="text-base font-bold text-gray-900">סה"כ לתשלום (כולל מע"מ)</span>
                 <span className="text-2xl font-bold text-gray-900">₪{Number(invoice.total_amount).toFixed(2)}</span>
               </div>
             </div>
@@ -291,7 +347,7 @@ export default function ModernInvoice({ invoice, items, isAdmin = false }: Invoi
               </div>
             )}
 
-            {/* Payment Success */}
+            {/* Payment Success + Approval Number */}
             {!isAdmin && invoice.payment?.status === "completed" && (
               <div className="px-8 py-4 border-t border-gray-200 bg-gray-50">
                 <div className="text-center">
@@ -299,6 +355,16 @@ export default function ModernInvoice({ invoice, items, isAdmin = false }: Invoi
                   {invoice.payment.paid_at && (
                     <div className="text-xs text-gray-600 mt-1">
                       {new Date(invoice.payment.paid_at).toLocaleString("he-IL")}
+                    </div>
+                  )}
+                  {(invoice.payment.metadata?.approval_num || invoice.payment.provider_transaction_id) && (
+                    <div className="mt-2 text-xs text-gray-500 space-y-0.5">
+                      {invoice.payment.metadata?.approval_num && (
+                        <div>מספר אישור: <span className="font-mono font-medium text-gray-700">{invoice.payment.metadata.approval_num}</span></div>
+                      )}
+                      {invoice.payment.provider_transaction_id && (
+                        <div>אסמכתא: <span className="font-mono font-medium text-gray-700">{invoice.payment.provider_transaction_id.substring(0, 20)}</span></div>
+                      )}
                     </div>
                   )}
                 </div>

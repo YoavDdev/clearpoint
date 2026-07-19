@@ -142,7 +142,6 @@ export const POST = apiHandler(async (req: NextRequest) => {
           connection_type: plan.connection_type,
           monthly_price: plan.monthly_price,
           request_id: requestId,
-          create_recurring: true,
         },
       })
       .select()

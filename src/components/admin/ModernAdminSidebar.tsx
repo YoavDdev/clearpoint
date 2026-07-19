@@ -10,7 +10,6 @@ import {
   Monitor,
   Mail,
   Settings,
-  CheckCircle,
   Bell,
   LogOut,
   FileText,
@@ -21,6 +20,7 @@ import {
   CreditCard,
   BarChart3
 } from "lucide-react";
+import Image from "next/image";
 import { signOut } from "next-auth/react";
 
 const navigation = [
@@ -120,9 +120,12 @@ export function ModernAdminSidebar() {
       {/* Header */}
       <div className="p-6 border-b border-slate-200 flex-shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
-            <CheckCircle className="text-white" size={28} />
-          </div>
+          <Image
+            src="/logo.svg"
+            alt="ClearPoint"
+            width={44}
+            height={44}
+          />
           <div>
             <h1 className="text-xl font-bold text-slate-900">Clearpoint</h1>
             <p className="text-sm text-slate-600">לוח בקרה מנהל</p>
