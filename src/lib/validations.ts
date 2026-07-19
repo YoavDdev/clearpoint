@@ -91,11 +91,13 @@ export const createWithPaymentSchema = z.object({
 // ─── Admin: Create Invoice ──────────────────────────────────────────────────
 
 export const invoiceItemSchema = z.object({
-  type: z.string().min(1),
-  name: z.string().min(1, "שם פריט חסר"),
+  item_type: z.string().min(1),
+  item_name: z.string().min(1, "שם פריט חסר"),
+  item_description: z.string().optional().nullable(),
   quantity: z.number().int().positive("כמות חייבת להיות חיובית"),
   unit_price: z.number().min(0, "מחיר לא תקין"),
-  description: z.string().optional().nullable(),
+  total_price: z.number().min(0).optional().nullable(),
+  camera_type: z.string().optional().nullable(),
 });
 
 export const createInvoiceSchema = z.object({
