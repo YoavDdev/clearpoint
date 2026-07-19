@@ -122,7 +122,7 @@
 1. Admin API: /api/admin/recurring-payments/create
    a. מקבל user_id, plan_id, amount, start_date
    b. מוצא/יוצר customer ב-PayPlus
-   c. יוצר PayPlus Payment Page עם charge_method=4 (recurring)
+   c. יוצר PayPlus Payment Page עם charge_method=3 + recurring_settings (nested)
    d. שומר recurring_payment ב-DB עם status=pending
    e. מחזיר payment_url ל-Admin
 2. Admin שולח לינק ללקוח

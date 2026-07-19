@@ -147,17 +147,28 @@ PayPlus creates recurring payment automatically
 Card is charged monthly on start_date
 ```
 
-**Key recurring parameters**:
+**Key recurring parameters** (fixed 2026-07-19):
 ```typescript
 {
-  charge_method: 4,            // Create recurring payment
-  recurring_type: 2,           // Monthly
-  recurring_range: 1,          // Every 1 month
-  number_of_payments: 0,       // 0 = unlimited
-  start_date: 'DD/MM/YYYY',   // First charge date
-  charge_default: 0,           // Don't charge now
+  charge_method: 3,  // 3 = Recurring Payments
+
+  // ⚠️ MUST be nested inside recurring_settings (PayPlus API requirement)
+  recurring_settings: {
+    instant_first_payment: true,
+    recurring_type: 2,              // 0=daily, 1=weekly, 2=monthly
+    recurring_range: 1,             // every 1 month
+    number_of_charges: 0,           // 0 = unlimited
+    start_date_on_payment_date: true,
+    successful_invoice: true,
+    customer_failure_email: true,
+    send_customer_success_email: true,
+  },
 }
 ```
+
+> **⚠️ Known Bug (fixed):** Before 2026-07-19, recurring params were sent as flat fields,
+> causing `recurring-payment-settings-are-missing` error. The fix was nesting them inside
+> `recurring_settings`. See `src/lib/payplus.ts:createRecurringPaymentPage()`.
 
 ### 4.3 Invoice Payment
 
@@ -520,7 +531,8 @@ When `PAYPLUS_USE_MOCK=true`:
 5. **Billing snapshot** — Invoice freezes customer billing info at creation time
 6. **Two PayPlus clients** — `payplus.ts` (functions) and `payplusClient.ts` (class) coexist
 7. **Webhook dual lookup** — Finds payment by `cField1` (our payment ID) or by `provider_transaction_id`
-8. **charge_method: 4** — Uses PayPlus "Create Recurring" mode via payment page (customer enters card)
+8. **charge_method: 3** — Uses PayPlus recurring mode via payment page (customer enters card)
+9. **recurring_settings nested** — PayPlus requires recurring params inside a `recurring_settings` object (not flat)
 
 ---
 
@@ -556,4 +568,106 @@ When `PAYPLUS_USE_MOCK=true`:
 
 ---
 
-*Document verified against source code on 2026-07-18.*
+---
+
+## 17. How-To Guide — מדריך מעשי
+
+### 17.1 יצירת הוראת קבע ללקוח חדש
+
+1. **לך ל** `/admin/recurring-payments`
+2. **לחץ** "צור הוראת קבע" (כפתור ירוק)
+3. **מלא את הטופס:**
+   - בחר לקוח מהרשימה
+   - בחר תוכנית (הסכום ימולא אוטומטית)
+   - תאריך התחלה (DD/MM/YYYY) — ברירת מחדל: היום
+4. **לחץ** "צור" → תקבל **לינק תשלום**
+5. **שלח** את הלינק ללקוח (WhatsApp / אימייל)
+6. הלקוח מזין כרטיס ב-PayPlus → הו"ק נוצרת אוטומטית
+7. **לחץ** "סנכרון מ-PayPlus" לעדכון הסטטוס ב-DB
+
+> **💡 טיפ:** אחרי שהלקוח משלם, הסטטוס נשאר "ממתין" עד שתעשה סנכרון.
+> ה-Cron עושה סנכרון אוטומטי כל יום ב-04:00 UTC.
+
+### 17.2 סנכרון ידני מ-PayPlus
+
+1. **לך ל** `/admin/recurring-payments`
+2. **לחץ** "סנכרון מ-PayPlus"
+3. זה ימשוך את כל ההוראות קבע מ-PayPlus ויעדכן:
+   - `recurring_uid`, `is_active`, `is_valid`
+   - `last_charge_date`
+   - יצור קבלות חודשיות אוטומטית
+
+### 17.3 ביטול הוראת קבע
+
+1. **לך ל** `/admin/recurring-payments`
+2. מצא את ההו"ק בטבלה
+3. **לחץ** על כפתור "מחק" (אייקון פח)
+4. זה ישלח `POST /RecurringPayments/CancelRecurring/{uid}` ל-PayPlus
+
+### 17.4 השהיית / הפעלת הוראת קבע
+
+1. **לחץ** על כפתור ההשהיה/הפעלה בשורה
+2. זה מעדכן `is_valid` ב-DB
+3. לקוח מושהה:
+   - **WiFi**: רואה live בלבד (אין הקלטות)
+   - **SIM**: חסום לגמרי
+
+### 17.5 חידוש כרטיס אשראי
+
+1. מצא את ההו"ק בטבלה
+2. **לחץ** על אייקון "חידוש כרטיס"
+3. זה שולח ל-PayPlus בקשה ליצירת לינק חידוש
+4. הלינק נשלח ללקוח באימייל
+
+### 17.6 בדיקת תשלומים שנכשלו
+
+- ה-Cron sync בודק אוטומטית את `GET /RecurringPaymentsReports/Failures`
+- הוראות קבע עם כשלון מסומנות `is_valid: false`
+- הלקוח מקבל אימייל אוטומטית
+- בנוסף: אם `last_charge_date` ישן מ-45 יום → ההו"ק מסומנת כלא תקינה
+
+### 17.7 Debugging — בדיקה ב-Postman
+
+**Headers:**
+```
+Content-Type: application/json
+api-key: {PAYPLUS_API_KEY}
+secret-key: {PAYPLUS_SECRET_KEY}
+```
+
+**צפייה בכל הוראות קבע:**
+```
+GET https://restapi.payplus.co.il/api/v1.0/RecurringPayments/View?terminal_uid={TERMINAL_UID}
+```
+
+**צפייה בהו"ק ספציפית:**
+```
+GET https://restapi.payplus.co.il/api/v1.0/RecurringPayments/{recurring_uid}/ViewRecurring?terminal_uid={TERMINAL_UID}
+```
+
+**יצירת לינק תשלום:**
+```
+POST https://restapi.payplus.co.il/api/v1.0/PaymentPages/generateLink
+Body: { payment_page_uid, amount, charge_method: 3, recurring_settings: {...} }
+```
+
+### 17.8 Environment Variables — מה צריך להגדיר
+
+```env
+# חובה
+PAYPLUS_API_KEY=xxx                    # מפתח API מ-PayPlus
+PAYPLUS_SECRET_KEY=xxx                 # מפתח סודי (גם ל-webhook HMAC)
+PAYPLUS_PAYMENT_PAGE_UID=xxx           # UID של דף תשלום ברירת מחדל
+PAYPLUS_TERMINAL_UID=xxx               # מזהה טרמינל (להו"ק)
+NEXT_PUBLIC_BASE_URL=https://...       # URL של האפליקציה (ל-webhooks)
+CRON_SECRET=xxx                        # Token לאימות cron
+
+# אופציונלי
+PAYPLUS_CASHIER_UID=xxx               # מזהה קופה
+PAYPLUS_USE_MOCK=true                  # מצב פיתוח — ללא חיובים אמיתיים
+PAYPLUS_FORCE_PRODUCTION=true          # שימוש ב-production URL גם ב-dev
+```
+
+---
+
+*Document verified against source code on 2026-07-19. Includes recurring_settings fix.*
