@@ -193,17 +193,52 @@ export const POST = apiHandler(async (req: Request) => {
     await resend.emails.send({
       from: process.env.RESEND_AUTH_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || "Clearpoint <no-reply@clearpoint.co.il>",
       to: [email],
-      subject: "הצטרפות למערכת Clearpoint",
+      subject: "ברוכים הבאים ל-ClearPoint - הגדרת חשבון",
       html: `
-        <div style="font-family: sans-serif; line-height: 1.5;">
-          <h2>שלום ${full_name || ""},</h2>
-          <p>נוצר עבורך חשבון במערכת Clearpoint.</p>
-          <p>להגדרת סיסמה וכניסה ראשונה, לחץ/י על הקישור הבא:</p>
-          <p><a href="${result.data.properties.action_link}" target="_blank">השלם הרשמה</a></p>
-          <p>אם אינך מכיר/ה את המייל הזה, ניתן להתעלם ממנו.</p>
-          <br />
-          <p>תודה,</p>
-          <p>צוות Clearpoint</p>
+        <div dir="rtl" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); padding: 32px 24px; text-align: center; border-radius: 12px 12px 0 0;">
+            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0;">ClearPoint</h1>
+            <p style="color: #bfdbfe; font-size: 14px; margin: 8px 0 0 0;">מערכות אבטחה ומצלמות</p>
+          </div>
+
+          <!-- Body -->
+          <div style="padding: 40px 32px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+            <h2 style="color: #1f2937; font-size: 22px; font-weight: 600; margin: 0 0 16px 0;">שלום ${full_name || ""},</h2>
+            
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.7; margin: 0 0 12px 0;">
+              נוצר עבורך חשבון במערכת ClearPoint לניהול מצלמות האבטחה שלך.
+            </p>
+            
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.7; margin: 0 0 28px 0;">
+              לחץ/י על הכפתור למטה להגדרת סיסמה וכניסה ראשונה:
+            </p>
+
+            <!-- CTA Button -->
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${result.data.properties.action_link}" target="_blank" 
+                style="display: inline-block; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: #ffffff; text-decoration: none; font-size: 18px; font-weight: 700; padding: 16px 48px; border-radius: 8px; box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);">
+                הגדרת סיסמה וכניסה
+              </a>
+            </div>
+
+            <p style="color: #9ca3af; font-size: 13px; text-align: center; margin: 24px 0 0 0;">
+              הקישור תקף ל-24 שעות. אם פג התוקף, פנה למשרד לקבלת קישור חדש.
+            </p>
+
+            <!-- Divider -->
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 32px 0;" />
+
+            <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 0;">
+              אם לא ביקשת חשבון זה, ניתן להתעלם מהודעה זו.
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div style="text-align: center; padding: 24px; color: #9ca3af; font-size: 12px;">
+            <p style="margin: 0;">ClearPoint Security &copy; ${new Date().getFullYear()}</p>
+            <p style="margin: 4px 0 0 0;">info@clearpoint.co.il | www.clearpoint.co.il</p>
+          </div>
         </div>
       `,
     });

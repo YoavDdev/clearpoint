@@ -15,7 +15,21 @@ export default function AuthRedirectHandler() {
     const handleAuthRedirect = async () => {
       // Check if we have auth tokens in the URL hash
       const hash = window.location.hash;
-      if (!hash || !hash.includes("access_token")) {
+      if (!hash) return;
+
+      // Handle error redirects (e.g. expired invite link)
+      if (hash.includes("error=")) {
+        const hashParams = new URLSearchParams(hash.slice(1));
+        const errorCode = hashParams.get("error_code");
+        if (errorCode === "otp_expired") {
+          router.push("/login?error=הקישור+פג+תוקף.+אנא+פנה+למשרד+לקבלת+קישור+חדש.");
+        } else {
+          router.push("/login?error=הקישור+אינו+תקין.+אנא+פנה+למשרד.");
+        }
+        return;
+      }
+
+      if (!hash.includes("access_token")) {
         return;
       }
 

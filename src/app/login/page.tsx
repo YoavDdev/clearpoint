@@ -2,7 +2,7 @@
 
 import { signIn, useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Lock, Mail, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
@@ -14,7 +14,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
+
+  // Show error from query params (e.g. expired invite link)
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    if (errorParam) {
+      setError(decodeURIComponent(errorParam.replace(/\+/g, ' ')));
+    }
+  }, [searchParams]);
 
   // Redirect if already logged in
   useEffect(() => {
