@@ -37,12 +37,19 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_BASE_URL || "https://clearpoint.co.il";
 
-  // יצירת לינק כניסה חדש (magiclink עובד גם למשתמשים קיימים)
+  // וידוא שהמייל מאומת (נדרש ל-magiclink)
+  await supabaseAdmin.auth.admin.updateUserById(userId, {
+    email_confirm: true,
+  });
+
+  // יצירת לינק כניסה חדש
   const result = await supabaseAdmin.auth.admin.generateLink({
     type: "magiclink",
     email: user.email,
     options: { redirectTo: `${siteUrl}/auth/callback?next=/setup-password` },
   });
+
+  console.log("📧 generateLink result:", { error: result.error, hasLink: !!result.data?.properties?.action_link });
 
   if (result.error || !result.data?.properties?.action_link) {
     return NextResponse.json(
