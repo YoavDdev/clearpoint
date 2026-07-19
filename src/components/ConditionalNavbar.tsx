@@ -17,7 +17,11 @@ export default function ConditionalNavbar() {
     '/login',
     '/forgot-password',
     '/reset-password',
-    '/setup-password'
+    '/setup-password',
+    '/recurring-payment-success',
+    '/payment-success',
+    '/payment-cancelled',
+    '/invoice-payment-success',
   ];
   const shouldHideNavbar = hiddenRoutes.some(route => pathname.startsWith(route));
   
