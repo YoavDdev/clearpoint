@@ -5,7 +5,7 @@ import {
   Bell, Plus, Pencil, Trash2, Power, PowerOff, Save, X,
   Clock, Shield, Car, Bug, Flame, User, Loader2,
   ChevronDown, ChevronUp, Camera, Mail, MessageSquare, Smartphone,
-  Sparkles, Settings, Briefcase, Sword, Dog, Cat
+  Sparkles, Settings, Briefcase, Sword, Dog, Cat, Truck, Bus
 } from 'lucide-react';
 import AlertsFeed from '@/components/AlertsFeed';
 
@@ -38,6 +38,8 @@ interface CameraOption {
 const DETECTION_TYPES = [
   { value: 'person', label: 'אדם', icon: User, color: 'blue' },
   { value: 'vehicle', label: 'רכב', icon: Car, color: 'orange' },
+  { value: 'truck', label: 'משאית', icon: Truck, color: 'amber' },
+  { value: 'bus', label: 'אוטובוס', icon: Bus, color: 'orange' },
   { value: 'dog', label: 'כלב', icon: Dog, color: 'green' },
   { value: 'cat', label: 'חתול', icon: Cat, color: 'emerald' },
   { value: 'animal', label: 'חיה אחרת', icon: Bug, color: 'green' },
@@ -59,6 +61,7 @@ const PRESET_ICONS: Record<string, string> = {
   night_guard: '🌙',
   intrusion: '🚨',
   vehicle: '🚗',
+  truck: '🚛',
   suspicious_object: '🎒',
   weapon: '🔪',
   fire_smoke: '🔥',

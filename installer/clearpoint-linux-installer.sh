@@ -678,22 +678,55 @@ fi
 
 step "INSTALLATION COMPLETE"
 
+# Create desktop checklist file — visible immediately on login
+mkdir -p ~/Desktop
+cat > ~/Desktop/CLEARPOINT_CHECKLIST.txt << 'CHECKEOF'
+╔══════════════════════════════════════════════════╗
+║   CLEARPOINT SECURITY — POST-INSTALL CHECKLIST   ║
+╚══════════════════════════════════════════════════╝
+
+❗ DO NOT DELETE THIS FILE UNTIL ALL STEPS ARE DONE
+
+☐ 1. BIOS SETUP (חובה!)
+   → Restart → Enter BIOS (Del / F2)
+   → Advanced → Power → "Restore AC Power Loss" → Power On
+   → Save & Exit
+   (This ensures the Mini PC auto-starts after power outage)
+
+☐ 2. RUSTDESK REMOTE ACCESS
+   → Open RustDesk from desktop
+   → Write down the ID: ____________
+   → Send the ID to the Clearpoint admin team
+   (This allows remote support access)
+
+☐ 3. TEST FROM PHONE
+   → Open the Clearpoint app on your phone
+   → Check LIVE view — all cameras streaming?
+   → Wait 10 minutes → Check RECORDINGS — clips appearing?
+   → Test AI — walk in front of camera, check alerts
+
+☐ 4. VERIFY UPLOAD
+   → Wait 10 minutes after install
+   → Run: tail -5 ~/vod-upload-log.txt
+   → Should see "uploaded successfully" messages
+
+DELETE THIS FILE WHEN ALL STEPS ARE COMPLETE ✅
+CHECKEOF
+
+ok "Checklist created on Desktop: ~/Desktop/CLEARPOINT_CHECKLIST.txt"
+
 echo ""
 echo -e "${GREEN}${BOLD}════════════════════════════════════════════${NC}"
 echo -e "${GREEN}${BOLD}  ✅ Clearpoint Security — Ready!          ${NC}"
 echo -e "${GREEN}${BOLD}════════════════════════════════════════════${NC}"
 echo ""
 echo -e "  ${BOLD}User ID:${NC}     $USER_ID"
-echo -e "  ${BOLD}Cameras:${NC}     ${#CAMERAS[@]}"
 echo -e "  ${BOLD}Services:${NC}    cameras + AI + live + tunnel"
 echo -e "  ${BOLD}VAAPI:${NC}       enabled (GPU transcoding)"
 echo -e "  ${BOLD}Auto-restart:${NC} after crash + daily (24h)"
 echo -e "  ${BOLD}Power loss:${NC}  auto-start (systemd)"
 echo ""
-echo -e "${YELLOW}${BOLD}⚠️  IMPORTANT — Do these manually:${NC}"
-echo -e "  1. ${BOLD}BIOS:${NC} Set 'Restore AC Power Loss' → Power On"
-echo -e "  2. ${BOLD}RustDesk:${NC} Run 'rustdesk' and save the ID"
-echo -e "  3. ${BOLD}Test phone:${NC} Open app → verify live + recordings"
+echo -e "${YELLOW}${BOLD}⚠️  OPEN ~/Desktop/CLEARPOINT_CHECKLIST.txt AND COMPLETE ALL STEPS!${NC}"
 echo ""
 echo -e "${CYAN}Useful commands:${NC}"
 echo "  journalctl -u camera-1 -f        # Camera logs"

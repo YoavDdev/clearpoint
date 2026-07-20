@@ -97,6 +97,21 @@ const SYSTEM_PRESETS = [
     notify_sms: true,
     notify_push: true,
   },
+  {
+    preset_key: "truck",
+    name: "זיהוי משאית",
+    detection_type: "truck",
+    schedule_start: null,
+    schedule_end: null,
+    days_of_week: [0, 1, 2, 3, 4, 5, 6],
+    cooldown_minutes: 5,
+    min_confidence: 0.5,
+    is_preset: true,
+    is_active: false,
+    notify_email: true,
+    notify_sms: false,
+    notify_push: true,
+  },
 ];
 
 async function getAuthUser(supabase: any, email: string) {

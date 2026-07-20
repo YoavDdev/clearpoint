@@ -22,6 +22,9 @@ function findMatchingRule(rules: any[], alert: any): any | null {
     // 1. Detection type check
     if (rule.detection_type === "fire_smoke") {
       if (alert.detection_type !== "fire" && alert.detection_type !== "smoke") continue;
+    } else if (rule.detection_type === "vehicle") {
+      // "vehicle" rules match all vehicle subtypes (car/motorcycle/bicycle + truck + bus)
+      if (!["vehicle", "truck", "bus"].includes(alert.detection_type)) continue;
     } else if (rule.detection_type !== "any" && rule.detection_type !== alert.detection_type) {
       continue;
     }

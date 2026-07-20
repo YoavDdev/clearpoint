@@ -57,8 +57,12 @@ COCO_TO_DETECTION = {}
 for i, cls in enumerate(COCO_CLASSES):
     if cls == "person":
         COCO_TO_DETECTION[i] = "person"
-    elif cls in ("car", "motorcycle", "bus", "truck", "bicycle"):
+    elif cls in ("car", "motorcycle", "bicycle"):
         COCO_TO_DETECTION[i] = "vehicle"
+    elif cls == "truck":
+        COCO_TO_DETECTION[i] = "truck"
+    elif cls == "bus":
+        COCO_TO_DETECTION[i] = "bus"
     elif cls == "dog":
         COCO_TO_DETECTION[i] = "dog"
     elif cls == "cat":
@@ -79,6 +83,8 @@ FIRE_CLASS_MAP = {0: "fire", 1: "smoke"}
 DETECTION_COLORS = {
     "person": (255, 100, 50),         # Blue (BGR)
     "vehicle": (0, 140, 255),         # Orange
+    "truck": (0, 100, 200),           # Dark orange
+    "bus": (0, 120, 230),             # Light orange
     "dog": (0, 200, 80),              # Green
     "cat": (80, 220, 180),            # Light green
     "animal": (0, 180, 60),           # Dark green
@@ -90,6 +96,8 @@ DETECTION_COLORS = {
 DETECTION_LABELS = {
     "person": "Person",
     "vehicle": "Vehicle",
+    "truck": "Truck",
+    "bus": "Bus",
     "dog": "Dog",
     "cat": "Cat",
     "animal": "Animal",

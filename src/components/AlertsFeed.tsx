@@ -5,7 +5,7 @@ import {
   Bell, BellOff, Check, CheckCheck, User, Car, Bug,
   Shield, Flame, Clock, Camera, Loader2, RefreshCw, Filter,
   ChevronDown, ChevronUp, Image as ImageIcon, AlertTriangle, Download, Trash2, Video,
-  Briefcase, Sword, Dog, Cat
+  Briefcase, Sword, Dog, Cat, Truck, Bus
 } from 'lucide-react';
 
 interface Alert {
@@ -26,6 +26,8 @@ interface Alert {
 const DETECTION_ICONS: Record<string, any> = {
   person: User,
   vehicle: Car,
+  truck: Truck,
+  bus: Bus,
   dog: Dog,
   cat: Cat,
   animal: Bug,
@@ -40,6 +42,8 @@ const DETECTION_ICONS: Record<string, any> = {
 const DETECTION_LABELS: Record<string, string> = {
   person: 'אדם',
   vehicle: 'רכב',
+  truck: 'משאית',
+  bus: 'אוטובוס',
   dog: 'כלב',
   cat: 'חתול',
   animal: 'חיה אחרת',
@@ -54,6 +58,8 @@ const DETECTION_LABELS: Record<string, string> = {
 const DETECTION_COLORS: Record<string, string> = {
   person: 'blue',
   vehicle: 'orange',
+  truck: 'amber',
+  bus: 'orange',
   dog: 'green',
   cat: 'emerald',
   animal: 'green',
@@ -288,8 +294,8 @@ export default function AlertsFeed({ isAdmin = false }: { isAdmin?: boolean }) {
             { key: 'unacknowledged', label: 'חדשות' },
             { key: 'person', label: 'אדם' },
             { key: 'vehicle', label: 'רכב' },
+            { key: 'truck', label: 'משאית' },
             { key: 'animal', label: 'חיה' },
-            { key: 'motion', label: 'תנועה' },
           ].map(f => (
             <button
               key={f.key}
@@ -363,9 +369,13 @@ function AlertCard({
   const colorClasses: Record<string, { bg: string; text: string; ring: string }> = {
     blue: { bg: 'bg-blue-50', text: 'text-blue-600', ring: 'ring-blue-200' },
     orange: { bg: 'bg-orange-50', text: 'text-orange-600', ring: 'ring-orange-200' },
+    amber: { bg: 'bg-amber-50', text: 'text-amber-600', ring: 'ring-amber-200' },
     green: { bg: 'bg-green-50', text: 'text-green-600', ring: 'ring-green-200' },
+    emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600', ring: 'ring-emerald-200' },
+    yellow: { bg: 'bg-yellow-50', text: 'text-yellow-600', ring: 'ring-yellow-200' },
     purple: { bg: 'bg-purple-50', text: 'text-purple-600', ring: 'ring-purple-200' },
     red: { bg: 'bg-red-50', text: 'text-red-600', ring: 'ring-red-200' },
+    gray: { bg: 'bg-gray-50', text: 'text-gray-600', ring: 'ring-gray-200' },
     slate: { bg: 'bg-slate-50', text: 'text-slate-600', ring: 'ring-slate-200' },
   };
 
