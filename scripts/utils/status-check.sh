@@ -298,14 +298,32 @@ for CAMERA_DIR in $CAMERA_DIRS; do
         "מצלמה רוסטרטה ($STREAM_STATUS)" \
         "{\"camera_id\": \"$CAMERA_UUID\", \"stream_status\": \"$STREAM_STATUS\", \"m3u8_age_sec\": $M3U8_AGE_SEC, \"retry_count\": $((COUNT+1))}"
       
-      # Force kill all related processes
-      pkill -9 -f "camera-${CAMERA_DIR}.sh"
-      pkill -9 -f "ffmpeg.*${CAMERA_DIR}"
-      sleep 5  # Wait for processes to fully terminate
+      # Find the systemd service for this camera UUID (grep service files for the UUID)
+      SVC_NAME=""
+      for svc_file in /etc/systemd/system/camera-*.service; do
+        if [[ -f "$svc_file" ]] && grep -q "$CAMERA_UUID" "$svc_file" 2>/dev/null; then
+          SVC_NAME=$(basename "$svc_file")
+          break
+        fi
+      done
       
-      # Start new camera process
-      bash ~/clearpoint-scripts/camera-${CAMERA_DIR}.sh &
-      echo "✅ Camera $CAMERA_DIR restart initiated"
+      if [[ -n "$SVC_NAME" ]]; then
+        # Restart via systemd (clean process management)
+        sudo systemctl restart "$SVC_NAME"
+        echo "✅ Camera $CAMERA_DIR restarted via systemd ($SVC_NAME)"
+      else
+        # Fallback: kill ffmpeg processes for this camera and restart manually
+        pkill -9 -f "ffmpeg.*${CAMERA_DIR}" 2>/dev/null
+        sleep 5
+        # Try to find camera script that references this UUID
+        for script in ~/clearpoint-scripts/camera-*.sh; do
+          if [[ -f "$script" ]] && grep -q "$CAMERA_UUID" "$script" 2>/dev/null; then
+            bash "$script" &
+            echo "✅ Camera $CAMERA_DIR restarted via script ($script)"
+            break
+          fi
+        done
+      fi
     else
       echo "⏳ Retry limit reached for $CAMERA_DIR — skipping restart"
       

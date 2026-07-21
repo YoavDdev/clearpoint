@@ -22,10 +22,11 @@
 | # | פעולה | זמן |
 |---|--------|------|
 | 1 | מתקין מצלמות פיזית + כבלי רשת | 20-30 דק' |
-| 2 | מגדיר IPs קבועים למצלמות (101-104) | 5 דק' |
-| 3 | מחבר: Mini PC + SIM Router + חשמל | 2 דק' |
-| 4 | BIOS: Power On after AC loss (פעם אחת) | 2 דק' |
-| 5 | ממתין 2 דקות → בודק מהטלפון | 2 דק' |
+| 2 | סריקת רשת + מציאת מצלמות | 1 דק' |
+| 3 | מגדיר IPs קבועים למצלמות (101-104) | 5 דק' |
+| 4 | מחבר: Mini PC + SIM Router + חשמל | 2 דק' |
+| 5 | BIOS: Power On after AC loss (פעם אחת) | 2 דק' |
+| 6 | ממתין 2 דקות → בודק מהטלפון | 2 דק' |
 | | **סה"כ בשטח:** | **~35 דק'** |
 
 ### 💡 סטנדרט IPs (תמיד אותו דבר):
@@ -39,6 +40,42 @@ SIM Router:  192.168.1.1 (gateway)
 ```
 
 > ✅ כשמשתמשים באותם IPs תמיד — הסקריפטים שנוצרו בבית עובדים בשטח בלי שינוי!
+
+### 🔍 סריקת רשת — מציאת מצלמות
+
+מצלמות מקבלות IP אוטומטי (DHCP) כשמתחברות לראוטר. ה-IP **לא בהכרח** מה שכתוב בדף המפרט.
+
+**שלב 1: סריקת הרשת** (מה-Mini PC):
+```bash
+sudo nmap -sn 192.168.1.0/24
+```
+
+תקבל רשימה של כל המכשירים ברשת, למשל:
+```
+192.168.1.1    — Router
+192.168.1.96   — Unknown (זו המצלמה!)
+192.168.1.244  — Mini PC
+```
+
+**שלב 2: גישה להגדרות המצלמה:**
+```
+http://192.168.1.96   (ה-IP שמצאת בסריקה)
+```
+- User: `admin` | Password: ריק או `admin`
+
+**שלב 3: קיבוע IP קבוע (חובה!):**
+1. בממשק המצלמה → **Network** / **TCP/IP**
+2. שנה מ-**DHCP** ל-**Static**
+3. הגדר:
+   - IP: `192.168.1.101` (מצלמה 1), `192.168.1.102` (מצלמה 2) וכו'
+   - Subnet: `255.255.255.0`
+   - Gateway: `192.168.1.1`
+   - DNS: `8.8.8.8`
+4. **Save** → המצלמה תתנתק ותחזור ב-IP החדש
+
+> ⚠️ **חשוב**: תמיד קבע IP קבוע במצלמה עצמה (לא דרך DHCP Reservation בראוטר) — ככה גם אם מחליפים ראוטר, המצלמה שומרת את ה-IP שלה.
+
+> 💡 **טיפ**: אם יש כמה מצלמות — חבר אותן אחת אחת, סרוק, קבע IP, ואז חבר את הבאה. ככה לא מתבלבלים.
 
 ---
 
@@ -95,21 +132,53 @@ SIM Router:  192.168.1.1 (gateway)
 3. חזור על זה לכל מצלמה (בד"כ 4)
 4. **הורד את סקריפטי המצלמות** (כפתור הירוק ליד כל מצלמה)
 
-### 0.4 — הכנת Cloudflare Tunnel
+### 0.4 — הכנת Cloudflare Tunnel (חובה — בשביל צפייה בלייב מרחוק)
 
+> ⚠️ **בלי Tunnel — הלקוח לא יוכל לראות מצלמות מהטלפון מחוץ לרשת המקומית!**
+
+**שלב 1: יצירת Tunnel:**
 1. כנס ל-[Cloudflare Zero Trust](https://one.dash.cloudflare.com/)
 2. **Networks** → **Tunnels** → **Create a tunnel**
-3. שם: `minipc-[שם-לקוח]`
-4. בחר Connector: **Cloudflared**
-5. העתק את ה-**Install Token** (שורה ארוכה שמתחילה ב-`eyJ...`)
-6. הגדר **Public Hostname:**
-   - Subdomain: `[שם-לקוח]` → Domain: `clearpoint.co.il`
-   - Service: `http://localhost:8080`
+3. **Tunnel name**: `[שם-הלקוח]-[מיקום]` (למשל: `yehud-cemetery`)
+
+**שלב 2: הגדרת סביבה:**
+1. **Operating System**: בחר **Debian** (⚠️ לא Windows!)
+2. **Architecture**: `64-bit`
+
+**שלב 3: העתקת Token:**
+1. בעמוד "Install and Run" תראה פקודה כמו:
+   ```
+   cloudflared service install eyJhIjoi...
+   ```
+2. **ה-Token הוא הטקסט שמתחיל ב-`eyJ`** — לחץ על כפתור ההעתקה 📋
+3. שמור את ה-Token — תצטרך אותו בזמן ההתקנה!
+
+**שלב 4: הגדרת Public Hostname:**
+1. לחץ **Next** (למטה)
+2. מלא:
+   - **Subdomain**: `[שם-הלקוח]-[מיקום]` (למשל: `yehud-cemetery`)
+   - **Domain**: `clearpoint.co.il`
+   - **Service Type**: `HTTP`
+   - **URL**: `localhost:8080`
+3. לחץ **Save tunnel**
+
+> 💡 **כתוב לעצמך** את ה-Token ואת ה-subdomain. ה-Token ארוך מאוד — שמור אותו בקובץ!
+>
+> דוגמה למבנה Token:
+> ```
+> eyJhIjoiZmY5ZD...NldWbSJ9
+> ```
+
+**תוצאה:** אחרי ההתקנה, הלייב יהיה זמין ב:
+```
+https://[subdomain].clearpoint.co.il
+```
+(למשל: `https://yehud-cemetery.clearpoint.co.il`)
 
 ### 0.5 — יצירת Device Token
 
-1. **Admin Panel** → **מכשירים** (כשיהיה) או שמור ב-`.env`
-2. צור device token ייחודי למכשיר
+> Device Token נוצר **אוטומטית** כשלוחצים "ייצא קובץ התקנה" ב-Admin Panel.
+> אם מריצים ב-manual mode — העתק את ה-Device Token מתוך קובץ ה-config שייצאת.
 
 ---
 
@@ -144,21 +213,48 @@ SIM Router:  192.168.1.1 (gateway)
    - Snaps: **לא צריך כלום**
 4. חכה שההתקנה תסתיים → **Reboot** → הוצא USB
 
-### 1.3 — כניסה ראשונה
+### 1.3 — כניסה ראשונה + RustDesk
 
+**שלב 0: חיבור לאינטרנט:**
 ```bash
-# התחבר עם clearpoint / [הסיסמה שבחרת]
-# ודא שיש אינטרנט:
-ping -c 3 google.com
+sudo nmcli device connect enp3s0
 ```
 
-**אם SIM Router:** חבר את ה-SIM Router לחשמל, חבר כבל Ethernet מהנתב ל-Mini PC.
+**אם SIM Router:** חבר את ה-SIM Router לחשמל, חבר כבל Ethernet מהנתב ל-Mini PC (פורט **LAN**, לא WAN!).
 
 **אם WiFi:**
 ```bash
-# חבר WiFi (אם לא עשית בהתקנה):
 sudo nmcli dev wifi connect "NETWORK_NAME" password "WIFI_PASSWORD"
 ```
+
+**ודא שיש אינטרנט:**
+```bash
+ping -c 3 8.8.8.8
+```
+
+**שלב 1: הורדת הקוד:**
+```bash
+sudo apt install git -y && git clone https://github.com/YoavDdev/clearpoint.git ~/clearpoint-setup
+```
+
+**שלב 2: התקנת RustDesk + חיבור לשרת:**
+```bash
+wget https://github.com/rustdesk/rustdesk/releases/download/1.3.9/rustdesk-1.3.9-x86_64.deb && sudo apt install -y ./rustdesk-1.3.9-x86_64.deb
+
+rustdesk --config set-id-server 172.236.221.235
+rustdesk --config set-relay-server 172.236.221.235
+rustdesk --config set-key "0MXeVGCuc2qZAmGYKqjXav7NN+MAQLNFdf2XAMgSVMk="
+
+rustdesk &
+```
+
+> 📝 **פרטי שרת RustDesk (פרטי):**
+> - **ID Server / Relay**: `172.236.221.235`
+> - **Public Key**: `0MXeVGCuc2qZAmGYKqjXav7NN+MAQLNFdf2XAMgSVMk=`
+
+**שלב 3:** רשום את ה-RustDesk ID ← התחבר מרחוק מה-Mac ← המשך עבודה מרחוק!
+
+> 💡 **מכאן אפשר להמשיך הכל דרך RustDesk** — כולל סריקת מצלמות, העברת config, והרצת ה-installer.
 
 ---
 
@@ -464,6 +560,46 @@ sudo ufw allow 21116/udp
 | אימות | 5 דק' |
 | סיום בשטח | 2 דק' |
 | **סה"כ** | **~35-40 דק'** |
+
+---
+
+## 🔧 פתרון בעיות — מייל לא מגיע ללקוח
+
+לפעמים שרתי מייל של ארגונים (עיריות, חברות) חוסמים את המיילים של Supabase.
+אם לחצת "שלח קישור כניסה" ו**המייל לא הגיע** — בצע את הצעדים הבאים:
+
+### אפשרות 1: הגדרת סיסמה ידנית (מומלץ)
+
+1. פתח את ה-Admin panel בדפדפן
+2. פתח Console (F12 → Console)
+3. הריץ:
+```javascript
+fetch('/api/admin/set-user-password', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    userId: 'USER_ID_HERE',
+    password: 'PASSWORD_HERE'
+  })
+}).then(r => r.json()).then(console.log)
+```
+4. תקבל: `{success: true, email: '...', message: 'Password set for ...'}`
+5. תן ללקוח את המייל + הסיסמה — ייכנס דרך `/login`
+
+> **את ה-USER_ID** תמצא ב-URL של דף הלקוח, למשל:
+> `/admin/customers/b0ffb6cc-560c-4165-ab5f-a628a9466e28`
+
+### אפשרות 2: דרך Supabase Dashboard
+
+1. לך ל-[Supabase Dashboard](https://supabase.com/dashboard) → Authentication → Users
+2. חפש את המייל של הלקוח
+3. לחץ על המשתמש → **Send magic link** או **Send password recovery**
+4. אם גם זה לא מגיע — השתמש באפשרות 1
+
+### סיבות נפוצות לחסימת מיילים:
+- שרת מייל ארגוני (עירייה, חברה) חוסם שולחים לא מוכרים
+- מייל נכנס לספאם/דואר זבל
+- Supabase שולח מ-domain שלא ב-whitelist של הארגון
 
 ---
 

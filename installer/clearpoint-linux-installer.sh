@@ -175,6 +175,8 @@ sudo apt install -y -qq \
     wget \
     cron \
     unzip \
+    nmap \
+    iputils-ping \
     python3 \
     python3-pip \
     python3-venv \
@@ -579,18 +581,60 @@ autologin-user=$USER
 autologin-user-timeout=0
 EOF
 
-ok "XFCE4 desktop installed (auto-login enabled)"
+# Disable screen lock and screen blanking (Mini PC must never lock)
+mkdir -p ~/.config/xfce4/xfconf/xfce-perchannel-xml
+
+cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-power-manager.xml << 'PWREOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-power-manager" version="1.0">
+  <property name="xfce4-power-manager" type="empty">
+    <property name="dpms-enabled" type="bool" value="false"/>
+    <property name="blank-on-ac" type="int" value="0"/>
+    <property name="dpms-on-ac-sleep" type="uint" value="0"/>
+    <property name="dpms-on-ac-off" type="uint" value="0"/>
+  </property>
+</channel>
+PWREOF
+
+cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-screensaver.xml << 'SSEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-screensaver" version="1.0">
+  <property name="saver" type="empty">
+    <property name="enabled" type="bool" value="false"/>
+  </property>
+  <property name="lock" type="empty">
+    <property name="enabled" type="bool" value="false"/>
+  </property>
+</channel>
+SSEOF
+
+# Disable screen blanking at X11 level
+cat >> ~/.xprofile << 'XEOF'
+xset s off
+xset -dpms
+xset s noblank
+XEOF
+
+# Passwordless sudo for clearpoint user (no password prompts)
+echo "$USER ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/clearpoint-nopasswd > /dev/null
+sudo chmod 440 /etc/sudoers.d/clearpoint-nopasswd
+
+ok "XFCE4 desktop installed (auto-login, no screen lock, no password)"
 
 # Install RustDesk
 if ! command -v rustdesk >/dev/null 2>&1; then
-    RUSTDESK_VER="1.3.8"
+    RUSTDESK_VER="1.3.9"
     wget -q "https://github.com/rustdesk/rustdesk/releases/download/${RUSTDESK_VER}/rustdesk-${RUSTDESK_VER}-x86_64.deb" -O /tmp/rustdesk.deb
     sudo dpkg -i /tmp/rustdesk.deb 2>/dev/null || true
     sudo apt-get install -f -y -qq 2>/dev/null
 fi
 
 if command -v rustdesk >/dev/null 2>&1; then
-    ok "RustDesk installed"
+    # Configure Clearpoint private RustDesk server
+    rustdesk --config set-id-server 172.236.221.235 2>/dev/null || true
+    rustdesk --config set-relay-server 172.236.221.235 2>/dev/null || true
+    rustdesk --config set-key "0MXeVGCuc2qZAmGYKqjXav7NN+MAQLNFdf2XAMgSVMk=" 2>/dev/null || true
+    ok "RustDesk installed + configured (server: 172.236.221.235)"
     echo -e "${YELLOW}   ⚠️  After reboot, open RustDesk to get your ID${NC}"
 else
     warn "RustDesk installation failed — install manually later"
@@ -604,15 +648,20 @@ step "Starting all services"
 
 sudo systemctl daemon-reload
 
-# Camera services
-for i in "${!CAMERAS[@]}"; do
-    CAM_ID="camera-$((i + 1))"
-    sudo systemctl enable --now ${CAM_ID}.service 2>/dev/null
+# Camera services — determine count from correct array
+if [ "$CONFIG_MODE" = true ]; then
+    TOTAL_CAMS=${#CAMERAS_JSON[@]}
+else
+    TOTAL_CAMS=${#CAMERAS[@]}
+fi
+
+for ((i=1; i<=TOTAL_CAMS; i++)); do
+    sudo systemctl enable --now camera-${i}.service 2>/dev/null
     sleep 2
-    if systemctl is-active --quiet ${CAM_ID}.service; then
-        ok "$CAM_ID: RUNNING"
+    if systemctl is-active --quiet camera-${i}.service; then
+        ok "camera-${i}: RUNNING"
     else
-        err "$CAM_ID: FAILED — check: journalctl -u ${CAM_ID} -n 20"
+        err "camera-${i}: FAILED — check: journalctl -u camera-${i} -n 20"
     fi
 done
 
@@ -734,4 +783,5 @@ echo "  journalctl -u clearpoint-ai -f   # AI logs"
 echo "  tail -f ~/vod-upload-log.txt     # Upload logs"
 echo "  systemctl status clearpoint-*    # All services"
 echo "  top -bn1 | head -5               # CPU/RAM"
+echo "  sudo nmap -sn 192.168.1.0/24     # Scan cameras on network"
 echo ""

@@ -31,16 +31,15 @@ pkill -f "node live-server.js"
 
 # === Start Express server ===
 echo "🌐 Launching Express live stream server..."
-cd ~
 LIVE_DIR="$LIVE_ROOT/$USER_ID/live"
-NODE_ENV=production USER_ID="$USER_ID" node live-server.js "$LIVE_DIR" > ~/express-server-log.txt 2>&1 &
+NODE_ENV=production USER_ID="$USER_ID" node ~/clearpoint-core/live-server.js "$LIVE_DIR" > ~/express-server-log.txt 2>&1 &
 
 # === Wait for cameras to stabilize, then start AI ===
 echo "⏳ Waiting 30s for cameras to stabilize before starting AI..."
 sleep 30
 
-AI_SCRIPT=~/clearpoint-core/detect.py
-AI_VENV=~/clearpoint-core/venv
+AI_SCRIPT=~/clearpoint-ai/detect.py
+AI_VENV=~/clearpoint-ai/venv
 
 if [[ -f "$AI_SCRIPT" ]]; then
   echo "🧹 Stopping old AI process..."
@@ -51,7 +50,7 @@ if [[ -f "$AI_SCRIPT" ]]; then
   if [[ -d "$AI_VENV" ]]; then
     source "$AI_VENV/bin/activate"
   fi
-  cd ~/clearpoint-core
+  cd ~/clearpoint-ai
   python3 detect.py >> ~/clearpoint-logs/ai-detect.log 2>&1 &
   echo "✅ AI detection started (PID: $!)"
 else
